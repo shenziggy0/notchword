@@ -13,6 +13,14 @@ enum Permissions {
         return trusted
     }
 
+    /// 系统设置里授权入口的名字随版本变：macOS 26 起叫「设备控制和数据访问」。
+    static var settingsHint: String {
+        if #available(macOS 26.0, *) {
+            return "系统设置 → 隐私与安全性 → 设备控制和数据访问"
+        }
+        return "系统设置 → 隐私与安全性 → 辅助功能"
+    }
+
     static func openAccessibilitySettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
         NSWorkspace.shared.open(url)

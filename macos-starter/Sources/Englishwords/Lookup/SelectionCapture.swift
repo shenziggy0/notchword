@@ -32,8 +32,8 @@ enum SelectionCapture {
     }
 
     static func read() -> Result {
-        guard Permissions.isAccessibilityTrusted else { return Result(text: nil, source: .empty) }
-
+        // 注意：这里不要求辅助功能授权。AX 读取会自己检查权限，
+        // 而模拟复制的按键投递在当前环境下不需要该授权（实测可用）。
         if let text = AXPicker.selectedText() {
             return Result(text: text, source: .accessibility)
         }
@@ -52,6 +52,7 @@ enum SelectionCapture {
         let before = pasteboard.changeCount
         let snapshot = PasteboardSnapshot(pasteboard)
 
+        FileLog.write("选区：AX 读不到，尝试模拟复制")
         postCommandC()
 
         // 等目标应用把内容写进剪贴板，最多 300ms
@@ -61,16 +62,20 @@ enum SelectionCapture {
         }
 
         // 没有变化说明没有选区（或应用不响应 ⌘C），此时不必改写剪贴板
-        guard pasteboard.changeCount != before else { return nil }
+        guard pasteboard.changeCount != before else {
+            FileLog.write("选区：模拟复制无变化")
+            return nil
+        }
 
         let copied = (pasteboard.string(forType: .string) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+        FileLog.write("选区：模拟复制得到 \(copied.count) 字符，已还原剪贴板")
         snapshot.restore(to: pasteboard)
         return copied.isEmpty ? nil : copied
     }
 
     private static func postCommandC() {
-        let source = CGEventSource(stateID: .hidSystemState)
+        let source = CGEventSource(stateID: .combinedSessionState)
         let keyCode = CGKeyCode(kVK_ANSI_C)
 
         guard let down = CGEvent(keyboardEventSource: source, virtualKey: keyCode, keyDown: true),
@@ -78,9 +83,9 @@ enum SelectionCapture {
 
         down.flags = .maskCommand
         up.flags = .maskCommand
-        down.post(tap: .cghidEventTap)
+        down.post(tap: .cgSessionEventTap)
         usleep(20_000)
-        up.post(tap: .cghidEventTap)
+        up.post(tap: .cgSessionEventTap)
     }
 }
 

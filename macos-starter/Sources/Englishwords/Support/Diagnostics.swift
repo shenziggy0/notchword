@@ -13,7 +13,10 @@ enum Diagnostics {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         lines.append("版本：\(version)（\(build)）")
-        lines.append("辅助功能：\(Permissions.isAccessibilityTrusted ? "已授权" : "未授权")")
+        let permissionLine = Permissions.isAccessibilityTrusted
+            ? "已授权"
+            : "未授权（授权位置：\(Permissions.settingsHint)）"
+        lines.append("辅助功能：\(permissionLine)")
 
         let frontmost = AppRules.frontmostBundleID ?? "未知"
         let passiveAllowed = AppRules.allowsPassiveLookup()
@@ -38,6 +41,7 @@ enum Diagnostics {
 
         let preferences = Preferences.shared
         lines.append("开关：悬停 \(preferences.hoverEnabled ? "开" : "关")，划词 \(preferences.selectionEnabled ? "开" : "关")")
+        lines.append("日志：\(FileLog.logPath)")
         return lines.joined(separator: "\n")
     }
 }

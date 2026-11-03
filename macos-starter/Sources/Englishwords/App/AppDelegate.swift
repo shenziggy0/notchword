@@ -52,8 +52,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showAlert(title: "⌥T 未注册", message: error.localizedDescription)
         }
 
-        // 启动时只检查、不弹窗；用户主动点菜单才提示
-        _ = Permissions.ensureAccessibility(prompt: false)
+        // 首次启动且未授权时弹一次系统提示；之后只更新菜单状态，不反复打扰
+        let promptedKey = "permission.prompted"
+        let alreadyPrompted = UserDefaults.standard.bool(forKey: promptedKey)
+        _ = Permissions.ensureAccessibility(prompt: !alreadyPrompted)
+        if !alreadyPrompted { UserDefaults.standard.set(true, forKey: promptedKey) }
         FileLog.write("辅助功能授权：\(Permissions.isAccessibilityTrusted)")
         applyPreferences()
 
@@ -103,6 +106,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.hover = hover
 
         let selection = SelectionMonitor(preferences: preferences)
+        selection.isInsidePanel = { [weak self] point in self?.panels.contains(point) ?? false }
         selection.onSubmit = { [weak self] request in self?.coordinator.submit(request) }
         self.selection = selection
     }
@@ -184,6 +188,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quit.target = NSApp
         menu.addItem(quit)
 
+        menu.delegate = self
         statusItem.menu = menu
     }
 
@@ -211,7 +216,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         _ = Permissions.ensureAccessibility(prompt: true)
         Permissions.openAccessibilitySettings()
         showAlert(title: "授权后请重新打开应用",
-                  message: "在「隐私与安全性 → 辅助功能」里勾选 Englishwords 后，请退出并重新打开本应用，权限才会生效。")
+                  message: "在 \(Permissions.settingsHint) 里把 Englishwords 的开关打开，然后退出并重新打开本应用。")
     }
 
     @objc private func toggleHover() {
@@ -241,7 +246,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             lastLookupSummary = "显式读取剪贴板"
         } else if !trusted {
             lastLookupSummary = "未授权辅助功能，改用剪贴板"
-            note = "辅助功能未授权，读不到选中的文字，已改用剪贴板。"
+            note = "辅助功能未授权，读不到选中的文字，已改用剪贴板。授权位置：\(Permissions.settingsHint)。"
         } else if !clipboard.isEmpty {
             lastLookupSummary = "未读到选区，改用剪贴板"
             note = "没有读到选中文字，已改用剪贴板。"
@@ -274,5 +279,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = message
         alert.alertStyle = .warning
         alert.runModal()
+    }
+}
+
+// MARK: - NSMenuDelegate
+
+extension AppDelegate: NSMenuDelegate {
+    /// 菜单每次打开都重新读一次授权状态：授权后无需重启就能看到变化
+    func menuWillOpen(_ menu: NSMenu) {
+        permissionItem?.title = Permissions.isAccessibilityTrusted
+            ? "辅助功能已授权"
+            : "⚠️ 需要授权辅助功能…"
     }
 }
