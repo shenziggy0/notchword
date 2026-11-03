@@ -1,0 +1,68 @@
+import AppKit
+import ApplicationServices
+
+enum Permissions {
+
+    static var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
+
+    @discardableResult
+    static func ensureAccessibility(prompt: Bool) -> Bool {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: prompt] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        if !trusted { FileLog.write("辅助功能未授权") }
+        return trusted
+    }
+
+    static func openAccessibilitySettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        NSWorkspace.shared.open(url)
+    }
+}
+
+/// 被动取词的应用排除规则：密码管理器内不取词。
+enum AppRules {
+
+    static let excludedBundleIDs: Set<String> = [
+        "com.1password.1password",
+        "com.agilebits.onepassword7",
+        "com.bitwarden.desktop",
+        "com.dashlane.Dashlane",
+        "com.lastpass.LastPass",
+        "com.apple.Passwords",
+        "com.apple.keychainaccess"
+    ]
+
+    static var frontmostBundleID: String? {
+        NSWorkspace.shared.frontmostApplication?.bundleIdentifier
+    }
+
+    /// 前台是不是密码管理器（模拟复制时要避开，避免把密码写进剪贴板）。
+    static var isFrontmostExcluded: Bool {
+        guard let bundleID = frontmostBundleID else { return false }
+        return excludedBundleIDs.contains(bundleID)
+    }
+
+    /// 被动入口是否应当放行。自己的应用、密码管理器都不取词。
+    static func allowsPassiveLookup() -> Bool {
+        guard let bundleID = frontmostBundleID else { return true }
+        if bundleID == Bundle.main.bundleIdentifier { return false }
+        return !excludedBundleIDs.contains(bundleID)
+    }
+}
+
+enum Screens {
+
+    /// 指针所在的屏幕；找不到时退回主屏。
+    static func screen(containing point: NSPoint) -> NSScreen? {
+        NSScreen.screens.first { NSMouseInRect(point, $0.frame, false) } ?? NSScreen.main ?? NSScreen.screens.first
+    }
+
+    /// 当前鼠标位置（AppKit 全局坐标）。
+    static var mouseLocation: NSPoint { NSEvent.mouseLocation }
+
+    /// AppKit 全局坐标（左下原点）→ Accessibility 坐标（左上原点，主屏）。
+    static func accessibilityPoint(from point: NSPoint) -> CGPoint {
+        let primaryHeight = NSScreen.screens.first?.frame.maxY ?? 0
+        return CGPoint(x: point.x, y: primaryHeight - point.y)
+    }
+}

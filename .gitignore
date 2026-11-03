@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# 构建产物
+.build/
+build/
+DerivedData/
+*.xcodeproj
+xcuserdata/
+*.xcuserstate
+
+# SwiftPM
+.swiftpm/
+Package.resolved.bak
+
+# 词库生成缓存（可由脚本重新下载）
+macos-starter/scripts/.cache/
+
+# WorkBuddy 会话与记忆数据
+.workbuddy/
+
+# 本地环境与编辑器
+.env
+.env.*
+.idea/
+.vscode/

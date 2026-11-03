@@ -1,0 +1,171 @@
+key	role	label	forms	zh	en	lemma
+un	prefix	un-	un	不	not	
+re	prefix	re-	re	再；回	again	
+pre	prefix	pre-	pre	在前；预先	before	prae
+post	prefix	post-	post	在后	after	post
+sub	prefix	sub-	sub sup sus	在下；次级	under	sub
+super	prefix	super-	super	在上；超过	above	super
+trans	prefix	trans-	trans tran	穿过；转移	across	trans
+inter	prefix	inter-	inter	之间	between	inter
+intra	prefix	intra-	intra	内部	within	intra
+extra	prefix	extra-	extra	外部；额外	outside	extra
+ex	prefix	ex-	ex e	出；向外	out	ex
+in	prefix	in-	in im il ir	不；向内	not; into	in
+non	prefix	non-	non	非	not	non
+anti	prefix	anti-	anti	反对	against	anti
+an	prefix	an-	an	无；不	without	an
+auto	prefix	auto-	auto	自己	self	autos
+bi	prefix	bi-	bi	二	two	bi
+tri	prefix	tri-	tri	三	three	tri
+multi	prefix	multi-	multi	多	many	multus
+mono	prefix	mono-	mono	单一	one	monos
+micro	prefix	micro-	micro	微小	small	mikros
+macro	prefix	macro-	macro	宏大	large	makros
+tele	prefix	tele-	tele	远	far	tele
+mis	prefix	mis-	mis	错误	wrongly	
+over	prefix	over-	over	过度	over	
+under	prefix	under-	under	不足；在下	under	
+co	prefix	co-	co con com col cor	共同	together	cum
+de	prefix	de-	de	向下；去除	down; away	de
+dis	prefix	dis-	dis di	否定；分开	apart	dis
+en	prefix	en-	en em	使……	to make	
+pro	prefix	pro-	pro	向前	forward	pro
+per	prefix	per-	per	贯穿；完全	through	per
+ad	prefix	ad-	ad ac as at	朝向	toward	ad
+ab	prefix	ab-	ab abs	离开	away	ab
+ob	prefix	ob-	ob	阻碍；对着	against	ob
+circum	prefix	circum-	circum	环绕	around	circum
+contra	prefix	contra-	contra	相反	against	contra
+dia	prefix	dia-	dia	穿过	through	dia
+hyper	prefix	hyper-	hyper	过度	over	hyper
+hypo	prefix	hypo-	hypo	在下	under	hypo
+meta	prefix	meta-	meta	超越；变化	beyond	meta
+para	prefix	para-	para	旁边	beside	para
+peri	prefix	peri-	peri	周围	around	peri
+syn	prefix	syn-	syn sym	共同	together	syn
+uni	prefix	uni-	uni	单一	one	unus
+bene	prefix	bene-	bene	好	well	bene
+mal	prefix	mal-	mal	坏	badly	malus
+believe	root	believe	believe believ	相信	believe	credere
+dict	root	dict	dict	说；断言	say	dicere
+duct	root	duct	duct	引导；拉	lead	ducere
+port	root	port	port	搬运；携带	carry	portare
+cred	root	cred	cred	相信	believe	credere
+spect	root	spect	spect	看	look	specere
+script	root	script	script scrib	写	write	scribere
+tract	root	tract	tract	拉；拖	pull	trahere
+ject	root	ject	ject	投；扔	throw	iacere
+struct	root	struct	struct	建造	build	struere
+form	root	form	form	形状	shape	forma
+fact	root	fact	fact fect fic	做；制造	make	facere
+miss	root	miss	miss mit	送；派	send	mittere
+puls	root	puls	puls	推；驱动	drive	pellere
+tain	root	tain	tain ten tin	握；持	hold	tenere
+vert	root	vert	vert vers	转	turn	vertere
+voc	root	voc	voc vok voke	声音；喊	voice	vocare
+vis	root	vis	vis vid vide	看	see	videre
+aud	root	aud	aud	听	hear	audire
+graph	root	graph	graph	写；画	write	graphein
+phon	root	phon	phon	声音	sound	phone
+bio	root	bio	bio	生命	life	bios
+geo	root	geo	geo	地球	earth	ge
+chron	root	chron	chron	时间	time	chronos
+therm	root	therm	therm	热	heat	therme
+hydr	root	hydr	hydr	水	water	hydor
+photo	root	photo	photo	光	light	phos
+son	root	son	son	声音	sound	sonus
+psych	root	psych	psych	心灵	mind	psyche
+log	root	log	log logue	言；学科	word; study	logos
+nom	root	nom	nom nomin	名字	name	nomen
+onym	root	onym	onym nym	名字	name	onoma
+lex	root	lex	lex	词	word	lexicon
+liter	root	liter	liter	文字	letter	littera
+numer	root	numer	numer	数	number	numerus
+equ	root	equ	equ	相等	equal	aequus
+simil	root	simil	simil	相似	similar	similis
+magn	root	magn	magn	大	great	magnus
+brev	root	brev	brev	短	short	brevis
+fort	root	fort	fort	强	strong	fortis
+firm	root	firm	firm	坚固	firm	firmus
+val	root	val	val	价值；强	value	valere
+ver	root	ver	ver	真实	true	verus
+clar	root	clar	clar	清楚	clear	clarus
+luc	root	luc	luc lumin	光	light	lux
+mar	root	mar	mar marin	海	sea	mare
+terr	root	terr	terr	土地	earth	terra
+agri	root	agri	agri	田地	field	ager
+cult	root	cult	cult	耕种	till	colere
+flor	root	flor	flor	花	flower	flos
+avi	root	avi	avi	鸟	bird	avis
+anthrop	root	anthrop	anthrop	人类	human	anthropos
+dem	root	dem	dem	人民	people	demos
+crat	root	crat	crat	统治	rule	kratos
+polit	root	polit	polit	城市；政治	city	polis
+civ	root	civ	civ	公民	citizen	civis
+soci	root	soci	soci	同伴；社会	companion	socius
+popul	root	popul	popul	人民	people	populus
+dom	root	dom	dom	家；领域	home	domus
+habit	root	habit	habit	居住	live	habitare
+sist	root	sist	sist sta	站立	stand	stare
+pos	root	pos	pos pon	放置	put	ponere
+fer	root	fer	fer	带来	carry	ferre
+gress	root	gress	gress grad	走	step	gradi
+cess	root	cess	cess ced	走；让	go	cedere
+cur	root	cur	cur curs	跑	run	currere
+flu	root	flu	flu	流	flow	fluere
+aqu	root	aqu	aqu	水	water	aqua
+nov	root	nov	nov	新	new	novus
+prim	root	prim	prim	第一	first	primus
+cent	root	cent	cent	百	hundred	centum
+mill	root	mill	mill milli	千	thousand	mille
+poly	root	poly	poly	多	many	polys
+iso	root	iso	iso	相等	equal	isos
+pseudo	root	pseudo	pseudo	假	false	pseudes
+sum	root	sum	sum sumpt	拿；取	take	sumere
+man	root	man	man manu main	手	hand	manus
+dent	root	dent	dent	牙	tooth	dens
+cord	root	cord	cord	心	heart	cor
+ocul	root	ocul	ocul	眼	eye	oculus
+derm	root	derm	derm	皮肤	skin	derma
+neur	root	neur	neur	神经	nerve	neuron
+metr	root	metr	metr meter	测量	measure	metron
+gen	root	gen	gen gener	出生；产生	birth	gignere
+viv	root	viv	viv vit	生命；活	live	vivere
+mort	root	mort	mort	死	death	mors
+corp	root	corp	corp	身体	body	corpus
+capt	root	capt	capt cap	拿；抓	seize	capere
+sid	root	sid	sid sed	坐	sit	sedere
+tect	root	tect	tect	覆盖	cover	tegere
+integr	root	integr	integr	完整	whole	integer
+migr	root	migr	migr	迁移	move	migrare
+nutri	root	nutri	nutri	营养	nourish	nutrire
+gon	root	gon	gon	角	angle	gonia
+top	root	top	tope top	位置	place	topos
+view	root	view	view	看	see	videre
+able	suffix	-able	able ible	能……的	capable of	
+ate	suffix	-ate	ate	使……；具有……的	to make	
+ion	suffix	-ion	ion tion sion ation ition	名词后缀：行为或结果	action; result	
+ment	suffix	-ment	ment	名词后缀：结果	result	
+ness	suffix	-ness	ness	名词后缀：性质	state	
+ity	suffix	-ity	ity ety	名词后缀：性质	quality	
+ous	suffix	-ous	ous	形容词后缀：充满……的	full of	
+ive	suffix	-ive	ive	形容词后缀：有……性质的	tending to	
+al	suffix	-al	al ial ar	形容词或名词后缀	relating to	
+ic	suffix	-ic	ic ical	形容词后缀	relating to	
+ful	suffix	-ful	ful	充满……的	full of	
+less	suffix	-less	less	没有……的	without	
+ish	suffix	-ish	ish	略微……的	somewhat	
+ize	suffix	-ize	ize ise	使……化	to make	
+ify	suffix	-ify	ify	使……	to make	
+ly	suffix	-ly	ly	副词后缀	in a manner	
+er	suffix	-er	er or ator	人；物	one who	
+ist	suffix	-ist	ist	人	person	
+ism	suffix	-ism	ism	主义；学说	doctrine	
+ary	suffix	-ary	ary ury	与……有关的	relating to	
+ory	suffix	-ory	ory	与……有关的	relating to	
+ance	suffix	-ance	ance ence ience	名词后缀：状态	state	
+ency	suffix	-ency	ency	名词后缀：状态	state	
+ure	suffix	-ure	ure ature	名词后缀：结果	result	
+ant	suffix	-ant	ant	人；形容词后缀	one who; tending to	
+ics	suffix	-ics	ics	学科	study	
+ed	suffix	-ed	ed	形容词后缀：已……的	having	

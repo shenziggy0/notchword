@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Englishwords · 刘海查词交互原型</title>
+<style>
+  :root{
+    /* ---- 材质：对齐 macOS 深色 vibrancy ---- */
+    --desk-1:#15161a;
+    --desk-2:#0a0a0c;
+    --desk-glow:#2a2f3a;
+
+    --notch:#000;
+    --panel:rgba(30,30,34,.78);
+    --panel-solid:#1c1c20;
+    --stroke:rgba(255,255,255,.10);
+    --stroke-strong:rgba(255,255,255,.18);
+
+    --label:#f5f5f7;
+    --label-2:rgba(235,235,245,.68);
+    --label-3:rgba(235,235,245,.42);
+
+    --accent:#0a84ff;
+    --prefix:#ff9f0a;   /* 前缀 */
+    --root:#5ac8fa;     /* 词根 */
+    --suffix:#bf5af2;   /* 后缀 */
+    --star:#ffd60a;
+
+    --r-notch:12px;
+    --r-panel:22px;
+
+    --ease:cubic-bezier(.32,.72,0,1);
+    --dur:260ms;
+
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",
+           "Helvetica Neue","PingFang SC","Hiragino Sans GB",sans-serif;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:var(--font);
+    color:var(--label);
+    background:var(--desk-2);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ============ 桌面背景 ============ */
+  .desktop{
+    position:fixed;inset:0;
+    background:
+      radial-gradient(1200px 600px at 50% -10%, var(--desk-glow) 0%, transparent 60%),
+      radial-gradient(900px 500px at 15% 110%, #1b2330 0%, transparent 55%),
+      radial-gradient(700px 400px at 88% 95%, #241d2e 0%, transparent 55%),
+      linear-gradient(160deg, var(--desk-1), var(--desk-2) 70%);
+  }
+  .desktop::after{ /* 极轻噪点，避免大面积色带 */
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='.045'/></svg>");
+  }
+
+  /* ============ 菜单栏 ============ */
+  .menubar{
+    position:fixed;top:0;left:0;right:0;height:30px;z-index:40;
+    display:flex;align-items:center;gap:18px;
+    padding:0 14px;
+    font-size:12.5px;font-weight:500;
+    color:var(--label);
+    background:rgba(20,20,24,.42);
+    backdrop-filter:saturate(180%) blur(24px);
+    -webkit-backdrop-filter:saturate(180%) blur(24px);
+    border-bottom:.5px solid rgba(255,255,255,.06);
+  }
+  .menubar .app-name{font-weight:700}
+  .menubar .spacer{flex:1}
+  .menubar .status{display:flex;align-items:center;gap:14px;color:var(--label-2)}
+  .menubar .status svg{display:block}
+  .menubar .clock{font-variant-numeric:tabular-nums;color:var(--label)}
+
+  .apple{width:13px;height:16px;fill:var(--label);opacity:.92}
+
+  /* ============ 刘海容器 ============ */
+  .notch-layer{
+    position:fixed;top:0;left:50%;transform:translateX(-50%);
+    z-index:50;
+    display:flex;flex-direction:column;align-items:center;
+  }
+
+  .notch{
+    --w:200px;
+    width:var(--w);
+    background:var(--notch);
+    border-radius:0 0 var(--r-notch) var(--r-notch);
+    box-shadow:0 10px 30px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.04) inset;
+    transition:width var(--dur) var(--ease), border-radius var(--dur) var(--ease);
+    overflow:hidden;
+    /* 顶部贴屏幕边缘，所以只有下方圆角 */
+  }
+  .notch.open{
+    --w:474px;
+    border-radius:0 0 var(--r-panel) var(--r-panel);
+  }
+
+  /* 紧凑态内容 */
+  .compact{
+    height:32px;
+    display:flex;align-items:center;justify-content:center;gap:9px;
+    font-size:12.5px;letter-spacing:.01em;
+    color:rgba(255,255,255,.9);
+    transition:opacity 140ms linear, height var(--dur) var(--ease);
+    white-space:nowrap;
+  }
+  .notch.open .compact{height:0;opacity:0;pointer-events:none}
+  .compact .dot{
+    width:5px;height:5px;border-radius:50%;background:#30d158;
+    box-shadow:0 0 8px #30d158;
+  }
+  .compact .cw{font-weight:600}
+  .compact .cm{color:rgba(255,255,255,.45)}
+
+  /* 展开态内容：用 grid 0fr→1fr 平滑撑开 */
+  .expand{
+    display:grid;grid-template-rows:0fr;
+    transition:grid-template-rows var(--dur) var(--ease);
+  }
+  .notch.open .expand{grid-template-rows:1fr}
+  .expand > .inner{overflow:hidden}
+
+  .panel{
+    padding:14px 18px 12px;
+    background:var(--panel);
+    backdrop-filter:saturate(180%) blur(28px);
+    -webkit-backdrop-filter:saturate(180%) blur(28px);
+    opacity:0;
+    transform:translateY(-6px);
+    transition:opacity 200ms var(--ease) 40ms, transform 240ms var(--ease) 30ms;
+  }
+  .notch.open .panel{opacity:1;transform:none}
+
+  /* ============ 词条头 ============ */
+  .head{display:flex;align-items:baseline;gap:11px}
+  .word{
+    font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.1;
+    font-family:"SF Pro Display",var(--font);
+  }
+  .phonetic{
+    font-size:13.5px;color:var(--label-3);
+    font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  }
+  .head .spacer{flex:1}
+  .icon-btn{
+    width:26px;height:26px;flex:none;
+    display:grid;place-items:center;
+    border:0;border-radius:7px;background:transparent;color:var(--label-2);
+    cursor:pointer;
+    transition:background 150ms var(--ease), color 150ms var(--ease), transform 120ms var(--ease);
+  }
+  .icon-btn:hover{background:rgba(255,255,255,.09);color:var(--label)}
+  .icon-btn:active{transform:scale(.92)}
+  .icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .icon-btn.on{color:var(--star)}
+  .icon-btn svg{width:15px;height:15px;display:block}
+  .icon-btn.small svg{width:13.5px;height:13.5px}
+
+  /* 标签 */
+  .tags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+  .tag{
+    font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    padding:2.5px 7px;border-radius:5px;
+    background:rgba(255,255,255,.075);
+    color:var(--label-2);
+    border:.5px solid rgba(255,255,255,.07);
+  }
+  .tag.hot{background:rgba(255,159,10,.14);color:#ffb340;border-color:rgba(255,159,10,.22)}
+
+  /* 释义 */
+  .trans{
+    margin-top:11px;
+    font-size:15px;line-height:1.55;color:var(--label);
+  }
+  .pos{
+    font-size:12px;font-weight:600;color:var(--label-3);
+    margin-right:7px;font-style:italic;
+  }
+
+  /* ============ 词根词缀 ============ */
+  .morph{
+    margin-top:14px;
+    padding-top:13px;
+    border-top:.5px solid var(--stroke);
+  }
+  .sec-title{
+    display:flex;align-items:center;gap:7px;
+    font-size:11px;font-weight:700;letter-spacing:.06em;
+    color:var(--label-3);text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .sec-title .line{flex:1;height:.5px;background:var(--stroke)}
+  .sec-title .count{
+    font-weight:600;letter-spacing:0;text-transform:none;
+    color:var(--label-3);font-size:10.5px;
+  }
+
+  .segs{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .seg{
+    position:relative;
+    padding:7px 12px 8px;
+    border-radius:9px;
+    background:rgba(255,255,255,.045);
+    border:.5px solid rgba(255,255,255,.07);
+    min-width:74px;
+    cursor:default;
+    transition:background 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
+  }
+  .seg:hover{background:rgba(255,255,255,.085);border-color:var(--stroke-strong);transform:translateY(-1px)}
+  .seg .lab{
+    display:block;font-size:16.5px;font-weight:700;letter-spacing:-.01em;line-height:1.15;
+    font-family:"SF Pro Display",var(--font);
+  }
+  .seg .gl{display:block;font-size:11.5px;color:var(--label-2);margin-top:3px;line-height:1.3}
+  .seg .role{
+    display:block;font-size:9px;font-weight:700;letter-spacing:.07em;
+    margin-top:4px;opacity:.85;
+  }
+  .seg[data-role="prefix"]{border-color:rgba(255,159,10,.28);background:rgba(255,159,10,.09)}
+  .seg[data-role="prefix"] .lab,.seg[data-role="prefix"] .role{color:var(--prefix)}
+  .seg[data-role="root"]{border-color:rgba(90,200,250,.28);background:rgba(90,200,250,.09)}
+  .seg[data-role="root"] .lab,.seg[data-role="root"] .role{color:var(--root)}
+  .seg[data-role="suffix"]{border-color:rgba(191,90,242,.28);background:rgba(191,90,242,.09)}
+  .seg[data-role="suffix"] .lab,.seg[data-role="suffix"] .role{color:var(--suffix)}
+
+  .plus{
+    display:grid;place-items:center;align-self:center;
+    width:22px;flex:none;color:var(--label-3);font-size:13px;font-weight:600;
+    user-select:none;
+  }
+
+  /* ============ 背景：模拟播放器窗口（仅字幕模式显示） ============ */
+  .app-window{
+    position:fixed;left:50%;top:300px;transform:translateX(-50%) scale(.985);
+    width:min(700px,68vw);z-index:10;
+    border-radius:12px;overflow:hidden;
+    background:#141417;
+    border:.5px solid rgba(255,255,255,.10);
+    box-shadow:0 40px 90px rgba(0,0,0,.62), 0 0 0 .5px rgba(0,0,0,.6);
+    opacity:0;pointer-events:none;
+    transition:opacity 320ms var(--ease), transform 320ms var(--ease);
+  }
+  body.subs-mode .app-window{opacity:.58;transform:translateX(-50%) scale(1)}
+  .titlebar{
+    display:flex;align-items:center;gap:7px;
+    height:30px;padding:0 11px;
+    background:rgba(255,255,255,.045);
+    border-bottom:.5px solid rgba(255,255,255,.07);
+  }
+  .tl{width:9px;height:9px;border-radius:50%;background:#4a4a50}
+  .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
+  .titlebar .t{
+    flex:1;text-align:center;font-size:11.5px;color:var(--label-3);
+    margin-right:36px;
+  }
+  .stage{
+    position:relative;aspect-ratio:21/9;
+    background:linear-gradient(150deg,#1d2430,#101318 60%,#1a1620);
+    display:grid;place-items:center;
+  }
+  .stage::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(60% 50% at 50% 30%, rgba(90,140,255,.10), transparent 70%);
+  }
+  .play{
+    width:56px;height:56px;border-radius:50%;
+    display:grid;place-items:center;
+    background:rgba(255,255,255,.13);
+    border:.5px solid rgba(255,255,255,.18);
+    color:rgba(255,255,255,.9);
+    position:relative;z-index:1;
+  }
+  .live-caption{
+    position:absolute;left:0;right:0;bottom:16px;
+    text-align:center;z-index:1;
+    padding:0 40px;
+  }
+  .live-caption span{
+    display:inline-block;
+    background:rgba(0,0,0,.72);
+    padding:3px 9px;border-radius:4px;
+    font-size:14.5px;line-height:1.45;color:#fff;
+  }
+  .scrub{
+    display:flex;align-items:center;gap:9px;
+    padding:8px 13px;font-size:10.5px;color:var(--label-3);
+    font-variant-numeric:tabular-nums;
+    background:rgba(255,255,255,.03);
+    border-top:.5px solid rgba(255,255,255,.06);
+  }
+  .bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden}
+  .bar i{display:block;height:100%;width:38%;background:var(--accent);border-radius:2px}
+
+  .origin{
+    margin-top:11px;
+    font-size:12.5px;color:var(--label-2);line-height:1.5;
+  }
+  .origin b{color:var(--label);font-weight:600}
+
+  /* ============ 字幕模式 ============ */
+  .subs{display:flex;flex-direction:column;gap:9px}
+  .sub-row{
+    display:grid;grid-template-columns:52px 1fr;gap:11px;
+    padding:7px 9px;border-radius:9px;
+    transition:background 160ms var(--ease);
+  }
+  .sub-row:hover{background:rgba(255,255,255,.05)}
+  .sub-row.now{background:rgba(10,132,255,.11);box-shadow:inset 0 0 0 .5px rgba(10,132,255,.28)}
+  .sub-t{
+    font-size:11px;color:var(--label-3);
+    font-variant-numeric:tabular-nums;padding-top:2px;
+  }
+  .sub-en{display:block;font-size:14px;line-height:1.45;color:var(--label)}
+  .sub-zh{display:block;font-size:13px;line-height:1.5;color:var(--label-2);margin-top:3px}
+  .sub-row.now .sub-zh{color:#7cb9ff}
+
+  /* ============ 底部：词典切换 ============ */
+  .foot{
+    display:flex;align-items:center;gap:10px;
+    margin-top:13px;padding-top:11px;
+    border-top:.5px solid var(--stroke);
+  }
+  .dict-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .chip{
+    font-size:11.5px;font-weight:550;
+    padding:4px 10px;border-radius:7px;
+    background:rgba(255,255,255,.06);
+    border:.5px solid rgba(255,255,255,.08);
+    color:var(--label-2);
+    cursor:pointer;
+    transition:background 150ms var(--ease), color 150ms var(--ease), border-color 150ms var(--ease);
+  }
+  .chip:hover{background:rgba(255,255,255,.12);color:var(--label)}
+  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .chip.active{background:rgba(10,132,255,.18);border-color:rgba(10,132,255,.38);color:#9ecbff}
+  .foot .spacer{flex:1}
+  .hint{font-size:11px;color:var(--label-3)}
+  body.subs-mode #pDicts{display:none}
+
+  /* ============ 底部控制台 ============ */
+  .hud{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+    z-index:60;
+    display:flex;flex-direction:column;gap:12px;align-items:center;
+    padding:14px 18px;
+    border-radius:16px;
+    background:rgba(24,24,28,.72);
+    border:.5px solid rgba(255,255,255,.09);
+    backdrop-filter:saturate(180%) blur(28px);
+    -webkit-backdrop-filter:saturate(180%) blur(28px);
+    box-shadow:0 20px 50px rgba(0,0,0,.5);
+    max-width:min(92vw,860px);
+  }
+  .hud-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
+  .hud-label{
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    color:var(--label-3);text-transform:uppercase;margin-right:2px;
+  }
+  .seg-ctrl{
+    display:flex;gap:2px;padding:2px;border-radius:9px;
+    background:rgba(255,255,255,.05);
+    border:.5px solid rgba(255,255,255,.06);
+  }
+  .seg-ctrl button{
+    font:inherit;font-size:12px;
+    padding:5px 11px;border:0;border-radius:7px;
+    background:transparent;color:var(--label-2);cursor:pointer;
+    transition:background 150ms var(--ease), color 150ms var(--ease);
+    white-space:nowrap;
+  }
+  .seg-ctrl button:hover{color:var(--label);background:rgba(255,255,255,.06)}
+  .seg-ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .seg-ctrl button.active{background:rgba(255,255,255,.14);color:var(--label);font-weight:600}
+
+  .word-pick{
+    display:flex;gap:5px;flex-wrap:wrap;justify-content:center;
+  }
+  .word-pick button{
+    font:inherit;font-size:12px;font-weight:500;
+    padding:5px 10px;border-radius:7px;
+    background:rgba(255,255,255,.05);
+    border:.5px solid rgba(255,255,255,.07);
+    color:var(--label-2);cursor:pointer;
+    transition:all 150ms var(--ease);
+  }
+  .word-pick button:hover{background:rgba(255,255,255,.11);color:var(--label)}
+  .word-pick button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .word-pick button.active{background:rgba(10,132,255,.20);border-color:rgba(10,132,255,.4);color:#9ecbff;font-weight:600}
+
+  .badge{
+    position:fixed;left:16px;bottom:16px;z-index:60;
+    font-size:11px;color:var(--label-3);
+    display:flex;flex-direction:column;gap:3px;
+    pointer-events:none;
+  }
+  .badge b{color:var(--label-2);font-weight:600}
+  .badge .note{color:rgba(235,235,245,.3)}
+
+  /* 触发徽标 */
+  .trigger-badge{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:10.5px;font-weight:650;letter-spacing:.02em;
+    padding:3px 8px;border-radius:6px;
+    background:rgba(48,209,88,.12);color:#5ee07f;
+    border:.5px solid rgba(48,209,88,.2);
+  }
+  .trigger-badge svg{width:11px;height:11px}
+
+  .sr-only{
+    position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:1ms !important;animation-duration:1ms !important}
+  }
+
+  @media (max-width:560px){
+    .notch{--w:180px}
+    .notch.open{--w:min(94vw,420px)}
+    .hud{max-width:96vw;padding:11px 13px}
+  }
+</style>
+</head>
+<body>
+
+<div class="desktop" aria-hidden="true"></div>
+
+<!-- ============ 背景：模拟播放器（字幕模式才有） ============ -->
+<div class="app-window" aria-hidden="true">
+  <div class="titlebar">
+    <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
+    <span class="t">youtube.com — Safari</span>
+  </div>
+  <div class="stage">
+    <div class="play">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
+    </div>
+    <div class="live-caption"><span id="liveCaption">The experiment yielded a result nobody expected.</span></div>
+  </div>
+  <div class="scrub">
+    <span>0:12</span><span class="bar"><i></i></span><span>0:46</span>
+  </div>
+</div>
+
+<!-- ============ 菜单栏 ============ -->
+<div class="menubar">
+  <svg class="apple" viewBox="0 0 14 17" aria-hidden="true"><path d="M11.4 9.1c0-1.9 1.5-2.8 1.6-2.9-.9-1.3-2.2-1.5-2.7-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7-1.3 0-2.5.8-3.1 2-1.3 2.3-.3 5.7.9 7.6.6.9 1.4 1.9 2.4 1.9 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6 1.7-.9 2.3-1.8c.7-1 1-2 1-2.1-.1 0-2-.8-2-3.2zM9.5 3.4c.5-.6.9-1.5.8-2.4-.8 0-1.7.5-2.3 1.2-.5.5-.9 1.4-.8 2.3.9.1 1.8-.5 2.3-1.1z"/></svg>
+  <span class="app-name">Englishwords</span>
+  <span style="color:var(--label-2)">查词</span>
+  <span style="color:var(--label-2)">字幕</span>
+  <span style="color:var(--label-2)">设置</span>
+  <span class="spacer"></span>
+  <div class="status">
+    <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.3" y="5" width="3" height="7" rx="1"/><rect x="8.6" y="2.5" width="3" height="9.5" rx="1"/><rect x="13" y="0" width="3" height="12" rx="1"/></svg>
+    <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 10.2 5.6 7.8a3.4 3.4 0 0 1 4.8 0L8 10.2zM8 5.6a5.7 5.7 0 0 0-4 1.6L2.6 5.8a7.6 7.6 0 0 1 10.8 0L12 7.2a5.7 5.7 0 0 0-4-1.6z"/></svg>
+    <svg width="20" height="10" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="1" y="1" width="19" height="10" rx="2.6" stroke="currentColor" stroke-opacity=".45"/><rect x="3" y="3" width="13" height="6" rx="1.4" fill="currentColor"/><path d="M21.6 4.2v3.6c.9-.4 1.4-1 1.4-1.8s-.5-1.4-1.4-1.8z" fill="currentColor" fill-opacity=".5"/></svg>
+    <span class="clock">20:16</span>
+  </div>
+</div>
+
+<!-- ============ 刘海 ============ -->
+<div class="notch-layer">
+  <div class="notch" id="notch" role="region" aria-label="查词面板">
+
+    <!-- 紧凑态 -->
+    <div class="compact" id="compact">
+      <span class="dot" aria-hidden="true"></span>
+      <span class="cw" id="compactWord">abduct</span>
+      <span class="cm">·</span>
+      <span class="cm" id="compactMeaning">诱拐</span>
+    </div>
+
+    <!-- 展开态 -->
+    <div class="expand">
+      <div class="inner">
+        <div class="panel">
+
+          <!-- 查词视图 -->
+          <div id="viewLookup">
+            <div class="head">
+              <span class="word" id="pWord">abduct</span>
+              <span class="phonetic" id="pPhon">/əbˈdʌkt/</span>
+              <span class="spacer"></span>
+              <button class="icon-btn" id="btnSpeak" title="朗读 (⌘R)" aria-label="朗读单词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+              </button>
+              <button class="icon-btn" id="btnStar" title="收藏" aria-label="收藏单词">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 3.6 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9L12 3.6z"/></svg>
+              </button>
+              <button class="icon-btn small" id="btnClose" title="收起 (Esc)" aria-label="收起面板">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </div>
+
+            <div class="tags" id="pTags"></div>
+
+            <div class="trans">
+              <span class="pos" id="pPos">vt.</span><span id="pTrans">诱拐；绑架</span>
+            </div>
+
+            <div class="morph">
+              <div class="sec-title">
+                <span>词根词缀</span>
+                <span class="count" id="segCount"></span>
+                <span class="line"></span>
+                <span class="trigger-badge" id="pTrigger">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                  <span id="pTriggerText">悬停取词</span>
+                </span>
+              </div>
+              <div class="segs" id="pSegs"></div>
+              <div class="origin" id="pOrigin"></div>
+            </div>
+          </div>
+
+          <!-- 字幕视图 -->
+          <div id="viewSubs" hidden>
+            <div class="head" style="margin-bottom:2px">
+              <span class="word" style="font-size:18px">字幕</span>
+              <span class="phonetic" id="subMeta">YouTube · 进行中</span>
+              <span class="spacer"></span>
+              <button class="icon-btn small" id="btnClose2" title="收起" aria-label="收起面板">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+              </button>
+            </div>
+            <div class="morph" style="margin-top:10px">
+              <div class="subs" id="pSubs"></div>
+            </div>
+          </div>
+
+          <!-- 底部 -->
+          <div class="foot">
+            <div class="dict-chips" id="pDicts">
+              <span class="hud-label" style="margin:0 2px 0 0">词典</span>
+              <button class="chip active">内置</button>
+              <button class="chip">系统词典</button>
+              <button class="chip">英汉大词典</button>
+            </div>
+            <span class="spacer"></span>
+            <span class="hint" id="footHint">按 H 重新展开</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ 控制台 ============ -->
+<div class="hud">
+  <div class="hud-row">
+    <span class="hud-label">触发方式</span>
+    <div class="seg-ctrl" id="ctrlTrigger" role="group" aria-label="触发方式">
+      <button data-trigger="悬停取词">悬停取词</button>
+      <button data-trigger="快捷键查询">快捷键</button>
+      <button data-trigger="划词查询">划词</button>
+      <button data-trigger="区域取词">区域</button>
+      <button data-trigger="字幕查询">字幕</button>
+    </div>
+  </div>
+  <div class="hud-row" id="rowWords">
+    <span class="hud-label">换词</span>
+    <div class="word-pick" id="ctrlWords" role="group" aria-label="选择单词"></div>
+  </div>
+</div>
+
+<div class="badge">
+  <span><b>Englishwords</b> · 交互原型</span>
+  <span class="note">鼠标移到刘海（或按 H）展开 · Esc 收起</span>
+  <span class="note">自编数据 · 取词方式、词典与字幕均为模拟</span>
+  <span class="note">星标仅演示外观 · 朗读使用浏览器语音</span>
+</div>
+
+<script>
+/* ==================== 演示数据（自编，非原程序数据） ==================== */
+const WORDS = {
+  abduct: {
+    phon: "/əbˈdʌkt/", pos: "vt.", trans: "诱拐；绑架",
+    tags: ["大学六级", "托福"],
+    segs: [
+      { role: "prefix", lab: "ab-",   gl: "离开；脱离" },
+      { role: "root",   lab: "duct",  gl: "引导；拉" }
+    ],
+    origin: "拉丁语 <b>abductus</b>，由 <b>ab-</b>（离开）与 <b>ducere</b>（引导）构成。"
+  },
+  predict: {
+    phon: "/prɪˈdɪkt/", pos: "vt.", trans: "预言；预报",
+    tags: ["大学四级", "雅思"],
+    segs: [
+      { role: "prefix", lab: "pre-", gl: "在前；预先" },
+      { role: "root",   lab: "dict", gl: "说；断言" }
+    ],
+    origin: "拉丁语 <b>praedicere</b>，<b>prae-</b>（在前）+ <b>dicere</b>（说）——事先说出。"
+  },
+  transport: {
+    phon: "/trænˈspɔːrt/", pos: "vt. / n.", trans: "运输；交通",
+    tags: ["大学四级", "大学六级"],
+    segs: [
+      { role: "prefix", lab: "trans-", gl: "穿过；越过" },
+      { role: "root",   lab: "port",   gl: "搬运；携带" }
+    ],
+    origin: "拉丁语 <b>transportare</b>，<b>trans-</b>（越过）+ <b>portare</b>（搬运）。"
+  },
+  incredible: {
+    phon: "/ɪnˈkredəbl/", pos: "adj.", trans: "难以相信的；惊人的",
+    tags: ["大学四级", "GRE"],
+    segs: [
+      { role: "prefix", lab: "in-",   gl: "不；相反" },
+      { role: "root",   lab: "cred",  gl: "相信" },
+      { role: "suffix", lab: "-ible", gl: "能……的" }
+    ],
+    origin: "拉丁语 <b>incredibilis</b>，<b>in-</b>（不）+ <b>credere</b>（相信）+ <b>-ibilis</b>（能……的）。"
+  },
+  abbreviation: {
+    phon: "/əˌbriːviˈeɪʃn/", pos: "n.", trans: "缩写；缩略词",
+    tags: ["大学六级", "托福"],
+    segs: [
+      { role: "root",   lab: "abbreviat", gl: "缩短；节略" },
+      { role: "suffix", lab: "-ion",      gl: "行为；结果" }
+    ],
+    origin: "拉丁语 <b>abbreviatio</b>，源自 <b>brevis</b>（短）。"
+  },
+  consumer: {
+    phon: "/kənˈsjuːmər/", pos: "n.", trans: "消费者；用户",
+    tags: ["大学四级", "雅思"],
+    segs: [
+      { role: "prefix", lab: "con-",  gl: "共同；加强" },
+      { role: "root",   lab: "sum",   gl: "拿；取用" },
+      { role: "suffix", lab: "-er",   gl: "做某事的人" }
+    ],
+    origin: "拉丁语 <b>consumere</b>，<b>con-</b>（彻底）+ <b>sumere</b>（取用）。"
+  },
+  project: {
+    phon: "/ˈprɒdʒekt/", pos: "n. / vt.", trans: "项目；投射",
+    tags: ["大学四级", "大学六级"],
+    segs: [
+      { role: "prefix", lab: "pro-",  gl: "向前" },
+      { role: "root",   lab: "ject",  gl: "投；扔" }
+    ],
+    origin: "拉丁语 <b>proiectus</b>，<b>pro-</b>（向前）+ <b>iacere</b>（扔）。"
+  },
+  manuscript: {
+    phon: "/ˈmænjuskrɪpt/", pos: "n.", trans: "手稿；原稿",
+    tags: ["GRE", "托福"],
+    segs: [
+      { role: "root",   lab: "manu",   gl: "手" },
+      { role: "root",   lab: "script", gl: "写" }
+    ],
+    origin: "拉丁语 <b>manu scriptum</b>，字面义「用手写成的东西」。"
+  }
+};
+
+const SUBS = [
+  { t: "12.4", en: "The experiment yielded a result nobody expected.",  zh: "这项实验得出了没人预料到的结果。", now: true },
+  { t: "15.1", en: "Let me walk you through what actually happened.",    zh: "我来带你看看实际发生了什么。" },
+  { t: "18.7", en: "First, we cooled the sample well below zero.",      zh: "首先，我们把样本冷却到零度以下。" },
+  { t: "22.3", en: "Then we watched the reaction for six hours.",       zh: "然后我们观察了六小时的反应。" },
+  { t: "26.0", en: "The curve started to bend the other way.",          zh: "曲线开始向相反方向弯折。" }
+];
+
+/* ==================== 状态 ==================== */
+const notch      = document.getElementById('notch');
+const viewLookup = document.getElementById('viewLookup');
+const viewSubs   = document.getElementById('viewSubs');
+const rowWords   = document.getElementById('rowWords');
+
+let currentWord  = 'abduct';
+let currentMode  = 'lookup';   // lookup | subs
+let currentTrig  = '悬停取词';
+let isOpen       = false;
+
+/* ==================== 渲染 ==================== */
+const ROLE_CN = { prefix: '前缀', root: '词根', suffix: '后缀' };
+
+function renderWord(key){
+  const w = WORDS[key];
+  if (!w) return;
+  currentWord = key;
+
+  document.getElementById('pWord').textContent  = key;
+  document.getElementById('pPhon').textContent  = w.phon;
+  document.getElementById('pPos').textContent   = w.pos;
+  document.getElementById('pTrans').textContent = w.trans;
+
+  document.getElementById('pTags').innerHTML =
+    w.tags.map(t => `<span class="tag ${/GRE|托福/.test(t) ? 'hot' : ''}">${t}</span>`).join('');
+
+  const segs = document.getElementById('pSegs');
+  segs.innerHTML = w.segs.map((s, i) => {
+    const node = `
+      <div class="seg" data-role="${s.role}" title="${ROLE_CN[s.role]}：${s.gl}">
+        <span class="lab">${s.lab}</span>
+        <span class="gl">${s.gl}</span>
+        <span class="role">${ROLE_CN[s.role]}</span>
+      </div>`;
+    return i === 0 ? node : `<span class="plus" aria-hidden="true">+</span>${node}`;
+  }).join('');
+  document.getElementById('segCount').textContent = `${w.segs.length} 段`;
+
+  document.getElementById('pOrigin').innerHTML = w.origin ? `词源：${w.origin}` : '';
+
+  // 紧凑态
+  const firstGloss = w.segs.find(s => s.role === 'root')?.gl || w.trans;
+  document.getElementById('compactWord').textContent    = key;
+  document.getElementById('compactMeaning').textContent = w.trans.split(/[；;]/)[0];
+
+  // 高亮当前词按钮
+  [...document.querySelectorAll('#ctrlWords button')].forEach(b =>
+    b.classList.toggle('active', b.dataset.word === key));
+}
+
+function renderSubs(){
+  document.getElementById('pSubs').innerHTML = SUBS.map(s => `
+    <div class="sub-row ${s.now ? 'now' : ''}">
+      <span class="sub-t">${s.t}s</span>
+      <span>
+        <span class="sub-en">${s.en}</span>
+        <span class="sub-zh">${s.zh}</span>
+      </span>
+    </div>
+  `).join('');
+}
+
+function setMode(mode){
+  currentMode = mode;
+  const isSub = mode === 'subs';
+  viewLookup.hidden = isSub;
+  viewSubs.hidden   = !isSub;
+  rowWords.style.display = isSub ? 'none' : '';
+  document.body.classList.toggle('subs-mode', isSub);
+  document.getElementById('footHint').textContent = isSub ? '双语字幕布局演示' : '按 H 重新展开';
+  if (isSub) renderSubs();
+}
+
+/* ==================== 展开 / 收起 ==================== */
+function open(){
+  if (isOpen) return;
+  isOpen = true;
+  notch.classList.add('open');
+  document.getElementById('pTriggerText').textContent = currentTrig;
+}
+function close(){
+  if (!isOpen) return;
+  isOpen = false;
+  notch.classList.remove('open');
+}
+function toggle(){ isOpen ? close() : open(); }
+
+/* 悬停展开（对齐原程序 expandsOnNotchHover） */
+notch.addEventListener('mouseenter', open);
+document.querySelector('.notch-layer').addEventListener('mouseleave', () => {
+  if (currentMode !== 'subs') setTimeout(() => { if (!notch.matches(':hover')) close(); }, 900);
+});
+
+/* ==================== 控制台 ==================== */
+document.getElementById('ctrlWords').innerHTML =
+  Object.keys(WORDS).map(k => `<button data-word="${k}">${k}</button>`).join('');
+
+document.getElementById('ctrlWords').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  setMode('lookup');
+  renderWord(b.dataset.word);
+  open();
+});
+
+/* 触发方式：唯一状态源 */
+function setTrigger(name, expand){
+  currentTrig = name;
+  [...document.querySelectorAll('#ctrlTrigger button')].forEach(b =>
+    b.classList.toggle('active', b.dataset.trigger === name));
+  document.getElementById('pTriggerText').textContent = name;
+  setMode(name === '字幕查询' ? 'subs' : 'lookup');
+  if (expand) open();
+}
+
+document.getElementById('ctrlTrigger').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b) setTrigger(b.dataset.trigger, true);
+});
+
+/* 词典切换 */
+document.getElementById('pDicts').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  [...document.querySelectorAll('#pDicts .chip')].forEach(c =>
+    c.classList.toggle('active', c === chip));
+});
+
+/* 星标 */
+const btnStar = document.getElementById('btnStar');
+btnStar.addEventListener('click', () => {
+  btnStar.classList.toggle('on');
+  btnStar.querySelector('svg').setAttribute('fill',
+    btnStar.classList.contains('on') ? 'currentColor' : 'none');
+});
+
+/* 朗读：模拟 */
+document.getElementById('btnSpeak')?.addEventListener('click', () => {
+  if (!('speechSynthesis' in window)) return;
+  const u = new SpeechSynthesisUtterance(currentWord);
+  u.lang = 'en-US'; u.rate = .92;
+  speechSynthesis.cancel(); speechSynthesis.speak(u);
+});
+
+/* 收起 */
+document.getElementById('btnClose').addEventListener('click', close);
+document.getElementById('btnClose2').addEventListener('click', close);
+
+/* ==================== 键盘 ==================== */
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'Escape') { close(); return; }
+  if (e.key === 'h' || e.key === 'H') { toggle(); return; }
+  if (e.key === ' ') { e.preventDefault(); toggle(); }
+});
+
+/* ==================== 启动 ==================== */
+const qs    = new URLSearchParams(location.search);
+const start = qs.get('mode') === 'subs' ? '字幕查询' : '悬停取词';
+
+renderWord('abduct');
+setTrigger(start, false);
+
+/* 截图/演示用：?open=1 自动展开 */
+if (qs.get('open') === '1') open();
+</script>
+</body>
+</html>

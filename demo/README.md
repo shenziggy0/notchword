@@ -1,0 +1,15 @@
+# Englishwords 交互 Demo
+
+双击 `notch-demo.html`，使用浏览器打开即可，不需要启动服务。
+
+```sh
+open /Users/ziggy/Documents/projects/Myworkspace/Englishwords/demo/notch-demo.html
+```
+
+操作：鼠标移到顶部刘海，或按 H 展开；Esc 收起。底部换词按钮切换 8 个示例词；“字幕”切换为 5 行双语字幕；喇叭调用浏览器语音，星标仅演示按钮外观。URL 加 `?open=1` 可默认展开，加 `?mode=subs&open=1` 可直接看字幕。
+
+这是桌面交互原型：悬停/快捷键/划词/区域只是触发来源标签，词典按钮只切换选中状态；没有跨应用取词、真实字幕采集、在线翻译或收藏持久化。数据为自编示例。
+
+2026-11-03 在 ego-lite 中检查：incredible 展示三段词素、字幕模式展示五行、Esc 收起、H 重新展开均通过。朗读音频未做听觉验证，原生系统能力未在本轮验收。
+
+架构文档：`../docs/ARCHITECTURE.md`；原生实现见 `../macos-starter/`。
