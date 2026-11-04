@@ -45,12 +45,13 @@ enum Permissions {
         let target = NSAppleEventDescriptor(bundleIdentifier: bundleID)
         guard let descriptor = target.aeDesc else { return .unknown }
         let status = AEDeterminePermissionToAutomateTarget(descriptor, typeWildCard, typeWildCard, false)
+        // errAEEvent* 在当前 SDK 里是 Int，OSStatus 是 Int32，直接匹配编不过。
         switch status {
         case noErr:
             return .allowed
-        case errAEEventNotPermitted:
+        case OSStatus(errAEEventNotPermitted):
             return .denied
-        case errAEEventWouldRequireUserConsent:
+        case OSStatus(errAEEventWouldRequireUserConsent):
             return .notDetermined
         default:
             return .unknown
