@@ -6,7 +6,7 @@ import Foundation
 /// 同时写 stderr 和 `~/Library/Logs/Englishwords/app.log`，方便排查现场问题。
 enum FileLog {
 
-    private static let queue = DispatchQueue(label: "com.example.englishwords.log")
+    private static let queue = DispatchQueue(label: "io.github.shenziggy0.notchword.log")
     private static let maxBytes = 300_000
 
     private static let fileURL: URL? = {

@@ -8,8 +8,8 @@ import AppKit
 final class LookupCoordinator {
 
     private let store: DictionaryStore
-    private let systemDictionary: SystemDictionaryBridge
-    private let translator: TranslationCoordinator
+    private let systemDictionary: any SystemDictionaryLooking
+    private let translator: any Translating
     private let preferences: Preferences
 
     var onState: ((LookupState) -> Void)?
@@ -18,8 +18,8 @@ final class LookupCoordinator {
     private var task: Task<Void, Never>?
 
     init(store: DictionaryStore,
-         systemDictionary: SystemDictionaryBridge,
-         translator: TranslationCoordinator,
+         systemDictionary: any SystemDictionaryLooking,
+         translator: any Translating,
          preferences: Preferences) {
         self.store = store
         self.systemDictionary = systemDictionary
@@ -37,6 +37,10 @@ final class LookupCoordinator {
         if case .rejected(let reason) = classification {
             // 被动入口失败不打扰用户
             guard !request.trigger.isPassive else { return }
+            if request.trigger == .region, case .empty = reason {
+                onState?(.failure(request, "未识别到文字"))
+                return
+            }
             let message = request.note.map { reason.message + "\n" + $0 } ?? reason.message
             onState?(.failure(request, message))
             return
@@ -73,9 +77,12 @@ final class LookupCoordinator {
     }
 
     private func resolveWord(_ word: String, request: LookupRequest) async -> LookupState {
-        // ⌥T：跳过词典，直接翻译
+        let morphology = await store.morphologyAsync(word)
+
+        // 翻译快捷键：跳过词典，单词仍带上已查到的拆分。短句不走这里。
         if request.mode == .translate {
-            return await translate(text: word, request: request, kind: .word, note: request.note)
+            return await translate(text: word, request: request, kind: .word,
+                                   note: request.note, morphology: morphology)
         }
 
         var note: String? = request.note
@@ -90,27 +97,27 @@ final class LookupCoordinator {
             note = [note, reason].compactMap { $0 }.joined(separator: "\n")
         }
 
-        let morphology = await store.morphologyAsync(word)
-
         if let entry {
             return .result(request, .word(input: word, entry: entry, morphology: morphology, note: note))
         }
         if let systemEntry = systemDictionary.lookup(word) {
             return .result(request, .word(input: word, entry: systemEntry, morphology: morphology, note: note))
         }
-        return await translate(text: word, request: request, kind: .word, note: note)
+        return await translate(text: word, request: request, kind: .word, note: note, morphology: morphology)
     }
 
     private func translate(text: String,
                            request: LookupRequest,
                            kind: TextKind,
-                           note: String?) async -> LookupState {
+                           note: String?,
+                           morphology: Morphology? = nil) async -> LookupState {
         do {
             let result = try await translator.translate(
                 TranslationRequest(text: text, source: "en", target: preferences.targetLanguage)
             )
             var mapped = LookupResult.translated(text: text, kind: kind,
-                                                 translation: result.text, provider: result.providerName)
+                                                 translation: result.text, provider: result.providerName,
+                                                 morphology: kind == .word ? morphology : nil)
             mapped.note = note
             return .result(request, mapped)
         } catch {

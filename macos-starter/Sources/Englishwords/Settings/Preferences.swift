@@ -11,6 +11,10 @@ enum PrefKey {
     static let baseURL           = "translation.baseURL"
     static let model             = "translation.model"
     static let targetLanguage    = "translation.target"
+    static let lookupHotKey      = "hotkey.lookup"
+    static let translateHotKey   = "hotkey.translate"
+    static let regionLookupEnabled = "trigger.regionLookupEnabled"
+    static let regionHotKey      = "hotkey.region"
 }
 
 /// 非敏感配置，存 UserDefaults。密钥走 `SecretStore`。
@@ -54,12 +58,24 @@ final class Preferences: ObservableObject {
     var targetLanguage: String = "zh-Hans" {
         didSet { persist(targetLanguage, PrefKey.targetLanguage, oldValue) }
     }
+    var lookupHotKey: HotKeySpec = .lookup {
+        didSet { persistHotKey(lookupHotKey, PrefKey.lookupHotKey, oldValue) }
+    }
+    var translateHotKey: HotKeySpec = .translate {
+        didSet { persistHotKey(translateHotKey, PrefKey.translateHotKey, oldValue) }
+    }
+    var regionLookupEnabled: Bool = true {
+        didSet { persist(regionLookupEnabled, PrefKey.regionLookupEnabled, oldValue) }
+    }
+    var regionHotKey: HotKeySpec = .region {
+        didSet { persistHotKey(regionHotKey, PrefKey.regionHotKey, oldValue) }
+    }
 
     /// 悬停停留时长下限/上限，避免配置里出现不可用的值。
     var hoverDwell: Double { min(max(hoverDwellSeconds, 0.15), 2.0) }
     var autoHideInterval: Double { min(max(autoHideSeconds, 1.5), 30.0) }
 
-    private init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         defaults.register(defaults: [
             PrefKey.hoverEnabled: true,
@@ -71,7 +87,11 @@ final class Preferences: ObservableObject {
             PrefKey.onlineEnabled: false,
             PrefKey.baseURL: "https://api.openai.com/v1",
             PrefKey.model: "gpt-4o-mini",
-            PrefKey.targetLanguage: "zh-Hans"
+            PrefKey.targetLanguage: "zh-Hans",
+            PrefKey.lookupHotKey: Self.encodeHotKey(.lookup),
+            PrefKey.translateHotKey: Self.encodeHotKey(.translate),
+            PrefKey.regionLookupEnabled: true,
+            PrefKey.regionHotKey: Self.encodeHotKey(.region)
         ])
 
         hoverEnabled = defaults.bool(forKey: PrefKey.hoverEnabled)
@@ -84,6 +104,10 @@ final class Preferences: ObservableObject {
         baseURL = defaults.string(forKey: PrefKey.baseURL) ?? "https://api.openai.com/v1"
         model = defaults.string(forKey: PrefKey.model) ?? "gpt-4o-mini"
         targetLanguage = defaults.string(forKey: PrefKey.targetLanguage) ?? "zh-Hans"
+        lookupHotKey = Self.decodeHotKey(defaults, PrefKey.lookupHotKey, .lookup)
+        translateHotKey = Self.decodeHotKey(defaults, PrefKey.translateHotKey, .translate)
+        regionLookupEnabled = defaults.bool(forKey: PrefKey.regionLookupEnabled)
+        regionHotKey = Self.decodeHotKey(defaults, PrefKey.regionHotKey, .region)
     }
 
     private func persist<T: Equatable>(_ value: T, _ key: String, _ oldValue: T) {
@@ -91,5 +115,22 @@ final class Preferences: ObservableObject {
         defaults.set(value, forKey: key)
         objectWillChange.send()
         onChange?()
+    }
+
+    private func persistHotKey(_ value: HotKeySpec, _ key: String, _ oldValue: HotKeySpec) {
+        guard value != oldValue else { return }
+        defaults.set(Self.encodeHotKey(value), forKey: key)
+        objectWillChange.send()
+        onChange?()
+    }
+
+    private static func encodeHotKey(_ spec: HotKeySpec) -> Data {
+        (try? JSONEncoder().encode(spec)) ?? Data()
+    }
+
+    private static func decodeHotKey(_ defaults: UserDefaults, _ key: String, _ fallback: HotKeySpec) -> HotKeySpec {
+        guard let data = defaults.data(forKey: key),
+              let spec = try? JSONDecoder().decode(HotKeySpec.self, from: data) else { return fallback }
+        return spec
     }
 }

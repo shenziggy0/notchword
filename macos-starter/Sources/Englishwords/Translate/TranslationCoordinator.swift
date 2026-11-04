@@ -2,7 +2,7 @@ import Foundation
 
 /// 翻译编排：本地优先，联网可选降级；带内存缓存与并发上限。
 @MainActor
-final class TranslationCoordinator {
+final class TranslationCoordinator: Translating {
 
     enum OnlineAvailability {
         case disabled
@@ -76,6 +76,6 @@ final class TranslationCoordinator {
 }
 
 extension OpenAICompatProvider {
-    /// Keychain 里的服务标识。
-    static let account = "openai-compatible"
+    /// 钥匙串 account。现有自定义服务迁到 `custom`，与预设 id 对齐。
+    static let account = "custom"
 }

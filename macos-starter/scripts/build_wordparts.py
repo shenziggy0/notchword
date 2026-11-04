@@ -3,7 +3,12 @@
 
 输入（均在 data/ 下，随仓库固定版本）：
     morphemes.tsv   key, role, label, forms, zh, en, lemma
-    wordparts.tsv   word, segments, origin
+    wordparts.tsv   word, segments, origin, source
+    simplex.txt     单纯词，每行一个，只参与覆盖校验
+    wordlist-extra.txt  目标词表补充，每行一个
+
+片段语法：`拼写` 或 `拼写@语素key`。同一拼写只对应一个语素时可省略 key；
+对应多个语素时必须写 key。
 
 用法：
     python3 scripts/build_wordparts.py \
@@ -11,14 +16,20 @@
         --words data/wordparts.tsv \
         --output Sources/Englishwords/Resources/wordparts.sqlite
 
+    python3 scripts/build_wordparts.py \
+        --coverage-db Sources/Englishwords/Resources/dictionary.sqlite \
+        --tags zk,gk,cet4,cet6,ky,ielts,toefl \
+        --simplex data/simplex.txt \
+        --extra data/wordlist-extra.txt
+
 校验规则（任一失败非零退出，不覆盖已有输出）：
     - role 只能是 prefix / root / suffix
     - 每个 segments 片段都能解析到语素，且拼起来正好等于 word
-    - 同一语素形态不允许映射到两个语素
+    - 拼写对应多个语素时必须显式写 key
+    - source 只能是 manual / wiktionary / ai
     - word 不重复，且是单个英文小写词
+    - 传入覆盖参数时，目标词必须全部落在 wordparts 或 simplex 中
     - 生成后 integrity_check、引用完整性、segments 编码格式
-
-覆盖不足时如实缺省：没有拆分的词不会出现在 words 表里，不生成猜测。
 """
 import argparse
 import os
@@ -28,9 +39,12 @@ import sys
 import tempfile
 
 WORD_PATTERN = re.compile(r"^[a-z][a-z'\-]*$")
+PIECE_PATTERN = re.compile(r"^([a-z][a-z'\-]*)(?:@([a-z][a-z0-9_]*))?$")
 ROLES = {"prefix", "root", "suffix"}
+SOURCES = ("manual", "wiktionary", "ai")
 MORPHEME_HEADER = ["key", "role", "label", "forms", "zh", "en", "lemma"]
-WORDPARTS_HEADER = ["word", "segments", "origin"]
+WORDPARTS_HEADER = ["word", "segments", "origin", "source"]
+DEFAULT_TAGS = ["zk", "gk", "cet4", "cet6", "ky", "ielts", "toefl"]
 
 VERSION = "2026-11-03"
 SOURCE = "本项目整理，依据维基词典词源"
@@ -54,14 +68,31 @@ def read_tsv(path, header):
     return rows
 
 
-def build(morphemes, wordparts, output):
-    surfaces = {}
-    ids = {}
+def read_word_list(path):
+    if not os.path.exists(path):
+        raise SystemExit(f"词表不存在：{path}")
+    words = []
+    with open(path, encoding="utf-8") as handle:
+        for number, line in enumerate(handle, start=1):
+            word = line.split("#", 1)[0].strip().lower()
+            if not word:
+                continue
+            if not WORD_PATTERN.match(word):
+                raise SystemExit(f"{path}:{number} 非法词形：{word}")
+            words.append(word)
+    return words
 
-    for index, morpheme in enumerate(sorted(morphemes, key=lambda m: m["key"]), start=1):
+
+def index_morphemes(morphemes):
+    """返回 (key → id, 拼写 → 语素 key 列表)。id 按 key 排序，从 1 起。"""
+    ids = {}
+    forms = {}
+    for index, morpheme in enumerate(sorted(morphemes, key=lambda item: item["key"]), start=1):
         key = morpheme["key"].strip()
-        if not key:
-            raise SystemExit("存在空的语素 key")
+        if not key or not re.fullmatch(r"[a-z][a-z0-9_]*", key):
+            raise SystemExit(f"非法语素 key：{key}")
+        if key in ids:
+            raise SystemExit(f"重复语素 key：{key}")
         if morpheme["role"] not in ROLES:
             raise SystemExit(f"{key}: role 非法 {morpheme['role']}")
         for column in ("label", "zh", "en"):
@@ -69,9 +100,72 @@ def build(morphemes, wordparts, output):
                 raise SystemExit(f"{key}: {column} 不能为空")
         ids[key] = index
         for form in morpheme["forms"].split():
-            if form in surfaces:
-                raise SystemExit(f"语素形态重复：{form}（{surfaces[form]} / {key}）")
-            surfaces[form] = key
+            bucket = forms.setdefault(form, [])
+            if key not in bucket:
+                bucket.append(key)
+    return ids, forms
+
+
+def resolve_piece(piece, forms, ids, word):
+    match = PIECE_PATTERN.match(piece)
+    if not match:
+        raise SystemExit(f"{word}: 片段无法解析 {piece}")
+    spelling, key = match.group(1), match.group(2)
+    candidates = forms.get(spelling, [])
+    if key:
+        if key not in ids:
+            raise SystemExit(f"{word}: 未知语素 {key}")
+        if key not in candidates:
+            raise SystemExit(f"{word}: {spelling} 不属于语素 {key}")
+        return spelling, key
+    if len(candidates) == 1:
+        return spelling, candidates[0]
+    if not candidates:
+        raise SystemExit(f"{word}: 片段 {spelling} 没有对应语素")
+    joined = " / ".join(candidates)
+    raise SystemExit(f"{word}: 片段 {spelling} 对应多个语素（{joined}），必须写 key")
+
+
+def source_counts(wordparts):
+    counts = {name: 0 for name in SOURCES}
+    for entry in wordparts:
+        source = entry["source"].strip()
+        if source not in counts:
+            raise SystemExit(f"{entry['word']}: source 非法 {source}")
+        counts[source] += 1
+    return " ".join(f"{name}={counts[name]}" for name in SOURCES)
+
+
+def target_words(database, tags, extra_path):
+    wanted = set(tags)
+    found = set()
+    connection = sqlite3.connect(database)
+    try:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(words)")}
+        if "word" not in columns or "tag" not in columns:
+            raise SystemExit(f"{database} 的 words 表缺少 word 或 tag")
+        for word, tag in connection.execute("SELECT word, tag FROM words"):
+            if wanted.intersection((tag or "").split()):
+                found.add(str(word).strip().lower())
+    finally:
+        connection.close()
+    found.update(read_word_list(extra_path))
+    return found
+
+
+def assert_coverage(wordparts, targets, simplex):
+    covered = {entry["word"].strip().lower() for entry in wordparts}
+    covered.update(simplex)
+    missing = sorted(targets - covered)
+    if not missing:
+        return
+    listing = "\n".join(missing)
+    raise SystemExit(f"覆盖不足，缺 {len(missing)} 个词：\n{listing}")
+
+
+def build(morphemes, wordparts, output, coverage=None):
+    ids, forms = index_morphemes(morphemes)
+    counts = source_counts(wordparts)
 
     rows = []
     seen = set()
@@ -86,16 +180,12 @@ def build(morphemes, wordparts, output):
         pieces = entry["segments"].split()
         if not pieces:
             raise SystemExit(f"{word}: segments 为空")
-        if "".join(pieces) != word:
-            raise SystemExit(f"{word}: 拆分拼回为 {''.join(pieces)}")
-
-        encoded = []
-        for piece in pieces:
-            key = surfaces.get(piece)
-            if key is None:
-                raise SystemExit(f"{word}: 片段 {piece} 没有对应语素")
-            encoded.append(f"{piece}:{ids[key]}")
-        rows.append((word, " ".join(encoded), entry["origin"].strip()))
+        resolved = [resolve_piece(piece, forms, ids, word) for piece in pieces]
+        joined = "".join(spelling for spelling, _key in resolved)
+        if joined != word:
+            raise SystemExit(f"{word}: 拆分拼回为 {joined}")
+        encoded = " ".join(f"{spelling}:{ids[key]}" for spelling, key in resolved)
+        rows.append((word, encoded, entry["origin"].strip()))
 
     handle, temp_path = tempfile.mkstemp(suffix=".sqlite", dir=os.path.dirname(output) or ".")
     os.close(handle)
@@ -126,28 +216,33 @@ def build(morphemes, wordparts, output):
         connection.executemany(
             "INSERT INTO parts (id, role, label, zh, en, lemma) VALUES (?, ?, ?, ?, ?, ?)",
             [
-                (ids[m["key"]], m["role"], m["label"].strip(), m["zh"].strip(),
-                 m["en"].strip(), m["lemma"].strip() or None)
-                for m in morphemes
+                (ids[item["key"].strip()], item["role"], item["label"].strip(), item["zh"].strip(),
+                 item["en"].strip(), item["lemma"].strip() or None)
+                for item in morphemes
             ],
         )
         connection.executemany(
             "INSERT INTO words (word, segments, origin) VALUES (?, ?, ?)",
             [(word, segments, origin or None) for word, segments, origin in rows],
         )
-        connection.executemany(
-            "INSERT INTO meta (key, value) VALUES (?, ?)",
-            [
-                ("schema_version", "1"),
-                ("version", VERSION),
-                ("morphemes_source", SOURCE),
-                ("morphemes_license", LICENSE),
-                ("wordparts_source", SOURCE),
-                ("wordparts_license", LICENSE),
-                ("morpheme_count", str(len(morphemes))),
-                ("word_count", str(len(rows))),
-            ],
-        )
+        meta = [
+            ("schema_version", "1"),
+            ("version", VERSION),
+            ("morphemes_source", SOURCE),
+            ("morphemes_license", LICENSE),
+            ("wordparts_source", SOURCE),
+            ("wordparts_license", LICENSE),
+            ("morpheme_count", str(len(morphemes))),
+            ("word_count", str(len(rows))),
+            ("source_counts", counts),
+        ]
+        if coverage is not None:
+            meta.extend([
+                ("coverage_tags", coverage["tags"]),
+                ("coverage_target", str(coverage["target"])),
+                ("simplex_count", str(coverage["simplex"])),
+            ])
+        connection.executemany("INSERT INTO meta (key, value) VALUES (?, ?)", meta)
         connection.commit()
 
         integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
@@ -173,16 +268,34 @@ def main():
     parser.add_argument("--morphemes", default="data/morphemes.tsv")
     parser.add_argument("--words", default="data/wordparts.tsv")
     parser.add_argument("--output", default="Sources/Englishwords/Resources/wordparts.sqlite")
+    parser.add_argument("--coverage-db")
+    parser.add_argument("--tags", default=",".join(DEFAULT_TAGS))
+    parser.add_argument("--simplex")
+    parser.add_argument("--extra")
     args = parser.parse_args()
 
     for path in (args.morphemes, args.words):
         if not os.path.exists(path):
             raise SystemExit(f"输入不存在：{path}")
 
+    coverage_flags = [args.coverage_db, args.simplex, args.extra]
+    if any(coverage_flags) and not all(coverage_flags):
+        raise SystemExit("覆盖校验需要同时提供 --coverage-db、--simplex、--extra")
+
     morphemes = read_tsv(args.morphemes, MORPHEME_HEADER)
     wordparts = read_tsv(args.words, WORDPARTS_HEADER)
-    build(morphemes, wordparts, args.output)
-    print(f"wordparts.sqlite: {len(morphemes)} 个语素, {len(wordparts)} 个词 -> {args.output}")
+    coverage = None
+    if args.coverage_db:
+        tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
+        if not tags:
+            raise SystemExit("--tags 为空")
+        simplex = read_word_list(args.simplex)
+        targets = target_words(args.coverage_db, tags, args.extra)
+        assert_coverage(wordparts, targets, simplex)
+        coverage = {"tags": " ".join(tags), "target": len(targets), "simplex": len(simplex)}
+
+    build(morphemes, wordparts, args.output, coverage)
+    print(f"wordparts.sqlite: {len(morphemes)} 个语素, {len(wordparts)} 个词 -> {args.output}", file=sys.stdout)
 
 
 if __name__ == "__main__":

@@ -8,15 +8,17 @@ enum LookupTrigger {
     case clipboard
     case hover
     case selection
+    case region
 
     var label: String {
         switch self {
-        case .hotkey:    return "快捷键 ⌥D"
-        case .translate: return "翻译快捷键 ⌥T"
+        case .hotkey:    return "快捷键"
+        case .translate: return "翻译快捷键"
         case .menu:      return "菜单栏"
         case .clipboard: return "剪贴板"
         case .hover:     return "悬停取词"
         case .selection: return "划词取词"
+        case .region:    return "区域取词"
         }
     }
 
@@ -74,7 +76,11 @@ struct LookupResult {
         )
     }
 
-    static func translated(text: String, kind: TextKind, translation: String, provider: String) -> LookupResult {
+    static func translated(text: String,
+                           kind: TextKind,
+                           translation: String,
+                           provider: String,
+                           morphology: Morphology? = nil) -> LookupResult {
         LookupResult(
             input: text,
             kind: kind,
@@ -84,8 +90,8 @@ struct LookupResult {
             tags: [],
             body: translation,
             originalText: kind == .sentence ? text : nil,
-            segments: [],
-            origin: "",
+            segments: morphology?.segments ?? [],
+            origin: morphology?.origin ?? "",
             source: provider,
             note: nil
         )

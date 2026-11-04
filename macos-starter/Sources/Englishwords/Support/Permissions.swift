@@ -1,5 +1,6 @@
 import AppKit
 import ApplicationServices
+import CoreGraphics
 
 enum Permissions {
 
@@ -22,9 +23,51 @@ enum Permissions {
     }
 
     static func openAccessibilitySettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
+        openSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+    }
+
+    static var isScreenCaptureGranted: Bool { CGPreflightScreenCaptureAccess() }
+
+    /// 弹出系统的屏幕录制授权。不会在启动时调用。
+    @discardableResult
+    static func requestScreenCapture() -> Bool {
+        let granted = CGRequestScreenCaptureAccess()
+        if !granted { FileLog.write("屏幕录制未授权") }
+        return granted
+    }
+
+    static func openScreenCaptureSettings() {
+        openSettings("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
+    }
+
+    /// 查询对某个应用的自动化权限，不弹窗。
+    static func automationStatus(bundleID: String) -> AutomationStatus {
+        let target = NSAppleEventDescriptor(bundleIdentifier: bundleID)
+        guard let descriptor = target.aeDesc else { return .unknown }
+        let status = AEDeterminePermissionToAutomateTarget(descriptor, typeWildCard, typeWildCard, false)
+        switch status {
+        case noErr:
+            return .allowed
+        case errAEEventNotPermitted:
+            return .denied
+        case errAEEventWouldRequireUserConsent:
+            return .notDetermined
+        default:
+            return .unknown
+        }
+    }
+
+    private static func openSettings(_ value: String) {
+        guard let url = URL(string: value) else { return }
         NSWorkspace.shared.open(url)
     }
+}
+
+enum AutomationStatus {
+    case allowed
+    case denied
+    case notDetermined
+    case unknown
 }
 
 /// 被动取词的应用排除规则：密码管理器内不取词。

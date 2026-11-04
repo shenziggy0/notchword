@@ -1,3 +1,5 @@
+import Foundation
+import SQLite3
 import Testing
 @testable import Englishwords
 
@@ -82,6 +84,129 @@ struct SegmentTests {
         let segments = DictionaryStore.parseSegments("un:9 xx:y") { _ in nil }
         #expect(segments.isEmpty)
     }
+}
+
+@Suite("热键规格")
+struct HotKeySpecTests {
+
+    @Test("编码后解码与原值相等")
+    func roundTrip() throws {
+        let spec = HotKeySpec.lookup
+        let data = try JSONEncoder().encode(spec)
+        let decoded = try JSONDecoder().decode(HotKeySpec.self, from: data)
+        #expect(decoded == spec)
+    }
+}
+
+@Suite("屏幕文字聚行")
+struct ScreenTextMergeTests {
+
+    @Test("相近的 y 合成一行，行内按 x 排序")
+    func mergesNearbyBoxes() {
+        let lines = ScreenText.mergeLines([
+            RecognizedFragment(text: "b", x: 0.40, y: 0.80),
+            RecognizedFragment(text: "a", x: 0.10, y: 0.81),
+            RecognizedFragment(text: "c", x: 0.20, y: 0.60)
+        ])
+        #expect(lines == ["a b", "c"])
+    }
+}
+
+@Suite("翻译保留拆分")
+struct MorphologyOnTranslationTests {
+
+    @Test("词库和系统词典都未命中时，翻译结果仍带词素")
+    @MainActor
+    func translationKeepsMorphology() async throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("englishwords-morphology-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        let dictionaryURL = folder.appendingPathComponent("dictionary.sqlite")
+        let wordpartsURL = folder.appendingPathComponent("wordparts.sqlite")
+        try writeSQLite(dictionaryURL, """
+            CREATE TABLE words (
+                word TEXT PRIMARY KEY, phonetic TEXT, translation TEXT,
+                pos TEXT, tag TEXT, frq INTEGER
+            );
+            CREATE TABLE forms (form TEXT, lemma TEXT);
+            """)
+        try writeSQLite(wordpartsURL, """
+            CREATE TABLE parts (
+                id INTEGER PRIMARY KEY, role TEXT NOT NULL, label TEXT NOT NULL,
+                zh TEXT NOT NULL, en TEXT NOT NULL, lemma TEXT
+            );
+            CREATE TABLE words (
+                word TEXT PRIMARY KEY, segments TEXT NOT NULL, origin TEXT
+            );
+            INSERT INTO parts (id, role, label, zh, en, lemma)
+                VALUES (1, 'prefix', 'zzqx-', '甲', 'a', NULL),
+                       (2, 'root', 'morph', '乙', 'b', NULL);
+            INSERT INTO words (word, segments, origin)
+                VALUES ('zzqxmorph', 'zzqx:1 morph:2', '合成');
+            """)
+
+        let suite = "io.github.shenziggy0.notchword.tests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let preferences = Preferences(defaults: defaults)
+        let coordinator = LookupCoordinator(
+            store: DictionaryStore(dictionaryURL: dictionaryURL, wordpartsURL: wordpartsURL),
+            systemDictionary: MissingSystemDictionary(),
+            translator: FixedTranslator(),
+            preferences: preferences
+        )
+
+        let state: LookupState = await withCheckedContinuation { continuation in
+            var resumed = false
+            coordinator.onState = { state in
+                if case .loading = state { return }
+                guard !resumed else { return }
+                resumed = true
+                continuation.resume(returning: state)
+            }
+            coordinator.submit(LookupRequest(text: "zzqxmorph", trigger: .hotkey, screen: nil))
+        }
+
+        guard case .result(_, let result) = state else {
+            Issue.record("预期是翻译结果，实际 \(state)")
+            return
+        }
+        #expect(result.source == "固定译文")
+        #expect(result.segments.map(\.label) == ["zzqx", "morph"])
+        #expect(result.origin == "合成")
+    }
+}
+
+private struct MissingSystemDictionary: SystemDictionaryLooking {
+    func lookup(_ word: String) -> Entry? { nil }
+}
+
+@MainActor
+private struct FixedTranslator: Translating {
+    func translate(_ request: TranslationRequest) async throws -> TranslationResult {
+        TranslationResult(text: "固定译文", providerID: "fixed", providerName: "固定译文")
+    }
+}
+
+private func writeSQLite(_ url: URL, _ sql: String) throws {
+    var db: OpaquePointer?
+    guard sqlite3_open(url.path, &db) == SQLITE_OK, let db else {
+        throw SQLiteTestError("无法创建 \(url.lastPathComponent)")
+    }
+    defer { sqlite3_close(db) }
+    var error: UnsafeMutablePointer<CChar>?
+    guard sqlite3_exec(db, sql, nil, nil, &error) == SQLITE_OK else {
+        let message = error.map { String(cString: $0) } ?? "sqlite"
+        sqlite3_free(error)
+        throw SQLiteTestError(message)
+    }
+}
+
+private struct SQLiteTestError: Error, CustomStringConvertible {
+    let description: String
+    init(_ description: String) { self.description = description }
 }
 
 @Suite("响应清洗")

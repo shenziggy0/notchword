@@ -1,10 +1,9 @@
 import AppKit
-import Carbon.HIToolbox
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
-    private let preferences = Preferences.shared
+    private let preferences: Preferences
     private let store = DictionaryStore()
     private lazy var panels = PanelController(preferences: preferences)
     private let hotKeys = HotKeyCenter()
@@ -20,12 +19,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hover: HoverMonitor?
     private var selection: SelectionMonitor?
     private var settings: SettingsWindowController?
+    private let regionPicker = RegionPicker()
 
     private var statusItem: NSStatusItem!
     private var hoverMenuItem: NSMenuItem!
     private var selectionMenuItem: NSMenuItem!
     private var permissionItem: NSMenuItem!
     private var lastLookupSummary = "尚未取词"
+    private var lookupMenuItem: NSMenuItem!
+    private var translateMenuItem: NSMenuItem!
+    private var regionMenuItem: NSMenuItem!
+    private var lookupHotKeyID: UInt32?
+    private var translateHotKeyID: UInt32?
+    private var regionHotKeyID: UInt32?
+    private var boundLookup: HotKeySpec?
+    private var boundTranslate: HotKeySpec?
+    private var boundRegion: HotKeySpec?
+
+    /// 迁移必须先于 `Preferences.shared`：属性默认值会在 `init` 之前读 UserDefaults。
+    override init() {
+        SecretStore.migrateBundleIdentityIfNeeded()
+        preferences = .shared
+        super.init()
+    }
 
     // MARK: - 生命周期
 
@@ -35,22 +51,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupMonitors()
 
         preferences.onChange = { [weak self] in self?.applyPreferences() }
-
-        // ⌥D 查词（词典优先），⌥T 直接翻译
-        if case .failure(let error) = hotKeys.register(
-            keyCode: UInt32(kVK_ANSI_D), modifiers: UInt32(optionKey),
-            action: { [weak self] in self?.triggerLookup(.hotkey) }
-        ) {
-            FileLog.write(error.localizedDescription)
-            showAlert(title: "⌥D 未注册", message: error.localizedDescription)
-        }
-        if case .failure(let error) = hotKeys.register(
-            keyCode: UInt32(kVK_ANSI_T), modifiers: UInt32(optionKey),
-            action: { [weak self] in self?.triggerLookup(.translate, mode: .translate) }
-        ) {
-            FileLog.write(error.localizedDescription)
-            showAlert(title: "⌥T 未注册", message: error.localizedDescription)
-        }
 
         // 首次启动且未授权时弹一次系统提示；之后只更新菜单状态，不反复打扰
         let promptedKey = "permission.prompted"
@@ -117,9 +117,75 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             : "⚠️ 需要授权辅助功能…"
         hoverMenuItem?.state = preferences.hoverEnabled ? .on : .off
         selectionMenuItem?.state = preferences.selectionEnabled ? .on : .off
+        lookupMenuItem?.title = "查询选中的文字（\(preferences.lookupHotKey.display)）"
+        translateMenuItem?.title = "翻译选中的文字（\(preferences.translateHotKey.display)）"
+        regionMenuItem?.title = "区域取词（\(preferences.regionHotKey.display)）"
+        statusItem?.button?.toolTip = "Englishwords — \(preferences.lookupHotKey.display) 查词"
 
         if preferences.hoverEnabled { hover?.start() } else { hover?.stop() }
         if preferences.selectionEnabled { selection?.start() } else { selection?.stop() }
+        bindHotKeys()
+    }
+
+    /// 按偏好注册查词 / 翻译热键。失败时提示，并重新注册上一次成功的键。
+    private func bindHotKeys() {
+        bind(spec: preferences.lookupHotKey,
+             bound: &boundLookup,
+             id: &lookupHotKeyID,
+             fallback: .lookup,
+             name: "查词",
+             writeBack: { [weak self] in self?.preferences.lookupHotKey = $0 },
+             action: { [weak self] in self?.triggerLookup(.hotkey) })
+        bind(spec: preferences.translateHotKey,
+             bound: &boundTranslate,
+             id: &translateHotKeyID,
+             fallback: .translate,
+             name: "翻译",
+             writeBack: { [weak self] in self?.preferences.translateHotKey = $0 },
+             action: { [weak self] in self?.triggerLookup(.translate, mode: .translate) })
+        bind(spec: preferences.regionHotKey,
+             bound: &boundRegion,
+             id: &regionHotKeyID,
+             fallback: .region,
+             name: "区域取词",
+             writeBack: { [weak self] in self?.preferences.regionHotKey = $0 },
+             action: { [weak self] in self?.startRegionLookup() })
+    }
+
+    private func bind(spec: HotKeySpec,
+                      bound: inout HotKeySpec?,
+                      id: inout UInt32?,
+                      fallback: HotKeySpec,
+                      name: String,
+                      writeBack: (HotKeySpec) -> Void,
+                      action: @escaping () -> Void) {
+        if bound == spec, id != nil { return }
+        if let id { hotKeys.unregister(id: id) }
+        id = nil
+
+        switch hotKeys.register(keyCode: spec.keyCode, modifiers: spec.modifiers, action: action) {
+        case .success(let newID):
+            id = newID
+            bound = spec
+        case .failure(let error):
+            FileLog.write("\(name)热键注册失败")
+            showAlert(title: "\(spec.display) 未注册", message: error.localizedDescription)
+            let previous = bound ?? fallback
+            guard previous != spec else {
+                bound = nil
+                return
+            }
+            switch hotKeys.register(keyCode: previous.keyCode, modifiers: previous.modifiers, action: action) {
+            case .success(let newID):
+                id = newID
+                bound = previous
+                writeBack(previous)
+            case .failure(let fallbackError):
+                FileLog.write("\(name)热键回退失败")
+                showAlert(title: "\(previous.display) 未注册", message: fallbackError.localizedDescription)
+                bound = nil
+            }
+        }
     }
 
     // MARK: - 菜单栏
@@ -130,7 +196,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             button.image = NSImage(systemSymbolName: "character.book.closed",
                                    accessibilityDescription: "Englishwords")
             button.image?.isTemplate = true
-            button.toolTip = "Englishwords — ⌥D 查词"
         }
 
         let menu = NSMenu()
@@ -142,13 +207,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(versionItem)
         menu.addItem(.separator())
 
-        let lookup = NSMenuItem(title: "查询选中的文字（⌥D）", action: #selector(menuLookup), keyEquivalent: "")
-        lookup.target = self
-        menu.addItem(lookup)
+        lookupMenuItem = NSMenuItem(title: "查询选中的文字", action: #selector(menuLookup), keyEquivalent: "")
+        lookupMenuItem.target = self
+        menu.addItem(lookupMenuItem)
 
-        let translate = NSMenuItem(title: "翻译选中的文字（⌥T）", action: #selector(menuTranslate), keyEquivalent: "")
-        translate.target = self
-        menu.addItem(translate)
+        translateMenuItem = NSMenuItem(title: "翻译选中的文字", action: #selector(menuTranslate), keyEquivalent: "")
+        translateMenuItem.target = self
+        menu.addItem(translateMenuItem)
+
+        regionMenuItem = NSMenuItem(title: "区域取词", action: #selector(menuRegion), keyEquivalent: "")
+        regionMenuItem.target = self
+        menu.addItem(regionMenuItem)
 
         let clipboard = NSMenuItem(title: "查询剪贴板", action: #selector(menuClipboard), keyEquivalent: "")
         clipboard.target = self
@@ -194,6 +263,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func menuLookup() { triggerLookup(.menu) }
     @objc private func menuTranslate() { triggerLookup(.translate, mode: .translate) }
+    @objc private func menuRegion() { startRegionLookup() }
     @objc private func menuClipboard() { triggerLookup(.clipboard, preferClipboard: true) }
     @objc private func menuSettings() { openSettings() }
 
@@ -228,6 +298,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     // MARK: - 取词
+
+    private func startRegionLookup() {
+        guard preferences.regionLookupEnabled else { return }
+        guard !regionPicker.isPicking else { return }
+        guard Permissions.isScreenCaptureGranted else {
+            showAlert(title: "需要屏幕录制权限",
+                      message: "区域取词要截取你框选的屏幕文字。请在系统设置里允许 Englishwords 录制屏幕。允许后如仍不可用，退出并重新打开本应用。")
+            _ = Permissions.requestScreenCapture()
+            Permissions.openScreenCaptureSettings()
+            return
+        }
+        regionPicker.begin { [weak self] rect, screen in
+            self?.recognizeRegion(rect, on: screen)
+        }
+    }
+
+    private func recognizeRegion(_ rect: CGRect, on screen: NSScreen) {
+        Task { [weak self] in
+            guard let self else { return }
+            let text: String
+            do {
+                text = try await ScreenText.recognize(rect: rect, on: screen)
+            } catch {
+                FileLog.write("区域取词失败")
+                self.showAlert(title: "区域取词失败", message: error.localizedDescription)
+                return
+            }
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.coordinator.submit(LookupRequest(
+                text: trimmed,
+                trigger: .region,
+                screen: screen
+            ))
+        }
+    }
 
     private func triggerLookup(_ trigger: LookupTrigger,
                                preferClipboard: Bool = false,

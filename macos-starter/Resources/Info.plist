@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>Englishwords</string>
     <key>CFBundleIdentifier</key>
-    <string>com.example.englishwords</string>
+    <string>io.github.shenziggy0.notchword</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -24,6 +24,8 @@
     <string>15.0</string>
     <key>LSUIElement</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>用于读取浏览器中正在播放视频的字幕，并在查看时暂停视频。</string>
     <key>NSHighResolutionCapable</key>
     <true/>
     <key>NSHumanReadableCopyright</key>

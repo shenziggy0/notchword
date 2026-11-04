@@ -19,13 +19,18 @@ let package = Package(
             linkerSettings: [
                 .linkedLibrary("sqlite3"),
                 .linkedFramework("Translation"),
-                .linkedFramework("CoreServices")
+                .linkedFramework("CoreServices"),
+                .linkedFramework("ScreenCaptureKit"),
+                .linkedFramework("Vision")
             ]
         ),
         .testTarget(
             name: "EnglishwordsTests",
             dependencies: ["Englishwords"],
-            path: "Tests/EnglishwordsTests"
+            path: "Tests/EnglishwordsTests",
+            linkerSettings: [
+                .linkedLibrary("sqlite3")
+            ]
         )
     ],
     swiftLanguageModes: [.v5]

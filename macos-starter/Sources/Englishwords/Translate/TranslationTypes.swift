@@ -34,6 +34,12 @@ enum TranslationError: LocalizedError {
     }
 }
 
+/// 编排层用的翻译入口。测试可以换成固定译文，避免这条用例依赖语言包。
+@MainActor
+protocol Translating {
+    func translate(_ request: TranslationRequest) async throws -> TranslationResult
+}
+
 @MainActor
 protocol TranslationProviding {
     var id: String { get }

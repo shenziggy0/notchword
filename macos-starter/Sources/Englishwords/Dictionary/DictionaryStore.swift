@@ -31,7 +31,7 @@ final class DictionaryStore: @unchecked Sendable {
     private var partsLoaded = false
     private var morphologyCache: [String: Morphology] = [:]
 
-    private let queue = DispatchQueue(label: "com.example.englishwords.dictionary")
+    private let queue = DispatchQueue(label: "io.github.shenziggy0.notchword.dictionary")
 
     init(dictionaryURL: URL? = AppResources.dictionaryURL(),
          wordpartsURL: URL? = AppResources.wordpartsURL()) {
@@ -81,7 +81,7 @@ final class DictionaryStore: @unchecked Sendable {
     /// 屈折还原：`abandoned` → `abandon`。查不到时返回 nil。
     func lemma(for form: String) -> String? {
         guard let db, openError == nil else { return nil }
-        return try? querySingle(db, "SELECT lemma FROM forms WHERE form = ? LIMIT 1", form)
+        return try? SQLite.querySingle(db, "SELECT lemma FROM forms WHERE form = ? LIMIT 1", form)
     }
 
     // MARK: - 异步包装（串行队列）
@@ -104,13 +104,12 @@ final class DictionaryStore: @unchecked Sendable {
         if let openError { throw openError }
         guard let db else { throw DictionaryError.unavailable("词库未打开") }
 
-        let headword = try querySingle(db, "SELECT lemma FROM forms WHERE form = ? LIMIT 1", word) ?? word
+        let headword = try SQLite.querySingle(db, "SELECT lemma FROM forms WHERE form = ? LIMIT 1", word) ?? word
         return try queryWord(db, headword)
     }
 
     private func queryWord(_ db: OpaquePointer, _ headword: String) throws -> Entry? {
-        var stmt: OpaquePointer?
-        try prepare(db, "SELECT word, phonetic, translation, pos, tag FROM words WHERE word = ? LIMIT 1", &stmt)
+        let stmt = try SQLite.prepare(db, "SELECT word, phonetic, translation, pos, tag FROM words WHERE word = ? LIMIT 1")
         defer { sqlite3_finalize(stmt) }
 
         sqlite3_bind_text(stmt, 1, headword, -1, SQLITE_TRANSIENT)
@@ -211,21 +210,6 @@ final class DictionaryStore: @unchecked Sendable {
         return sqlite3_step(stmt) == SQLITE_ROW
     }
 
-    private func prepare(_ db: OpaquePointer, _ sql: String, _ stmt: inout OpaquePointer?) throws {
-        guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            throw DictionaryError.query(String(cString: sqlite3_errmsg(db)))
-        }
-    }
-
-    private func querySingle(_ db: OpaquePointer, _ sql: String, _ argument: String) throws -> String? {
-        var stmt: OpaquePointer?
-        try prepare(db, sql, &stmt)
-        defer { sqlite3_finalize(stmt) }
-        sqlite3_bind_text(stmt, 1, argument, -1, SQLITE_TRANSIENT)
-        guard sqlite3_step(stmt) == SQLITE_ROW, let text = sqlite3_column_text(stmt, 0) else { return nil }
-        return String(cString: text)
-    }
-
     // MARK: - 解析
 
     /// 解析 `"un:12 believ:34 able:56"`。
@@ -256,5 +240,3 @@ final class DictionaryStore: @unchecked Sendable {
         }
     }
 }
-
-let SQLITE_TRANSIENT = unsafeBitCast(-1, to: sqlite3_destructor_type.self)

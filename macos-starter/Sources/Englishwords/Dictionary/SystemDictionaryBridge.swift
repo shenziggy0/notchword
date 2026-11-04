@@ -1,11 +1,15 @@
 import CoreServices
 import Foundation
 
+protocol SystemDictionaryLooking {
+    func lookup(_ word: String) -> Entry?
+}
+
 /// macOS Dictionary Services 桥。
 ///
 /// 只做「单词 → 系统词典释义」这一步，不负责降级决策。
 /// 系统词典不可用或没装对应词典时返回 nil，调用方继续走翻译。
-struct SystemDictionaryBridge {
+struct SystemDictionaryBridge: SystemDictionaryLooking {
 
     func lookup(_ word: String) -> Entry? {
         let length = (word as NSString).length

@@ -19,6 +19,9 @@ macos-starter/scripts/.cache/
 # WorkBuddy 会话与记忆数据
 .workbuddy/
 
+# 个人学习清单，不进仓库
+ik.md
+
 # 本地环境与编辑器
 .env
 .env.*
