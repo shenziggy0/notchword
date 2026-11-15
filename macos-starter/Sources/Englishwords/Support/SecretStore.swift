@@ -3,10 +3,12 @@ import Foundation
 import Security
 
 enum SecretStoreError: LocalizedError {
+    case emptyValue
     case keychain(OSStatus)
 
     var errorDescription: String? {
         switch self {
+        case .emptyValue: return "请输入 API 密钥。"
         case .keychain(let status):
             let detail = SecCopyErrorMessageString(status, nil) as String? ?? "未知错误"
             return "钥匙串访问失败：\(detail)（\(status)）"
@@ -58,7 +60,7 @@ enum SecretStore {
     @discardableResult
     static func save(_ value: String, account: String) -> Result<Void, SecretStoreError> {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return delete(account: account) }
+        guard !trimmed.isEmpty else { return .failure(.emptyValue) }
 
         let data = Data(trimmed.utf8)
         let query: [String: Any] = [

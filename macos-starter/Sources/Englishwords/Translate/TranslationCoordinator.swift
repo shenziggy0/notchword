@@ -11,34 +11,43 @@ final class TranslationCoordinator: Translating {
     }
 
     private let preferences: Preferences
-    private let apple = AppleTranslate()
+    private let apple: any TranslationProviding
+    private let onlineProvider: (() -> (any TranslationProviding)?)?
 
     private var cache: [String: TranslationResult] = [:]
     private var insertionOrder: [String] = []
     private let cacheLimit = 200
 
-    init(preferences: Preferences) {
+    init(preferences: Preferences,
+         apple: (any TranslationProviding)? = nil,
+         onlineProvider: (() -> (any TranslationProviding)?)? = nil) {
         self.preferences = preferences
+        self.apple = apple ?? AppleTranslate()
+        self.onlineProvider = onlineProvider
     }
 
     func translate(_ request: TranslationRequest) async throws -> TranslationResult {
+        try Task.checkCancellation()
         let key = cacheKey(request)
         if let hit = cache[key] { return hit }
 
         let localFailure: Error
         do {
             let result = try await apple.translate(request)
+            try Task.checkCancellation()
             remember(result, for: key)
             return result
-        } catch let error as TranslationError {
-            if case .cancelled = error { throw error }
+        } catch {
+            if Task.isCancelled || TranslationError.isCancellation(error) { throw TranslationError.cancelled }
             localFailure = error
         }
 
         guard preferences.onlineEnabled else { throw localFailure }
-        guard let provider = makeOnlineProvider() else { throw localFailure }
+        try Task.checkCancellation()
+        guard let provider = makeOnlineProvider() else { throw TranslationError.configurationMissing }
 
         let result = try await provider.translate(request)
+        try Task.checkCancellation()
         remember(result, for: key)
         return result
     }
@@ -48,10 +57,12 @@ final class TranslationCoordinator: Translating {
         return makeOnlineProvider() == nil ? .missingCredentials : .ready
     }
 
-    /// 密钥缺失或地址非法时返回 nil，调用方保留本地失败原因。
-    private func makeOnlineProvider() -> OpenAICompatProvider? {
+    /// 密钥缺失或配置非法时，不构造联网服务。
+    private func makeOnlineProvider() -> (any TranslationProviding)? {
+        if let onlineProvider { return onlineProvider() }
         let trimmed = preferences.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme?.hasPrefix("http") == true else { return nil }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
+              let host = url.host, !host.isEmpty else { return nil }
         let model = preferences.model.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !model.isEmpty else { return nil }
         guard let key = SecretStore.read(account: OpenAICompatProvider.account), !key.isEmpty else { return nil }

@@ -20,6 +20,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var selection: SelectionMonitor?
     private var settings: SettingsWindowController?
     private let regionPicker = RegionPicker()
+    private var regionTask: Task<Void, Never>?
+    private var regionGeneration = 0
 
     private var statusItem: NSStatusItem!
     private var hoverMenuItem: NSMenuItem!
@@ -72,7 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
            index + 1 < CommandLine.arguments.count {
             let text = CommandLine.arguments[index + 1]
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                self?.coordinator.submit(LookupRequest(
+                self?.submitLookup(LookupRequest(
                     text: text,
                     trigger: .menu,
                     screen: Screens.screen(containing: NSEvent.mouseLocation)
@@ -82,6 +84,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        cancelActiveLookup()
         hover?.stop()
         selection?.stop()
         hotKeys.unregisterAll()
@@ -95,19 +98,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // 收起后不再让过期结果重新弹出
         panels.onHide = { [weak self] in
-            self?.coordinator.cancel()
+            self?.cancelActiveLookup()
         }
     }
 
     private func setupMonitors() {
         let hover = HoverMonitor(preferences: preferences)
         hover.isInsidePanel = { [weak self] point in self?.panels.contains(point) ?? false }
-        hover.onSubmit = { [weak self] request in self?.coordinator.submit(request) }
+        hover.onSubmit = { [weak self] request in self?.submitLookup(request) }
         self.hover = hover
 
         let selection = SelectionMonitor(preferences: preferences)
         selection.isInsidePanel = { [weak self] point in self?.panels.contains(point) ?? false }
-        selection.onSubmit = { [weak self] request in self?.coordinator.submit(request) }
+        selection.onSubmit = { [weak self] request in self?.submitLookup(request) }
         self.selection = selection
     }
 
@@ -125,6 +128,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if preferences.hoverEnabled { hover?.start() } else { hover?.stop() }
         if preferences.selectionEnabled { selection?.start() } else { selection?.stop() }
         bindHotKeys()
+        if !preferences.regionLookupEnabled, regionPicker.isPicking || regionTask != nil {
+            cancelRegionLookup()
+            panels.hide()
+        }
+        panels.refreshPreferences()
     }
 
     /// 按偏好注册查词 / 翻译热键。失败时提示，并重新注册上一次成功的键。
@@ -309,29 +317,52 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Permissions.openScreenCaptureSettings()
             return
         }
+        panels.hide()
+        cancelActiveLookup()
+        let generation = regionGeneration
         regionPicker.begin { [weak self] rect, screen in
-            self?.recognizeRegion(rect, on: screen)
+            guard let self, generation == self.regionGeneration else { return }
+            self.recognizeRegion(rect, on: screen, generation: generation)
         }
     }
 
-    private func recognizeRegion(_ rect: CGRect, on screen: NSScreen) {
-        Task { [weak self] in
-            guard let self else { return }
-            let text: String
+    private func recognizeRegion(_ rect: CGRect, on screen: NSScreen, generation: Int) {
+        let loading = LookupRequest(text: "", trigger: .region, screen: screen)
+        panels.show(.loading(loading))
+        regionTask = Task { [weak self] in
             do {
-                text = try await ScreenText.recognize(rect: rect, on: screen)
+                let text = try await withTimeout(20) {
+                    try await ScreenText.recognize(rect: rect, on: screen)
+                }
+                guard let self, !Task.isCancelled, generation == self.regionGeneration else { return }
+                self.regionTask = nil
+                self.submitLookup(LookupRequest(text: text, trigger: .region, screen: screen))
             } catch {
+                guard let self, !Task.isCancelled, generation == self.regionGeneration else { return }
+                self.regionTask = nil
                 FileLog.write("区域取词失败")
-                self.showAlert(title: "区域取词失败", message: error.localizedDescription)
-                return
+                let message = (error as? TranslationError).map { _ in "区域识别超时，请缩小范围后重试。" }
+                    ?? error.localizedDescription
+                self.panels.show(.failure(loading, message))
             }
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            self.coordinator.submit(LookupRequest(
-                text: trimmed,
-                trigger: .region,
-                screen: screen
-            ))
         }
+    }
+
+    private func submitLookup(_ request: LookupRequest) {
+        if request.trigger.isPassive, regionPicker.isPicking { return }
+        if coordinator.submit(request) { cancelRegionLookup() }
+    }
+
+    private func cancelActiveLookup() {
+        coordinator.cancel()
+        cancelRegionLookup()
+    }
+
+    private func cancelRegionLookup() {
+        regionGeneration &+= 1
+        regionTask?.cancel()
+        regionTask = nil
+        regionPicker.cancel()
     }
 
     private func triggerLookup(_ trigger: LookupTrigger,
@@ -360,7 +391,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let text = selection ?? clipboard
-        coordinator.submit(LookupRequest(
+        submitLookup(LookupRequest(
             text: text,
             trigger: trigger,
             screen: Screens.screen(containing: NSEvent.mouseLocation),

@@ -21,6 +21,13 @@ enum TranslationError: LocalizedError {
     case service(String)
     case cancelled
 
+    static func isCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        if (error as? URLError)?.code == .cancelled { return true }
+        if let error = error as? TranslationError, case .cancelled = error { return true }
+        return false
+    }
+
     var errorDescription: String? {
         switch self {
         case .emptyText:             return "没有可翻译的内容。"
@@ -47,33 +54,34 @@ protocol TranslationProviding {
     func translate(_ request: TranslationRequest) async throws -> TranslationResult
 }
 
-/// 超时竞速的结果。超时任务被取消时不会伪装成超时。
-private enum TimeoutOutcome<T> {
-    case value(T)
-    case timeout
-}
-
-/// 给翻译服务加超时。
-func withTimeout<T>(_ seconds: Double, _ operation: @escaping () async throws -> T) async throws -> T {
-    let outcome = try await withThrowingTaskGroup(of: TimeoutOutcome<T>.self) { group -> TimeoutOutcome<T> in
-        group.addTask { .value(try await operation()) }
-        group.addTask {
-            do {
-                try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
-            } catch {
-                return .timeout
-            }
-            return .timeout
+/// 调用者可以先于暂不响应取消的框架任务返回。退出后丢弃晚到结果。
+@MainActor
+func withTimeout<T>(_ seconds: Double, _ operation: @escaping @MainActor () async throws -> T) async throws -> T {
+    let (stream, continuation) = AsyncStream<Result<T, Error>>.makeStream(bufferingPolicy: .bufferingOldest(1))
+    let work = Task {
+        do {
+            continuation.yield(.success(try await operation()))
+        } catch {
+            continuation.yield(.failure(error))
         }
-        guard let first = try await group.next() else {
-            throw TranslationError.service("没有返回结果")
+    }
+    let timer = Task {
+        do {
+            try await Task.sleep(for: .seconds(seconds))
+            continuation.yield(.failure(TranslationError.timedOut))
+        } catch {
+            // 任务已完成或调用者已取消。
         }
-        group.cancelAll()
-        return first
+    }
+    defer {
+        continuation.finish()
+        work.cancel()
+        timer.cancel()
     }
 
-    switch outcome {
-    case .value(let value): return value
-    case .timeout: throw TranslationError.timedOut
+    var iterator = stream.makeAsyncIterator()
+    guard let result = await iterator.next(), !Task.isCancelled else {
+        throw TranslationError.cancelled
     }
+    return try result.get()
 }

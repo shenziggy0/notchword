@@ -14,6 +14,7 @@ final class TranslationSessionHost {
     static let shared = TranslationSessionHost()
 
     private struct Request {
+        let id: UUID
         let text: String
         let continuation: CheckedContinuation<String, Error>
     }
@@ -24,38 +25,69 @@ final class TranslationSessionHost {
 
     private struct HostView: View {
         @ObservedObject var model: Model
-        let onSession: (TranslationSession) async -> Void
+        let onSession: (TranslationSession, TranslationSession.Configuration?) async -> Void
 
         var body: some View {
+            let configuration = model.configuration
             Color.clear
                 .frame(width: 1, height: 1)
-                .translationTask(model.configuration) { session in
-                    await onSession(session)
+                .translationTask(configuration) { session in
+                    await onSession(session, configuration)
                 }
         }
     }
 
     private let model = Model()
     private var window: NSWindow?
-    private var stream: AsyncStream<Request>?
-    private var feed: AsyncStream<Request>.Continuation?
+    private var stream: AsyncStream<Void>?
+    private var feed: AsyncStream<Void>.Continuation?
     private var configuration: TranslationSession.Configuration?
+    private var pending: Request?
+    private var activeID: UUID?
+    private var activeContinuation: CheckedContinuation<String, Error>?
+    private var activeTask: Task<String, Error>?
 
     func translate(_ text: String, source: Locale.Language, target: Locale.Language) async throws -> String {
         ensureWindow()
 
         let wanted = TranslationSession.Configuration(source: source, target: target)
         if configuration != wanted {
+            if let pending { cancel(pending.id) }
+            if let activeID { cancel(activeID) }
+            feed?.finish()
+            let (stream, feed) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+            self.stream = stream
+            self.feed = feed
             configuration = wanted
             model.configuration = wanted
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
-            guard let feed else {
-                continuation.resume(throwing: TranslationError.service("翻译会话未就绪"))
-                return
+        let id = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: TranslationError.cancelled)
+                    return
+                }
+                pending?.continuation.resume(throwing: TranslationError.cancelled)
+                pending = Request(id: id, text: text, continuation: continuation)
+                feed?.yield(())
             }
-            feed.yield(Request(text: text, continuation: continuation))
+        } onCancel: {
+            Task { @MainActor in self.cancel(id) }
+        }
+    }
+
+    private func cancel(_ id: UUID) {
+        if let request = pending, request.id == id {
+            pending = nil
+            request.continuation.resume(throwing: TranslationError.cancelled)
+        }
+        if activeID == id {
+            let continuation = activeContinuation
+            activeContinuation = nil
+            activeTask?.cancel()
+            continuation?.resume(throwing: TranslationError.cancelled)
         }
     }
 
@@ -64,13 +96,8 @@ final class TranslationSessionHost {
     private func ensureWindow() {
         if window != nil { return }
 
-        var continuation: AsyncStream<Request>.Continuation?
-        let stream = AsyncStream<Request> { continuation = $0 }
-        self.stream = stream
-        self.feed = continuation
-
-        let view = HostView(model: model) { [weak self] session in
-            await self?.serve(session)
+        let view = HostView(model: model) { [weak self] session, configuration in
+            await self?.serve(session, configuration: configuration)
         }
         let hosting = NSHostingView(rootView: view)
         hosting.frame = NSRect(x: 0, y: 0, width: 1, height: 1)
@@ -93,15 +120,30 @@ final class TranslationSessionHost {
         self.window = window
     }
 
-    private func serve(_ session: TranslationSession) async {
-        guard let stream else { return }
-        for await request in stream {
-            do {
-                let response = try await session.translate(request.text)
-                request.continuation.resume(returning: response.targetText)
-            } catch {
-                request.continuation.resume(throwing: error)
+    private func serve(_ session: TranslationSession, configuration: TranslationSession.Configuration?) async {
+        guard let stream, !Task.isCancelled, self.configuration == configuration else { return }
+        for await _ in stream {
+            guard !Task.isCancelled, self.configuration == configuration else { break }
+            // 旧会话的框架调用可能还未释放，完成后会唤醒新会话。
+            guard activeID == nil, let request = pending else { continue }
+            pending = nil
+            activeID = request.id
+            activeContinuation = request.continuation
+            let task = Task { try await session.translate(request.text).targetText }
+            activeTask = task
+            let result = await withTaskCancellationHandler {
+                await task.result
+            } onCancel: {
+                task.cancel()
             }
+
+            let continuation = activeContinuation
+            activeID = nil
+            activeContinuation = nil
+            activeTask = nil
+            continuation?.resume(with: result)
+            if pending != nil { feed?.yield(()) }
+            if Task.isCancelled { break }
         }
     }
 }

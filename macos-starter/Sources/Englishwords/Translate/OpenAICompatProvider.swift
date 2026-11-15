@@ -38,10 +38,15 @@ struct OpenAICompatProvider: TranslationProviding {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: urlRequest)
+            let request = urlRequest
+            (data, response) = try await withTimeout(20) {
+                try await URLSession.shared.data(for: request)
+            }
         } catch let error as URLError where error.code == .timedOut {
             throw TranslationError.timedOut
-        } catch is CancellationError {
+        } catch let error as TranslationError {
+            throw error
+        } catch where TranslationError.isCancellation(error) {
             throw TranslationError.cancelled
         } catch {
             throw TranslationError.service(error.localizedDescription)

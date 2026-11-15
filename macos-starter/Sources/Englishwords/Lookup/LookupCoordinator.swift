@@ -27,33 +27,38 @@ final class LookupCoordinator {
         self.preferences = preferences
     }
 
-    func submit(_ request: LookupRequest) {
-        task?.cancel()
-        task = nil
-        generation &+= 1
+    @discardableResult
+    func submit(_ request: LookupRequest) -> Bool {
+        let classification = TextFilter.classify(request.text)
+        if case .rejected = classification, request.trigger.isPassive { return false }
+
+        cancel()
         let currentGeneration = generation
 
-        let classification = TextFilter.classify(request.text)
         if case .rejected(let reason) = classification {
-            // 被动入口失败不打扰用户
-            guard !request.trigger.isPassive else { return }
             if request.trigger == .region, case .empty = reason {
                 onState?(.failure(request, "未识别到文字"))
-                return
+                return true
             }
             let message = request.note.map { reason.message + "\n" + $0 } ?? reason.message
             onState?(.failure(request, message))
-            return
+            return true
         }
 
         onState?(.loading(request))
 
         task = Task { [weak self] in
             guard let self else { return }
-            let state = await self.resolve(request, classification: classification)
-            guard !Task.isCancelled, currentGeneration == self.generation else { return }
-            self.onState?(state)
+            do {
+                let state = try await self.resolve(request, classification: classification)
+                guard !Task.isCancelled, currentGeneration == self.generation else { return }
+                self.task = nil
+                self.onState?(state)
+            } catch {
+                // 取消不显示为查询失败。
+            }
         }
+        return true
     }
 
     /// 关闭入口或重开面板时调用：丢弃在途任务，不展示错误。
@@ -65,23 +70,24 @@ final class LookupCoordinator {
 
     // MARK: - 流程
 
-    private func resolve(_ request: LookupRequest, classification: TextClassification) async -> LookupState {
+    private func resolve(_ request: LookupRequest, classification: TextClassification) async throws -> LookupState {
         switch classification {
         case .rejected(let reason):
             return .failure(request, reason.message)
         case .sentence(let text):
-            return await translate(text: text, request: request, kind: .sentence, note: request.note)
+            return try await translate(text: text, request: request, kind: .sentence, note: request.note)
         case .word(let word):
-            return await resolveWord(word, request: request)
+            return try await resolveWord(word, request: request)
         }
     }
 
-    private func resolveWord(_ word: String, request: LookupRequest) async -> LookupState {
+    private func resolveWord(_ word: String, request: LookupRequest) async throws -> LookupState {
         let morphology = await store.morphologyAsync(word)
+        try Task.checkCancellation()
 
         // 翻译快捷键：跳过词典，单词仍带上已查到的拆分。短句不走这里。
         if request.mode == .translate {
-            return await translate(text: word, request: request, kind: .word,
+            return try await translate(text: word, request: request, kind: .word,
                                    note: request.note, morphology: morphology)
         }
 
@@ -97,20 +103,21 @@ final class LookupCoordinator {
             note = [note, reason].compactMap { $0 }.joined(separator: "\n")
         }
 
+        try Task.checkCancellation()
         if let entry {
             return .result(request, .word(input: word, entry: entry, morphology: morphology, note: note))
         }
         if let systemEntry = systemDictionary.lookup(word) {
             return .result(request, .word(input: word, entry: systemEntry, morphology: morphology, note: note))
         }
-        return await translate(text: word, request: request, kind: .word, note: note, morphology: morphology)
+        return try await translate(text: word, request: request, kind: .word, note: note, morphology: morphology)
     }
 
     private func translate(text: String,
                            request: LookupRequest,
                            kind: TextKind,
                            note: String?,
-                           morphology: Morphology? = nil) async -> LookupState {
+                           morphology: Morphology? = nil) async throws -> LookupState {
         do {
             let result = try await translator.translate(
                 TranslationRequest(text: text, source: "en", target: preferences.targetLanguage)
@@ -121,24 +128,12 @@ final class LookupCoordinator {
             mapped.note = note
             return .result(request, mapped)
         } catch {
-            if kind == .word, Self.isLanguageUnavailable(error) {
-                return .miss(request)
-            }
+            if Task.isCancelled || TranslationError.isCancellation(error) { throw error }
             let message = Self.describe(error)
             if let note, !note.isEmpty {
                 return .failure(request, message + "\n" + note)
             }
             return .failure(request, message)
-        }
-    }
-
-    private static func isLanguageUnavailable(_ error: Error) -> Bool {
-        guard let error = error as? TranslationError else { return false }
-        switch error {
-        case .languageUnavailable, .languagePackRequired:
-            return true
-        default:
-            return false
         }
     }
 

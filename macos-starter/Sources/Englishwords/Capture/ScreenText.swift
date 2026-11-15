@@ -32,12 +32,20 @@ enum ScreenText {
 
     static func recognize(rect: CGRect, on screen: NSScreen) async throws -> String {
         guard Permissions.isScreenCaptureGranted else { throw ScreenTextError.notAuthorized }
+        try Task.checkCancellation()
         let image = try await capture(rect: rect, on: screen)
-        if let text = try? recognize(image, level: .fast), !text.isEmpty {
+        try Task.checkCancellation()
+        let fastText = try? recognize(image, level: .fast)
+        try Task.checkCancellation()
+        if let text = fastText, !text.isEmpty {
             return text
         }
         do {
-            return try recognize(image, level: .accurate)
+            let text = try recognize(image, level: .accurate)
+            try Task.checkCancellation()
+            return text
+        } catch is CancellationError {
+            throw CancellationError()
         } catch let error as ScreenTextError {
             throw error
         } catch {

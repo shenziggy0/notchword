@@ -228,3 +228,150 @@ struct ProviderCleanTests {
         #expect(SystemDictionaryBridge.clean(raw, headword: "hello") == "BrE həˈləʊ\nA. noun 问候")
     }
 }
+
+@Suite("查词与翻译回归")
+@MainActor
+struct LookupRegressionTests {
+    private let request = TranslationRequest(text: "hello", source: "en", target: "zh-Hans")
+
+    @Test("代码候选不进入查词，但普通英文保留",
+          arguments: ["const token = \"example\";", "foo(bar)", "print(123)"])
+    func filtersCode(_ code: String) {
+        guard case .rejected(.code) = TextFilter.classify(code) else {
+            Issue.record("代码候选未被过滤")
+            return
+        }
+        #expect(sentence(from: "Try again (if needed).") != nil)
+        #expect(word(from: "don't") == "don't")
+        #expect(word(from: "well-known") == "well-known")
+    }
+
+    @Test("超时先于不响应取消的底层任务返回")
+    func timesOutBeforeUnderlyingTaskFinishes() async {
+        let (release, continuation) = AsyncStream<Void>.makeStream()
+        defer { continuation.finish() }
+        // detached 模拟无需等待调用方取消的框架请求。
+        let underlying = Task.detached {
+            var iterator = release.makeAsyncIterator()
+            _ = await iterator.next()
+            return "late"
+        }
+        // 安全阀使旧实现也能结束，随后下方断言会抓到回归。
+        var releasedBySafetyTimer = false
+        let safetyTimer = Task {
+            guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+            releasedBySafetyTimer = true
+            continuation.finish()
+        }
+        defer { safetyTimer.cancel() }
+
+        do {
+            _ = try await withTimeout(0.05) { await underlying.value }
+            Issue.record("预期超时")
+        } catch TranslationError.timedOut {
+            #expect(!releasedBySafetyTimer)
+        } catch {
+            Issue.record("意外错误：\(error)")
+        }
+    }
+
+    @Test("本地失败按配置降级，取消不发联网请求",
+          arguments: ["fallback", "disabled", "missing", "cancelled"])
+    func fallbackUsesCurrentConfiguration(_ scenario: String) async {
+        let name = "io.github.shenziggy0.notchword.tests.\(UUID())"
+        let defaults = UserDefaults(suiteName: name)!
+        defer { defaults.removePersistentDomain(forName: name) }
+        let preferences = Preferences(defaults: defaults)
+        preferences.onlineEnabled = scenario != "disabled"
+
+        let local = StubProvider {
+            if scenario == "cancelled" { throw URLError(.cancelled) }
+            throw CocoaError(.fileReadUnknown)
+        }
+        var onlineCalls = 0
+        let online = StubProvider {
+            onlineCalls += 1
+            return TranslationResult(text: "你好", providerID: "stub", providerName: "测试服务")
+        }
+        let translator = TranslationCoordinator(preferences: preferences, apple: local) {
+            scenario == "missing" ? nil : online
+        }
+
+        do {
+            let result = try await translator.translate(request)
+            #expect(scenario == "fallback")
+            #expect(result.text == "你好")
+        } catch TranslationError.configurationMissing {
+            #expect(scenario == "missing")
+        } catch TranslationError.cancelled {
+            #expect(scenario == "cancelled")
+        } catch is CocoaError {
+            #expect(scenario == "disabled")
+        } catch {
+            Issue.record("意外错误：\(error)")
+        }
+        #expect(onlineCalls == (scenario == "fallback" ? 1 : 0))
+    }
+
+    @Test("被动拒绝不会中止译文，缺语言包显示真实原因")
+    func passiveRejectionKeepsCurrentLookup() async throws {
+        let (finish, continuation) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
+        defer { continuation.finish() }
+        let (states, stateFeed) = AsyncStream<LookupState>.makeStream()
+        defer { stateFeed.finish() }
+        let coordinator = LookupCoordinator(
+            store: DictionaryStore(dictionaryURL: nil, wordpartsURL: nil),
+            systemDictionary: MissingSystemDictionary(),
+            translator: StubProvider {
+                var input = finish.makeAsyncIterator()
+                _ = await input.next()
+                throw TranslationError.languagePackRequired
+            },
+            preferences: .shared
+        )
+        coordinator.onState = { stateFeed.yield($0) }
+        defer { coordinator.cancel() }
+
+        #expect(coordinator.submit(LookupRequest(text: "hello", trigger: .translate, screen: nil, mode: .translate)))
+        #expect(!coordinator.submit(LookupRequest(text: "https://example.com", trigger: .selection, screen: nil)))
+        continuation.yield(())
+        try await withTimeout(1) {
+            var output = states.makeAsyncIterator()
+            guard case .loading? = await output.next(),
+                  case .failure(_, let message)? = await output.next() else {
+                Issue.record("预期加载后提示语言包缺失")
+                return
+            }
+            #expect(message.contains("准备语言包"))
+        }
+    }
+
+    @Test("空白保存保留既有密钥")
+    func emptySavePreservesKey() throws {
+        let account = "test-\(UUID())"
+        defer { SecretStore.delete(account: account) }
+        try SecretStore.save("isolated-test-key", account: account).get()
+
+        for value in ["", "  \n"] {
+            guard case .failure(.emptyValue) = SecretStore.save(value, account: account) else {
+                Issue.record("空白保存应失败")
+                return
+            }
+            #expect(SecretStore.read(account: account) == "isolated-test-key")
+        }
+
+        try SecretStore.delete(account: account).get()
+        #expect(SecretStore.read(account: account) == nil)
+    }
+}
+
+@MainActor
+private struct StubProvider: TranslationProviding, Translating {
+    let id = "stub"
+    let displayName = "测试服务"
+    let operation: () async throws -> TranslationResult
+
+    func translate(_ request: TranslationRequest) async throws -> TranslationResult {
+        try await operation()
+    }
+}

@@ -23,7 +23,8 @@ enum PreviewRenderer {
             topInset: 12,
             width: 474,
             maxHeight: nil,
-            showWordParts: true
+            showWordParts: true,
+            lookupShortcut: HotKeySpec.lookup.display
         )
         .padding(.top, 18)
         .padding(.bottom, 26)

@@ -17,10 +17,12 @@ final class SelectionMonitor {
     private let preferences: Preferences
     private var timer: Timer?
     private var pending: DispatchWorkItem?
+    private var pendingDrag: DispatchWorkItem?
     private var mouseMonitors: [Any] = []
 
     private var dragStart: NSPoint?
-    private var lastSelection = ""
+    private var observedSelection = ""
+    private var lastEmittedSelection = ""
     private var lastEmitTime: Date = .distantPast
 
     private let pollInterval: TimeInterval = 0.35
@@ -32,7 +34,7 @@ final class SelectionMonitor {
     }
 
     func start() {
-        stop()
+        guard timer == nil else { return }
 
         let timer = Timer(timeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -62,8 +64,11 @@ final class SelectionMonitor {
         for monitor in mouseMonitors { NSEvent.removeMonitor(monitor) }
         mouseMonitors.removeAll()
 
+        pendingDrag?.cancel()
+        pendingDrag = nil
         dragStart = nil
-        lastSelection = ""
+        observedSelection = ""
+        lastEmittedSelection = ""
     }
 
     // MARK: - 轮询选区
@@ -75,24 +80,25 @@ final class SelectionMonitor {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         if selection.isEmpty {
-            lastSelection = ""
+            observedSelection = ""
             pending?.cancel()
             pending = nil
             return
         }
-        guard selection != lastSelection else { return }
+        guard selection != observedSelection else { return }
 
-        lastSelection = selection
+        observedSelection = selection
         pending?.cancel()
         let work = DispatchWorkItem { [weak self] in
-            Task { @MainActor in self?.fire(selection) }
+            self?.fire(selection)
         }
         pending = work
         DispatchQueue.main.asyncAfter(deadline: .now() + settleDelay, execute: work)
     }
 
     private func fire(_ selection: String) {
-        guard AXPicker.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) == selection else { return }
+        guard preferences.selectionEnabled, AppRules.allowsPassiveLookup(),
+              AXPicker.selectedText()?.trimmingCharacters(in: .whitespacesAndNewlines) == selection else { return }
         submit(selection)
     }
 
@@ -112,16 +118,17 @@ final class SelectionMonitor {
         guard distance > dragThreshold, isInsidePanel?(end) != true else { return }
 
         // 等目标应用把选区状态更新完
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
-            Task { @MainActor in self?.captureAfterDrag() }
-        }
+        pendingDrag?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.captureAfterDrag() }
+        pendingDrag = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
     }
 
     private func captureAfterDrag() {
         guard preferences.selectionEnabled, AppRules.allowsPassiveLookup() else { return }
 
         if let text = AXPicker.selectedText() {
-            lastSelection = text
+            observedSelection = text
             submit(text)
             return
         }
@@ -134,8 +141,8 @@ final class SelectionMonitor {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        if trimmed == lastSelection, Date().timeIntervalSince(lastEmitTime) < 4 { return }
-        lastSelection = trimmed
+        if trimmed == lastEmittedSelection, Date().timeIntervalSince(lastEmitTime) < 4 { return }
+        lastEmittedSelection = trimmed
         lastEmitTime = Date()
 
         onSubmit?(LookupRequest(

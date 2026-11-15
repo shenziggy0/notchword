@@ -11,6 +11,7 @@ enum RejectReason {
     case url
     case email
     case domain
+    case code
     case noLetters
     case unsupportedScript
 
@@ -22,6 +23,7 @@ enum RejectReason {
         case .url:                return "这是一个网址，不做翻译。"
         case .email:              return "这是一个邮箱地址，不做翻译。"
         case .domain:             return "这是一个域名，不做翻译。"
+        case .code:               return "选中的内容看起来是代码，不做翻译。"
         case .noLetters:          return "没有找到英文内容。"
         case .unsupportedScript:  return "目前只支持英文查词与英译中。"
         }
@@ -62,6 +64,14 @@ enum TextFilter {
         if lowercased.range(of: #"^[a-z0-9\-]+(\.[a-z0-9\-]+)*\.(com|org|net|io|dev|app|co|cn|edu|gov|me|ai|xyz|info)(/\S*)?$"#,
                            options: .regularExpression) != nil {
             return .rejected(.domain)
+        }
+
+        if text.hasPrefix("```")
+            || text.range(of: #"^(?:let|const|var)\s+[A-Za-z_$]\w*\s*(?::[^=\n]+)?\s*="#,
+                          options: .regularExpression) != nil
+            || text.range(of: #"^[A-Za-z_$][\w$.]*\([^()\n]*\)\s*;?$"#,
+                          options: .regularExpression) != nil {
+            return .rejected(.code)
         }
 
         if isSingleWord(text) {

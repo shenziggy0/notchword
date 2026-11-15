@@ -22,9 +22,12 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     func show() {
         if window == nil {
-            let view = SettingsView(preferences: preferences, model: model) { [weak self] in
+            let view = SettingsView(preferences: preferences, model: model, onPrepareLanguage: { [weak self] in
                 self?.showLanguagePack()
-            }
+            }, onRefreshOnlineStatus: { [weak self] in
+                guard let self else { return }
+                self.model.refreshOnlineStatus(translator: self.translator)
+            })
             let controller = NSHostingController(rootView: view)
             let window = NSWindow(contentViewController: controller)
             window.title = "Englishwords 设置"
@@ -90,13 +93,16 @@ final class SettingsModel: ObservableObject {
             ? "已保存（不回显）"
             : "尚未保存"
 
+        refreshOnlineStatus(translator: translator)
+        Task { await checkLocalAvailability() }
+    }
+
+    func refreshOnlineStatus(translator: TranslationCoordinator) {
         switch translator.onlineAvailability() {
         case .disabled:            onlineStatus = "联网翻译已关闭"
         case .missingCredentials:  onlineStatus = "配置不完整：检查地址、模型与密钥"
         case .ready:               onlineStatus = "配置完整"
         }
-
-        Task { await checkLocalAvailability() }
     }
 
     func saveKey() {
@@ -134,6 +140,10 @@ struct SettingsView: View {
     @ObservedObject var preferences: Preferences
     @ObservedObject var model: SettingsModel
     var onPrepareLanguage: () -> Void
+    var onRefreshOnlineStatus: () -> Void
+
+    private enum TranslationField: Hashable { case address, model }
+    @FocusState private var translationField: TranslationField?
 
     var body: some View {
         ScrollView {
@@ -148,6 +158,9 @@ struct SettingsView: View {
             .padding(20)
         }
         .frame(width: 540)
+        .onChange(of: translationField) { previous, _ in
+            if previous != nil { onRefreshOnlineStatus() }
+        }
     }
 
     private var automaticSection: some View {
@@ -209,23 +222,35 @@ struct SettingsView: View {
                 Divider()
 
                 Toggle("本地不可用时允许联网翻译", isOn: binding(\.onlineEnabled))
+                    .onChange(of: preferences.onlineEnabled) { _, _ in onRefreshOnlineStatus() }
 
                 HStack(spacing: 10) {
                     Text("服务地址").frame(width: 72, alignment: .leading)
                     TextField("https://api.openai.com/v1", text: binding(\.baseURL))
+                        .focused($translationField, equals: .address)
+                        .onSubmit(onRefreshOnlineStatus)
                         .textFieldStyle(.roundedBorder)
                 }
                 HStack(spacing: 10) {
                     Text("模型").frame(width: 72, alignment: .leading)
                     TextField("gpt-4o-mini", text: binding(\.model))
+                        .focused($translationField, equals: .model)
+                        .onSubmit(onRefreshOnlineStatus)
                         .textFieldStyle(.roundedBorder)
                 }
                 HStack(spacing: 10) {
                     Text("API 密钥").frame(width: 72, alignment: .leading)
                     SecureField("只保存到钥匙串", text: $model.apiKeyInput)
                         .textFieldStyle(.roundedBorder)
-                    Button("保存") { model.saveKey() }
-                    Button("清除") { model.clearKey() }
+                    Button("保存") {
+                        model.saveKey()
+                        onRefreshOnlineStatus()
+                    }
+                    .disabled(model.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("清除") {
+                        model.clearKey()
+                        onRefreshOnlineStatus()
+                    }
                 }
 
                 Text("\(model.onlineStatus) · 密钥\(model.keyMessage)")

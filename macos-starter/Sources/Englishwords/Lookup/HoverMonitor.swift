@@ -24,7 +24,7 @@ final class HoverMonitor {
     }
 
     func start() {
-        stop()
+        guard timer == nil else { return }
         lastPoint = NSEvent.mouseLocation
         let timer = Timer(timeInterval: pollInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -54,7 +54,7 @@ final class HoverMonitor {
         if isInsidePanel?(point) == true { return }
 
         let work = DispatchWorkItem { [weak self] in
-            Task { @MainActor in self?.fire(at: point) }
+            self?.fire(at: point)
         }
         dwellWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + preferences.hoverDwell, execute: work)
@@ -62,7 +62,8 @@ final class HoverMonitor {
 
     private func fire(at point: NSPoint) {
         // 指针已经移开：取消本次查询
-        guard distance(NSEvent.mouseLocation, point) <= movementThreshold else { return }
+        guard preferences.hoverEnabled, AppRules.allowsPassiveLookup(),
+              distance(NSEvent.mouseLocation, point) <= movementThreshold else { return }
         guard let candidate = AXPicker.word(at: Screens.accessibilityPoint(from: point)) else { return }
 
         let word = TextFilter.normalizeWord(candidate)

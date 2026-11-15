@@ -52,6 +52,7 @@ struct ResultView: View {
     let width: CGFloat
     let maxHeight: CGFloat?
     var showWordParts: Bool = true
+    let lookupShortcut: String
 
     @ObservedObject private var speaker = Speaker.shared
 
@@ -252,6 +253,7 @@ struct ResultView: View {
                         )
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(speaker.speaking ? "停止朗读" : "朗读单词")
             }
 
             if !result.input.isEmpty, result.input != result.title.lowercased() {
@@ -330,9 +332,9 @@ struct ResultView: View {
                         .fill(.blue.opacity(0.15))
                 )
             Spacer()
-            Text("⌥D 查词 · Esc 收起")
+            Text("\(lookupShortcut) 查词 · Esc 收起")
                 .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.28))
+                .foregroundStyle(.white.opacity(0.56))
         }
         .padding(.top, 10)
     }
@@ -349,9 +351,9 @@ struct ResultView: View {
                 .font(.system(size: 13))
                 .foregroundStyle(.white.opacity(0.62))
                 .fixedSize(horizontal: false, vertical: true)
-            Text("⌥D 查词 · Esc 收起")
+            Text("\(lookupShortcut) 查词 · Esc 收起")
                 .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.25))
+                .foregroundStyle(.white.opacity(0.56))
                 .padding(.top, 2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

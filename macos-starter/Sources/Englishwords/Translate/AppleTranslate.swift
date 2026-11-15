@@ -21,17 +21,16 @@ struct AppleTranslate: TranslationProviding {
         let source = Locale.Language(identifier: request.source ?? "en")
         let target = Locale.Language(identifier: request.target)
 
-        switch await LanguageAvailability().status(from: source, to: target) {
-        case .installed:
-            break
-        case .supported:
-            throw TranslationError.languagePackRequired
-        default:
-            throw TranslationError.languageUnavailable
-        }
-
         let translated = try await withTimeout(20) {
-            try await TranslationSessionHost.shared.translate(text, source: source, target: target)
+            switch await availability(source: source, target: target) {
+            case .installed:
+                try Task.checkCancellation()
+            case .supported:
+                throw TranslationError.languagePackRequired
+            default:
+                throw TranslationError.languageUnavailable
+            }
+            return try await TranslationSessionHost.shared.translate(text, source: source, target: target)
         }
         let trimmed = translated.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw TranslationError.service("本地翻译返回空结果") }

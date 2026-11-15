@@ -86,6 +86,14 @@ final class PanelController {
         reveal()
         installEscapeMonitor()
         startPointerTracking()
+        if pointerInside, preferences.expandsOnHover { expand() }
+        restartHideTimer()
+    }
+
+    func refreshPreferences() {
+        guard isVisible, let screen = targetScreen else { return }
+        render(on: screen)
+        pointerInside = panel?.frame.contains(NSEvent.mouseLocation) ?? false
         restartHideTimer()
     }
 
@@ -101,8 +109,11 @@ final class PanelController {
         NSAnimationContext.runAnimationGroup({ context in
             context.duration = 0.16
             panel.animator().alphaValue = 0
-        }, completionHandler: {
-            panel.orderOut(nil)
+        }, completionHandler: { [weak self] in
+            Task { @MainActor in
+                guard self?.isVisible != true else { return }
+                panel.orderOut(nil)
+            }
         })
     }
 
@@ -212,7 +223,8 @@ final class PanelController {
             topInset: geometry.contentTopInset,
             width: width,
             maxHeight: maxHeight,
-            showWordParts: preferences.showWordParts
+            showWordParts: preferences.showWordParts,
+            lookupShortcut: preferences.lookupHotKey.display
         )
     }
 
@@ -240,6 +252,9 @@ final class PanelController {
 
     private func restartHideTimer() {
         hideWorkItem?.cancel()
+        hideWorkItem = nil
+        guard !pointerInside, let state else { return }
+        if case .loading = state { return }
         let item = DispatchWorkItem { [weak self] in self?.hide() }
         hideWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + preferences.autoHideInterval, execute: item)
