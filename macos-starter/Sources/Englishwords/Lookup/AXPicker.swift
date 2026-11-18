@@ -122,8 +122,8 @@ enum AXPicker {
         let owner = NSRunningApplication(processIdentifier: pid)?.localizedName ?? "?"
         let value = textContent(of: element) ?? ""
         let index = characterIndex(at: point, in: element, text: value)
-        let bounds = index.flatMap { bounds(for: $0, in: element) }
-        return "owner=\(owner) role=\(role) len=\(value.count) index=\(index.map(String.init) ?? "nil") bounds=\(bounds.map { "\($0)" } ?? "nil") head=\(value.prefix(24))"
+        let charBounds = index.flatMap { Self.bounds(for: $0, in: element) }
+        return "owner=\(owner) role=\(role) len=\(value.count) index=\(index.map(String.init) ?? "nil") bounds=\(charBounds.map { "\($0)" } ?? "nil") head=\(value.prefix(24))"
     }
 
     /// 向下找真正带文字的视图；元素的 frame 必须包含指针，避免拿到整页容器。
