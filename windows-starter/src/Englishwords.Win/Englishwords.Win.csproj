@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>Englishwords.Win</RootNamespace>
+    <AssemblyName>Englishwords.Win</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.10" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+    <PackageReference Include="System.Speech" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Englishwords.Core\Englishwords.Core.csproj" />
+  </ItemGroup>
+
+  <!-- 直接链接复用 macos-starter 已终审落盘的只读词库与词素库，不在仓库内复制第二份二进制文件 -->
+  <ItemGroup>
+    <Content Include="..\..\..\macos-starter\Sources\Englishwords\Resources\dictionary.sqlite"
+             Link="Resources\dictionary.sqlite"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\macos-starter\Sources\Englishwords\Resources\wordparts.sqlite"
+             Link="Resources\wordparts.sqlite"
+             CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

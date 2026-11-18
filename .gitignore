@@ -4,6 +4,8 @@
 # 构建产物
 .build/
 build/
+bin/
+obj/
 DerivedData/
 *.xcodeproj
 xcuserdata/

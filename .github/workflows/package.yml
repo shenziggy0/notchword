@@ -83,3 +83,49 @@ jobs:
             macos-starter/build/dist/*.dmg
             macos-starter/build/dist/*.sha256
           if-no-files-found: error
+
+  build-windows-x64:
+    name: Windows x64 ZIP
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Resolve Version
+        id: meta
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if ($env:INPUT_VERSION) {
+            $version = $env:INPUT_VERSION.TrimStart('v')
+          } else {
+            $tag = git describe --tags --match 'v*' --abbrev=0 2>$null
+            if ($LASTEXITCODE -eq 0 -and $tag) {
+              $version = $tag.TrimStart('v')
+            } else {
+              $version = "0.5.2"
+            }
+          }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Test, Build and Self-Check
+        working-directory: windows-starter
+        shell: pwsh
+        run: ./build.ps1 -Version "${{ steps.meta.outputs.version }}"
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Englishwords-${{ steps.meta.outputs.version }}-win-x64-zip
+          path: |
+            windows-starter/build/dist/*.zip
+            windows-starter/build/dist/*.sha256
+          if-no-files-found: error
