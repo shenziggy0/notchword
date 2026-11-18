@@ -27,13 +27,13 @@ public sealed class DictionaryStoreTests
         var (dictPath, partsPath) = LocateRepoResources();
         using var store = new DictionaryStore(dictPath, partsPath);
 
-        // 屈折还原：abandoned -> abandon
-        var abandoned = store.Lookup("abandoned");
-        Assert.Null(abandoned.Error);
-        Assert.NotNull(abandoned.Entry);
-        Assert.Equal("abandon", abandoned.Entry!.Word);
-        Assert.NotEmpty(abandoned.Entry.Translation);
-        Assert.NotEmpty(abandoned.Entry.Tags);
+        // 屈折还原：abandoning -> abandon
+        var abandoning = store.Lookup("abandoning");
+        Assert.Null(abandoning.Error);
+        Assert.NotNull(abandoning.Entry);
+        Assert.Equal("abandon", abandoning.Entry!.Word);
+        Assert.NotEmpty(abandoning.Entry.Translation);
+        Assert.NotEmpty(abandoning.Entry.Tags);
 
         // 词根词缀拆分：unbelievable -> un / believ / able
         var morphology = store.GetMorphology("unbelievable");
