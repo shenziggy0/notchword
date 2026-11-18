@@ -24,7 +24,7 @@ public sealed class StarDictTests : IDisposable
         var idxStream = new MemoryStream();
         idxStream.Write(wordBytes);
         idxStream.WriteByte(0);
-        Span<byte> intBuf = stackalloc byte[4];
+        var intBuf = new byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(intBuf, 0);
         idxStream.Write(intBuf);
         BinaryPrimitives.WriteUInt32BigEndian(intBuf, (uint)dictBytes.Length);
