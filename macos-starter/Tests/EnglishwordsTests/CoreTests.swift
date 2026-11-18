@@ -190,7 +190,7 @@ private struct FixedTranslator: Translating {
     }
 }
 
-private func writeSQLite(_ url: URL, _ sql: String) throws {
+func writeSQLite(_ url: URL, _ sql: String) throws {
     var db: OpaquePointer?
     guard sqlite3_open(url.path, &db) == SQLITE_OK, let db else {
         throw SQLiteTestError("无法创建 \(url.lastPathComponent)")

@@ -1,6 +1,6 @@
 import AppKit
 
-enum LookupTrigger {
+enum LookupTrigger: String, Sendable {
     case hotkey
     /// `⌥T`：跳过词典，直接把选中的内容送去翻译。
     case translate
@@ -9,6 +9,8 @@ enum LookupTrigger {
     case hover
     case selection
     case region
+    case notebook
+    case subtitle
 
     var label: String {
         switch self {
@@ -19,6 +21,8 @@ enum LookupTrigger {
         case .hover:     return "悬停取词"
         case .selection: return "划词取词"
         case .region:    return "区域取词"
+        case .notebook:  return "笔记本"
+        case .subtitle:  return "字幕"
         }
     }
 
@@ -58,6 +62,12 @@ struct LookupResult {
     let origin: String
     let source: String             // 内置词库 / 系统词典 / Apple 本地翻译 / 联网翻译
     var note: String?              // 降级说明，例如内置库读取失败
+
+    var notebookWord: String? {
+        guard kind == .word else { return nil }
+        let word = TextFilter.normalizeWord(title.isEmpty ? input : title)
+        return word.isEmpty ? nil : word
+    }
 
     static func word(input: String, entry: Entry, morphology: Morphology?, note: String?) -> LookupResult {
         LookupResult(

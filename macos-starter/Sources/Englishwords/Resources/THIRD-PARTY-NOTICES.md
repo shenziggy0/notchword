@@ -54,3 +54,10 @@ SOFTWARE.
 - 只收录拆分可完整拼回原词的条目。没有把握的词不生成拆分，查询时如实缺省。
 - 覆盖范围有限（不是全量词根库）；扩充分片只需往两个 TSV 追加行并重跑脚本。
 - `segments` 使用词内的实际拼写（如 `believ`），语素词典形态（`believe`）另存于 `parts.label`。
+- 词源归属 Wiktionary 各词条贡献者，参见对应词条历史及 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。
+- 小学补充目标来自 [Wiktionary 基础英语词表固定修订](https://en.wiktionary.org/wiki/Special:PermanentLink/78256317)。
+
+## 3. Sparkle
+
+带更新功能的构建包含 [Sparkle 2.9.6](https://github.com/sparkle-project/Sparkle/releases/tag/2.9.6)。
+原始第三方许可随 Sparkle 构建产物放在应用资源目录中。

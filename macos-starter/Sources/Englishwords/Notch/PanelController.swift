@@ -46,10 +46,15 @@ final class PanelController {
         case expanded
     }
 
+    var isShowingSubtitle: Bool { isVisible && subtitle != nil }
+
     /// 面板被收起（Esc / 超时 / 新入口）时通知外层，用于丢弃在途查询。
     var onHide: (() -> Void)?
+    var onBackToSubtitle: (() -> Void)?
+    private var subtitle: SubtitleView?
 
     private let preferences: Preferences
+    private let notebook: NotebookModel?
     private var panel: NotchPanel?
     private var hosting: PanelHostingView?
     private var hideWorkItem: DispatchWorkItem?
@@ -61,8 +66,9 @@ final class PanelController {
     private var isVisible = false
     private var pointerInside = false
 
-    init(preferences: Preferences) {
+    init(preferences: Preferences, notebook: NotebookModel? = nil) {
         self.preferences = preferences
+        self.notebook = notebook
 
         // 显示器增减或分辨率变化后重新定位，避免面板留在旧屏幕上
         NotificationCenter.default.addObserver(
@@ -77,6 +83,7 @@ final class PanelController {
     // MARK: - 对外
 
     func show(_ state: LookupState, mode: Mode = .compact) {
+        subtitle = nil
         self.state = state
         self.mode = mode
         self.targetScreen = state.request.screen ?? NSScreen.main
@@ -87,6 +94,19 @@ final class PanelController {
         installEscapeMonitor()
         startPointerTracking()
         if pointerInside, preferences.expandsOnHover { expand() }
+        restartHideTimer()
+    }
+
+    func showSubtitle(_ view: SubtitleView, on screen: NSScreen?) {
+        guard let screen = screen ?? NSScreen.main else { return }
+        subtitle = view
+        state = nil
+        mode = .expanded
+        targetScreen = screen
+        render(on: screen)
+        reveal()
+        installEscapeMonitor()
+        startPointerTracking()
         restartHideTimer()
     }
 
@@ -128,11 +148,14 @@ final class PanelController {
         guard mode != .expanded, let screen = targetScreen else { return }
         hideWorkItem?.cancel()
         mode = .expanded
+        if preferences.hapticOnExpand {
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+        }
         render(on: screen)
     }
 
     private func collapse() {
-        guard mode != .compact, let screen = targetScreen else { return }
+        guard subtitle == nil, mode != .compact, let screen = targetScreen else { return }
         mode = .compact
         render(on: screen)
     }
@@ -180,20 +203,20 @@ final class PanelController {
     // MARK: - 渲染
 
     private func render(on screen: NSScreen) {
-        guard let state else { return }
+        guard state != nil || subtitle != nil else { return }
 
         let geometry = NotchGeometry.measure(screen)
         let width = mode == .expanded ? geometry.expandedWidth : geometry.compactWidth
         let maxHeight = max(screen.visibleFrame.height - 60, 260)
 
-        var view = makeView(state: state, geometry: geometry, width: width, maxHeight: nil)
+        var view = content(geometry: geometry, width: width, maxHeight: subtitle == nil ? nil : min(260, maxHeight))
         var hosting = makeHosting(view)
         hosting.frame = NSRect(x: 0, y: 0, width: width, height: 0)
         hosting.layoutSubtreeIfNeeded()
         var height = hosting.fittingSize.height
 
         if height > maxHeight {
-            view = makeView(state: state, geometry: geometry, width: width, maxHeight: maxHeight)
+            view = content(geometry: geometry, width: width, maxHeight: maxHeight)
             hosting = makeHosting(view)
             height = maxHeight
         }
@@ -213,23 +236,35 @@ final class PanelController {
         }
     }
 
-    private func makeView(state: LookupState,
-                          geometry: NotchGeometry,
-                          width: CGFloat,
-                          maxHeight: CGFloat?) -> ResultView {
-        ResultView(
+    private func content(geometry: NotchGeometry, width: CGFloat, maxHeight: CGFloat?) -> AnyView {
+        if let subtitle {
+            let view = subtitle
+                .padding(.top, geometry.contentTopInset)
+                .frame(width: width)
+            if let maxHeight {
+                return AnyView(ScrollView { view }.frame(width: width, height: maxHeight)
+                    .background(.black, in: RoundedRectangle(cornerRadius: 16)))
+            }
+            return AnyView(view.background(.black, in: RoundedRectangle(cornerRadius: 16)))
+        }
+        guard let state else { return AnyView(EmptyView()) }
+        return AnyView(ResultView(
             state: state,
             mode: mode,
             topInset: geometry.contentTopInset,
             width: width,
             maxHeight: maxHeight,
             showWordParts: preferences.showWordParts,
-            lookupShortcut: preferences.lookupHotKey.display
-        )
+            lookupShortcut: preferences.lookupHotKey.display,
+            notebook: notebook,
+            onBackToSubtitle: state.request.trigger == .subtitle ? onBackToSubtitle : nil,
+            speechVoice: preferences.speechVoice,
+            speechRate: preferences.speechRate
+        ))
     }
 
-    private func makeHosting(_ view: ResultView) -> PanelHostingView {
-        let hosting = PanelHostingView(rootView: AnyView(view))
+    private func makeHosting(_ view: AnyView) -> PanelHostingView {
+        let hosting = PanelHostingView(rootView: view)
         hosting.onClick = { [weak self] in self?.expand() }
         return hosting
     }
@@ -253,8 +288,8 @@ final class PanelController {
     private func restartHideTimer() {
         hideWorkItem?.cancel()
         hideWorkItem = nil
-        guard !pointerInside, let state else { return }
-        if case .loading = state { return }
+        guard !pointerInside else { return }
+        if case .loading? = state { return }
         let item = DispatchWorkItem { [weak self] in self?.hide() }
         hideWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + preferences.autoHideInterval, execute: item)

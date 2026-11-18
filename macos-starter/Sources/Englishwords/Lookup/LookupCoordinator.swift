@@ -11,6 +11,7 @@ final class LookupCoordinator {
     private let systemDictionary: any SystemDictionaryLooking
     private let translator: any Translating
     private let preferences: Preferences
+    private let starDictionaries: StarDictLibrary
 
     var onState: ((LookupState) -> Void)?
 
@@ -20,11 +21,13 @@ final class LookupCoordinator {
     init(store: DictionaryStore,
          systemDictionary: any SystemDictionaryLooking,
          translator: any Translating,
-         preferences: Preferences) {
+         preferences: Preferences,
+         starDictionaries: StarDictLibrary = .shared) {
         self.store = store
         self.systemDictionary = systemDictionary
         self.translator = translator
         self.preferences = preferences
+        self.starDictionaries = starDictionaries
     }
 
     @discardableResult
@@ -91,25 +94,25 @@ final class LookupCoordinator {
                                    note: request.note, morphology: morphology)
         }
 
-        var note: String? = request.note
-        var entry: Entry?
-
-        switch await store.lookupAsync(word) {
-        case .success(let value):
-            entry = value
-        case .failure(let error):
-            // 数据库故障可以降级，但必须保留原因，不能伪装成正常未命中
-            let reason = error.localizedDescription + "；已继续查系统词典"
-            note = [note, reason].compactMap { $0 }.joined(separator: "\n")
+        var notes = [request.note].compactMap { $0 }
+        for source in preferences.dictionarySources where source.enabled {
+            try Task.checkCancellation()
+            do {
+                let entry: Entry?
+                switch source.kind {
+                case .builtin: entry = try await store.lookupAsync(word).get()
+                case .system: entry = systemDictionary.lookup(word)
+                case .stardict: entry = try await starDictionaries.lookup(word, source: source)
+                }
+                if let entry {
+                    let note = notes.isEmpty ? nil : notes.joined(separator: "\n")
+                    return .result(request, .word(input: word, entry: entry, morphology: morphology, note: note))
+                }
+            } catch {
+                notes.append(error.localizedDescription)
+            }
         }
-
-        try Task.checkCancellation()
-        if let entry {
-            return .result(request, .word(input: word, entry: entry, morphology: morphology, note: note))
-        }
-        if let systemEntry = systemDictionary.lookup(word) {
-            return .result(request, .word(input: word, entry: systemEntry, morphology: morphology, note: note))
-        }
+        let note = notes.isEmpty ? nil : notes.joined(separator: "\n")
         return try await translate(text: word, request: request, kind: .word, note: note, morphology: morphology)
     }
 

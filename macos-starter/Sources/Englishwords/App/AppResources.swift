@@ -21,6 +21,10 @@ enum AppResources {
         locate(wordpartsName, override: "EW_PARTS")
     }
 
+    static func subtitleScriptURL() -> URL? {
+        locate("subtitle.js", override: "EW_SUBTITLE_SCRIPT")
+    }
+
     static func noticesURL() -> URL? {
         locate(noticesName, override: "EW_NOTICES")
     }

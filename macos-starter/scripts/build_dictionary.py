@@ -28,6 +28,7 @@ import tempfile
 MAX_FRQ = 60000
 WORD_PATTERN = re.compile(r"^[a-z][a-z'\-]*$")
 FORM_PATTERN = re.compile(r"^[a-z][a-z'\-]*$")
+HEADWORD_ALIASES = {"reservior": "reservoir"}
 
 
 def parse_exchange(exchange, word):
@@ -99,6 +100,11 @@ def dedupe(rows):
         current_rank = (0 if current["tag"] else 1, current["frq"] or 10 ** 9)
         if candidate_rank < current_rank:
             best[row["word"]] = row
+    for alias, canonical in HEADWORD_ALIASES.items():
+        if alias in best and canonical in best:
+            tags = dict.fromkeys(best[canonical]["tag"].split() + best[alias]["tag"].split())
+            best[canonical] = {**best[canonical], "tag": " ".join(tags)}
+            del best[alias]
     return [best[key] for key in sorted(best)]
 
 
@@ -113,6 +119,8 @@ def build(rows, output):
             if form == lemma or not FORM_PATTERN.match(form) or form in words:
                 continue
             form_map.setdefault(form, lemma)
+    form_map.update({alias: canonical for alias, canonical in HEADWORD_ALIASES.items()
+                     if canonical in words and alias not in words})
 
     handle, temp_path = tempfile.mkstemp(suffix=".sqlite", dir=os.path.dirname(output) or ".")
     os.close(handle)

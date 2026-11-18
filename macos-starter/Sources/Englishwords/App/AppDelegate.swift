@@ -1,11 +1,21 @@
 import AppKit
+import CoreText
+import SwiftUI
+#if canImport(Sparkle)
+import Sparkle
+#endif
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private let preferences: Preferences
     private let store = DictionaryStore()
-    private lazy var panels = PanelController(preferences: preferences)
+    private let notebookStore = NotebookStore()
+    private lazy var notebookModel = NotebookModel(store: notebookStore)
+    private lazy var notebookWindow = NotebookWindow(model: notebookModel) { [weak self] word in
+        self?.submitLookup(LookupRequest(text: word, trigger: .notebook, screen: Screens.screen(containing: NSEvent.mouseLocation)))
+    }
+    private lazy var panels = PanelController(preferences: preferences, notebook: notebookModel)
     private let hotKeys = HotKeyCenter()
 
     private lazy var translator = TranslationCoordinator(preferences: preferences)
@@ -19,9 +29,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hover: HoverMonitor?
     private var selection: SelectionMonitor?
     private var settings: SettingsWindowController?
+    private lazy var onboarding = OnboardingWindow(preferences: preferences)
     private let regionPicker = RegionPicker()
+    private let subtitlePicker = RegionPicker()
+    private lazy var subtitles = SubtitleTracker(preferences: preferences, translator: translator)
+
     private var regionTask: Task<Void, Never>?
     private var regionGeneration = 0
+
+    #if canImport(Sparkle)
+    private lazy var updater = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil
+    )
+    #endif
 
     private var statusItem: NSStatusItem!
     private var hoverMenuItem: NSMenuItem!
@@ -31,12 +51,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var lookupMenuItem: NSMenuItem!
     private var translateMenuItem: NSMenuItem!
     private var regionMenuItem: NSMenuItem!
-    private var lookupHotKeyID: UInt32?
-    private var translateHotKeyID: UInt32?
-    private var regionHotKeyID: UInt32?
-    private var boundLookup: HotKeySpec?
-    private var boundTranslate: HotKeySpec?
-    private var boundRegion: HotKeySpec?
+    private struct HotKeyRegistration {
+        let spec: HotKeySpec
+        let id: UInt32
+    }
+    private var activeHotKeys: [ReferenceWritableKeyPath<Preferences, HotKeySpec>: HotKeyRegistration] = [:]
+    private var rejectedHotKeys: [ReferenceWritableKeyPath<Preferences, HotKeySpec>: HotKeySpec] = [:]
 
     /// 迁移必须先于 `Preferences.shared`：属性默认值会在 `init` 之前读 UserDefaults。
     override init() {
@@ -50,15 +70,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupStatusItem()
         setupLookup()
+        Task { await notebookModel.loadFavorites() }
         setupMonitors()
 
         preferences.onChange = { [weak self] in self?.applyPreferences() }
 
-        // 首次启动且未授权时弹一次系统提示；之后只更新菜单状态，不反复打扰
-        let promptedKey = "permission.prompted"
-        let alreadyPrompted = UserDefaults.standard.bool(forKey: promptedKey)
-        _ = Permissions.ensureAccessibility(prompt: !alreadyPrompted)
-        if !alreadyPrompted { UserDefaults.standard.set(true, forKey: promptedKey) }
+        if !preferences.sawOnboarding { onboarding.show() }
         FileLog.write("辅助功能授权：\(Permissions.isAccessibilityTrusted)")
         applyPreferences()
 
@@ -85,6 +102,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         cancelActiveLookup()
+        subtitles.dismissed()
         hover?.stop()
         selection?.stop()
         hotKeys.unregisterAll()
@@ -94,12 +112,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupLookup() {
         coordinator.onState = { [weak self] state in
-            self?.panels.show(state)
+            guard let self else { return }
+            self.panels.show(state)
+            guard case .result(let request, let result) = state, let word = result.notebookWord else { return }
+            Task { [weak self, store = self.notebookStore] in
+                do {
+                    try await store.recordLookup(word: word, source: result.source, trigger: request.trigger)
+                    self?.notebookWindow.refreshIfVisible()
+                } catch {
+                    FileLog.write("记录查词历史失败")
+                }
+            }
         }
         // 收起后不再让过期结果重新弹出
         panels.onHide = { [weak self] in
             self?.cancelActiveLookup()
+            self?.subtitles.dismissed()
         }
+        panels.onBackToSubtitle = { [weak self] in self?.showSubtitle(peek: false) }
     }
 
     private func setupMonitors() {
@@ -132,78 +162,103 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             cancelRegionLookup()
             panels.hide()
         }
+        subtitles.applyPreferences()
         panels.refreshPreferences()
     }
 
-    /// 按偏好注册查词 / 翻译热键。失败时提示，并重新注册上一次成功的键。
     private func bindHotKeys() {
-        bind(spec: preferences.lookupHotKey,
-             bound: &boundLookup,
-             id: &lookupHotKeyID,
-             fallback: .lookup,
-             name: "查词",
-             writeBack: { [weak self] in self?.preferences.lookupHotKey = $0 },
-             action: { [weak self] in self?.triggerLookup(.hotkey) })
-        bind(spec: preferences.translateHotKey,
-             bound: &boundTranslate,
-             id: &translateHotKeyID,
-             fallback: .translate,
-             name: "翻译",
-             writeBack: { [weak self] in self?.preferences.translateHotKey = $0 },
-             action: { [weak self] in self?.triggerLookup(.translate, mode: .translate) })
-        bind(spec: preferences.regionHotKey,
-             bound: &boundRegion,
-             id: &regionHotKeyID,
-             fallback: .region,
-             name: "区域取词",
-             writeBack: { [weak self] in self?.preferences.regionHotKey = $0 },
-             action: { [weak self] in self?.startRegionLookup() })
-    }
+        let commands: [(ReferenceWritableKeyPath<Preferences, HotKeySpec>, String, Bool, () -> Void)] = [
+            (\.lookupHotKey, "查词", true, { [weak self] in self?.triggerLookup(.hotkey) }),
+            (\.translateHotKey, "翻译", true, { [weak self] in self?.triggerLookup(.translate, mode: .translate) }),
+            (\.regionHotKey, "区域取词", preferences.regionLookupEnabled, { [weak self] in self?.startRegionLookup() }),
+            (\.subtitleHotKey, "字幕", preferences.videoSubtitles, { [weak self] in self?.showSubtitle() }),
+            (\.previousSubtitleHotKey, "上一句", preferences.videoSubtitles, { [weak self] in self?.showSubtitle(offset: -1) }),
+            (\.nextSubtitleHotKey, "下一句", preferences.videoSubtitles, { [weak self] in self?.showSubtitle(offset: 1) })
+        ]
 
-    private func bind(spec: HotKeySpec,
-                      bound: inout HotKeySpec?,
-                      id: inout UInt32?,
-                      fallback: HotKeySpec,
-                      name: String,
-                      writeBack: (HotKeySpec) -> Void,
-                      action: @escaping () -> Void) {
-        if bound == spec, id != nil { return }
-        if let id { hotKeys.unregister(id: id) }
-        id = nil
-
-        switch hotKeys.register(keyCode: spec.keyCode, modifiers: spec.modifiers, action: action) {
-        case .success(let newID):
-            id = newID
-            bound = spec
-        case .failure(let error):
-            FileLog.write("\(name)热键注册失败")
-            showAlert(title: "\(spec.display) 未注册", message: error.localizedDescription)
-            let previous = bound ?? fallback
-            guard previous != spec else {
-                bound = nil
-                return
+        for (key, name, enabled, action) in commands {
+            let active = activeHotKeys[key]
+            guard enabled else {
+                if let active { hotKeys.unregister(id: active.id) }
+                activeHotKeys.removeValue(forKey: key)
+                rejectedHotKeys.removeValue(forKey: key)
+                continue
             }
-            switch hotKeys.register(keyCode: previous.keyCode, modifiers: previous.modifiers, action: action) {
-            case .success(let newID):
-                id = newID
-                bound = previous
-                writeBack(previous)
-            case .failure(let fallbackError):
-                FileLog.write("\(name)热键回退失败")
-                showAlert(title: "\(previous.display) 未注册", message: fallbackError.localizedDescription)
-                bound = nil
+            let wanted = preferences[keyPath: key]
+            if active?.spec == wanted {
+                rejectedHotKeys.removeValue(forKey: key)
+                continue
+            }
+            guard rejectedHotKeys[key] != wanted else { continue }
+            switch hotKeys.register(keyCode: wanted.keyCode, modifiers: wanted.modifiers, action: action) {
+            case .success(let id):
+                if let active { hotKeys.unregister(id: active.id) }
+                activeHotKeys[key] = HotKeyRegistration(spec: wanted, id: id)
+                rejectedHotKeys.removeValue(forKey: key)
+            case .failure(let error):
+                rejectedHotKeys[key] = wanted
+                FileLog.write("\(name)热键注册失败")
+                let detail = error.localizedDescription
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.preferences[keyPath: key] == wanted else { return }
+                    if let active { self.preferences[keyPath: key] = active.spec }
+                    self.showAlert(title: "\(wanted.display) 未注册", message: detail)
+                }
             }
         }
     }
 
     // MARK: - 菜单栏
 
+    /// 生成 18×18pt 单色菜单栏模板图标：圆角方框 + 顶部刘海 + 衬线 E。
+    private static func makeStatusBarIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            let s = rect.width / 18.0
+            ctx.scaleBy(x: s, y: s)
+
+            let inkColor = CGColor(gray: 0, alpha: 1)
+            let box = CGRect(x: 1.8, y: 1.8, width: 14.4, height: 14.4)
+            let boxPath = CGPath(roundedRect: box, cornerWidth: 3.2, cornerHeight: 3.2, transform: nil)
+            ctx.addPath(boxPath)
+            ctx.setStrokeColor(inkColor)
+            ctx.setLineWidth(1.3)
+            ctx.strokePath()
+
+            // 顶部刘海（裁剪到圆角框内）
+            ctx.saveGState()
+            ctx.addPath(boxPath)
+            ctx.clip()
+            let notch = CGRect(x: 6.2, y: box.maxY - 1.6, width: 5.6, height: 2.2)
+            let notchPath = CGPath(roundedRect: notch, cornerWidth: 1.0, cornerHeight: 1.0, transform: nil)
+            ctx.addPath(notchPath)
+            ctx.setFillColor(inkColor)
+            ctx.fillPath()
+            ctx.restoreGState()
+
+            // 居中衬线 E（按字形实际边界对齐）
+            let base = NSFont.systemFont(ofSize: 9.5, weight: .bold)
+            let desc = base.fontDescriptor.withDesign(.serif) ?? base.fontDescriptor
+            let font = (NSFont(descriptor: desc, size: 9.5) ?? base) as CTFont
+            let attrs: [NSAttributedString.Key: Any] = [
+                NSAttributedString.Key(kCTFontAttributeName as String): font,
+                NSAttributedString.Key(kCTForegroundColorAttributeName as String): inkColor,
+            ]
+            let line = CTLineCreateWithAttributedString(NSAttributedString(string: "E", attributes: attrs))
+            let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+            ctx.textPosition = CGPoint(x: 9.0 - ink.midX, y: 8.1 - ink.midY)
+            CTLineDraw(line, ctx)
+            return true
+        }
+        image.isTemplate = true
+        return image
+    }
+
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "character.book.closed",
-                                   accessibilityDescription: "Englishwords")
-            button.image?.isTemplate = true
+            button.image = Self.makeStatusBarIcon()
+            button.image?.accessibilityDescription = "Englishwords"
         }
 
         let menu = NSMenu()
@@ -227,6 +282,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         regionMenuItem.target = self
         menu.addItem(regionMenuItem)
 
+        let subtitle = NSMenuItem(title: "查看视频字幕", action: #selector(menuSubtitle), keyEquivalent: "")
+        subtitle.target = self
+        menu.addItem(subtitle)
+        let subtitleArea = NSMenuItem(title: "框选字幕区域…", action: #selector(menuSubtitleArea), keyEquivalent: "")
+        subtitleArea.target = self
+        menu.addItem(subtitleArea)
+
         let clipboard = NSMenuItem(title: "查询剪贴板", action: #selector(menuClipboard), keyEquivalent: "")
         clipboard.target = self
         menu.addItem(clipboard)
@@ -246,6 +308,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        let notebook = NSMenuItem(title: "笔记本…", action: #selector(menuNotebook), keyEquivalent: "")
+        notebook.target = self
+        menu.addItem(notebook)
+
         let settings = NSMenuItem(title: "设置…", action: #selector(menuSettings), keyEquivalent: ",")
         settings.keyEquivalentModifierMask = [.command]
         settings.target = self
@@ -261,6 +327,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        #if canImport(Sparkle)
+        if Bundle.main.object(forInfoDictionaryKey: "SUFeedURL") != nil,
+           Bundle.main.object(forInfoDictionaryKey: "SUPublicEDKey") != nil {
+            let updates = NSMenuItem(title: "检查更新…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+            updates.target = updater
+            menu.addItem(updates)
+        }
+        #endif
+
         let quit = NSMenuItem(title: "退出", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quit.target = NSApp
         menu.addItem(quit)
@@ -273,6 +348,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func menuTranslate() { triggerLookup(.translate, mode: .translate) }
     @objc private func menuRegion() { startRegionLookup() }
     @objc private func menuClipboard() { triggerLookup(.clipboard, preferClipboard: true) }
+    @objc private func menuSubtitle() { showSubtitle() }
+
+    @objc private func menuSubtitleArea() {
+        guard preferences.videoSubtitles, preferences.screenSubtitles else {
+            showAlert(title: "请先开启屏幕字幕", message: "打开设置，在字幕区启用浏览器字幕查询和屏幕字幕识别。")
+            return
+        }
+        guard let browser = AppRules.frontmostBundleID, BrowserBridge.supports(browser) else {
+            showAlert(title: "请先打开视频", message: "在支持的浏览器中播放视频后，再框选字幕位置。")
+            return
+        }
+        guard Permissions.isScreenCaptureGranted else {
+            _ = Permissions.requestScreenCapture()
+            Permissions.openScreenCaptureSettings()
+            return
+        }
+        panels.hide()
+        subtitlePicker.begin { [weak self] rect, screen in
+            self?.subtitles.configureOCR(rect: rect, screen: screen, browser: browser)
+            self?.showSubtitle()
+        }
+    }
+
+    private func showSubtitle(offset: Int? = nil, peek: Bool = true) {
+        guard preferences.videoSubtitles else {
+            showAlert(title: "字幕查询已关闭", message: "请在设置的字幕区启用浏览器字幕查询。")
+            return
+        }
+        cancelActiveLookup()
+        if let offset { subtitles.move(by: offset) }
+        else if peek { subtitles.peek() }
+        let screen = Screens.screen(containing: NSEvent.mouseLocation)
+        panels.showSubtitle(SubtitleView(tracker: subtitles) { [weak self] word in
+            self?.submitLookup(LookupRequest(text: word, trigger: .subtitle, screen: screen))
+        }, on: screen)
+    }
+
+    @objc private func menuNotebook() { notebookWindow.show() }
     @objc private func menuSettings() { openSettings() }
 
     @objc private func menuDiagnose() {
@@ -349,8 +462,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func submitLookup(_ request: LookupRequest) {
-        if request.trigger.isPassive, regionPicker.isPicking { return }
-        if coordinator.submit(request) { cancelRegionLookup() }
+        if request.trigger.isPassive,
+           regionPicker.isPicking || subtitlePicker.isPicking || panels.isShowingSubtitle {
+            return
+        }
+        if coordinator.submit(request) {
+            cancelRegionLookup()
+            if request.trigger != .subtitle { subtitles.dismissed() }
+        }
     }
 
     private func cancelActiveLookup() {
@@ -403,6 +522,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func openSettings() {
         if settings == nil {
             settings = SettingsWindowController(preferences: preferences, translator: translator)
+            settings?.showOnboarding = { [weak self] in self?.onboarding.show() }
         }
         settings?.show()
     }

@@ -16,7 +16,7 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
     }
 
-    func speak(_ text: String) {
+    func speak(_ text: String, voiceID: String = "", rate: Double = 0.48) {
         guard !text.isEmpty else { return }
         if speaking {
             synthesizer.stopSpeaking(at: .immediate)
@@ -24,8 +24,8 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             return
         }
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
-        utterance.rate = 0.48
+        utterance.voice = AVSpeechSynthesisVoice(identifier: voiceID) ?? AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = Float(min(0.65, max(0.15, rate)))
         synthesizer.speak(utterance)
         speaking = true
     }
@@ -53,6 +53,10 @@ struct ResultView: View {
     let maxHeight: CGFloat?
     var showWordParts: Bool = true
     let lookupShortcut: String
+    var notebook: NotebookModel? = nil
+    var onBackToSubtitle: (() -> Void)? = nil
+    var speechVoice = ""
+    var speechRate = 0.48
 
     @ObservedObject private var speaker = Speaker.shared
 
@@ -81,6 +85,11 @@ struct ResultView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: 0) {
+            if let onBackToSubtitle {
+                Button("返回字幕", action: onBackToSubtitle)
+                    .buttonStyle(.link)
+                    .padding(.bottom, 6)
+            }
             if mode == .compact {
                 compactRow
             } else {
@@ -239,9 +248,12 @@ struct ResultView: View {
                 }
 
                 Spacer(minLength: 6)
+                if let notebook, let word = result.notebookWord {
+                    NotebookStar(model: notebook, word: word)
+                }
 
                 Button {
-                    speaker.speak(result.title.isEmpty ? result.input : result.title)
+                    speaker.speak(result.title.isEmpty ? result.input : result.title, voiceID: speechVoice, rate: speechRate)
                 } label: {
                     Image(systemName: "speaker.wave.2")
                         .font(.system(size: 12, weight: .semibold))

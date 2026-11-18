@@ -32,6 +32,7 @@
     - 生成后 integrity_check、引用完整性、segments 编码格式
 """
 import argparse
+from pathlib import Path
 import os
 import re
 import sqlite3
@@ -44,6 +45,7 @@ ROLES = {"prefix", "root", "suffix"}
 SOURCES = ("manual", "wiktionary", "ai")
 MORPHEME_HEADER = ["key", "role", "label", "forms", "zh", "en", "lemma"]
 WORDPARTS_HEADER = ["word", "segments", "origin", "source"]
+MANUAL_BINDINGS_HEADER = ["form", "key"]
 DEFAULT_TAGS = ["zk", "gk", "cet4", "cet6", "ky", "ielts", "toefl"]
 
 VERSION = "2026-11-03"
@@ -81,6 +83,17 @@ def read_word_list(path):
                 raise SystemExit(f"{path}:{number} 非法词形：{word}")
             words.append(word)
     return words
+
+
+def read_manual_bindings(path):
+    bindings = {}
+    if path is not None:
+        for row in read_tsv(path, MANUAL_BINDINGS_HEADER):
+            form = row["form"]
+            if form in bindings:
+                raise SystemExit(f"{path}: 重复的人工词形绑定 {form}")
+            bindings[form] = row["key"]
+    return bindings
 
 
 def index_morphemes(morphemes):
@@ -139,7 +152,7 @@ def source_counts(wordparts):
 def target_words(database, tags, extra_path):
     wanted = set(tags)
     found = set()
-    connection = sqlite3.connect(database)
+    connection = sqlite3.connect(Path(database).resolve().as_uri() + "?mode=ro", uri=True)
     try:
         columns = {row[1] for row in connection.execute("PRAGMA table_info(words)")}
         if "word" not in columns or "tag" not in columns:
@@ -163,9 +176,13 @@ def assert_coverage(wordparts, targets, simplex):
     raise SystemExit(f"覆盖不足，缺 {len(missing)} 个词：\n{listing}")
 
 
-def build(morphemes, wordparts, output, coverage=None):
+def build(morphemes, wordparts, output, coverage=None, *, manual_bindings=None):
     ids, forms = index_morphemes(morphemes)
     counts = source_counts(wordparts)
+    manual_bindings = manual_bindings or {}
+    for form, key in manual_bindings.items():
+        if key not in forms.get(form, ()):
+            raise SystemExit(f"人工绑定 {form}@{key} 不属于语素表")
 
     rows = []
     seen = set()
@@ -180,6 +197,9 @@ def build(morphemes, wordparts, output, coverage=None):
         pieces = entry["segments"].split()
         if not pieces:
             raise SystemExit(f"{word}: segments 为空")
+        if entry["source"].strip() == "manual":
+            pieces = [f"{piece}@{manual_bindings[piece]}" if piece in manual_bindings else piece
+                      for piece in pieces]
         resolved = [resolve_piece(piece, forms, ids, word) for piece in pieces]
         joined = "".join(spelling for spelling, _key in resolved)
         if joined != word:
@@ -267,6 +287,7 @@ def main():
     parser = argparse.ArgumentParser(description="生成 wordparts.sqlite")
     parser.add_argument("--morphemes", default="data/morphemes.tsv")
     parser.add_argument("--words", default="data/wordparts.tsv")
+    parser.add_argument("--manual-form-bindings", help="保留历史人工拆分的词形与语素关系")
     parser.add_argument("--output", default="Sources/Englishwords/Resources/wordparts.sqlite")
     parser.add_argument("--coverage-db")
     parser.add_argument("--tags", default=",".join(DEFAULT_TAGS))
@@ -294,7 +315,12 @@ def main():
         assert_coverage(wordparts, targets, simplex)
         coverage = {"tags": " ".join(tags), "target": len(targets), "simplex": len(simplex)}
 
-    build(morphemes, wordparts, args.output, coverage)
+    bindings_path = args.manual_form_bindings
+    if bindings_path is None and Path(args.words).resolve() == Path("data/wordparts.tsv").resolve():
+        bundled_bindings = Path("data/manual-form-bindings.tsv")
+        if bundled_bindings.is_file():
+            bindings_path = bundled_bindings
+    build(morphemes, wordparts, args.output, coverage, manual_bindings=read_manual_bindings(bindings_path))
     print(f"wordparts.sqlite: {len(morphemes)} 个语素, {len(wordparts)} 个词 -> {args.output}", file=sys.stdout)
 
 

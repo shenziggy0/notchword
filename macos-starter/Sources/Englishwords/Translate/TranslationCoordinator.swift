@@ -17,6 +17,7 @@ final class TranslationCoordinator: Translating {
     private var cache: [String: TranslationResult] = [:]
     private var insertionOrder: [String] = []
     private let cacheLimit = 200
+    private var cacheGeneration = 0
 
     init(preferences: Preferences,
          apple: (any TranslationProviding)? = nil,
@@ -28,6 +29,7 @@ final class TranslationCoordinator: Translating {
 
     func translate(_ request: TranslationRequest) async throws -> TranslationResult {
         try Task.checkCancellation()
+        let generation = cacheGeneration
         let key = cacheKey(request)
         if let hit = cache[key] { return hit }
 
@@ -35,7 +37,7 @@ final class TranslationCoordinator: Translating {
         do {
             let result = try await apple.translate(request)
             try Task.checkCancellation()
-            remember(result, for: key)
+            if generation == cacheGeneration { remember(result, for: key) }
             return result
         } catch {
             if Task.isCancelled || TranslationError.isCancellation(error) { throw TranslationError.cancelled }
@@ -46,9 +48,10 @@ final class TranslationCoordinator: Translating {
         try Task.checkCancellation()
         guard let provider = makeOnlineProvider() else { throw TranslationError.configurationMissing }
 
+        let onlineKey = cacheKey(request)
         let result = try await provider.translate(request)
         try Task.checkCancellation()
-        remember(result, for: key)
+        if generation == cacheGeneration { remember(result, for: onlineKey) }
         return result
     }
 
@@ -60,18 +63,39 @@ final class TranslationCoordinator: Translating {
     /// 密钥缺失或配置非法时，不构造联网服务。
     private func makeOnlineProvider() -> (any TranslationProviding)? {
         if let onlineProvider { return onlineProvider() }
-        let trimmed = preferences.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = preferences.onlineAddress.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
               let host = url.host, !host.isEmpty else { return nil }
-        let model = preferences.model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let model = preferences.onlineModel.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !model.isEmpty else { return nil }
-        guard let key = SecretStore.read(account: OpenAICompatProvider.account), !key.isEmpty else { return nil }
-        return OpenAICompatProvider(baseURL: url, model: model, apiKey: key)
+        guard let key = SecretStore.read(account: preferences.translationPreset.rawValue), !key.isEmpty else { return nil }
+        return preferences.translationPreset.makeProvider(url: url, model: model, key: key)
+    }
+
+    func invalidateCache() {
+        cacheGeneration &+= 1
+        cache.removeAll()
+        insertionOrder.removeAll()
+    }
+
+    func listModels() async throws -> [String] {
+        guard let provider = makeOnlineProvider() as? OpenAICompatProvider else {
+            throw TranslationError.configurationMissing
+        }
+        return try await provider.fetchModels()
+    }
+
+    func testOnlineTranslation() async throws -> TranslationResult {
+        guard preferences.onlineEnabled, let provider = makeOnlineProvider() else {
+            throw TranslationError.configurationMissing
+        }
+        return try await provider.translate(TranslationRequest(text: "This is a test.", source: "en",
+                                                               target: preferences.targetLanguage))
     }
 
     private func cacheKey(_ request: TranslationRequest) -> String {
         let signature = preferences.onlineEnabled
-            ? "\(preferences.baseURL)|\(preferences.model)"
+            ? "\(preferences.translationPreset.rawValue)|\(preferences.onlineAddress)|\(preferences.onlineModel)"
             : "offline"
         return "\(request.text)|\(request.source ?? "auto")|\(request.target)|\(signature)"
     }
@@ -84,9 +108,4 @@ final class TranslationCoordinator: Translating {
             cache.removeValue(forKey: oldest)
         }
     }
-}
-
-extension OpenAICompatProvider {
-    /// 钥匙串 account。现有自定义服务迁到 `custom`，与预设 id 对齐。
-    static let account = "custom"
 }

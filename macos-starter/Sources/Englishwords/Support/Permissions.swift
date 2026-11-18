@@ -94,11 +94,16 @@ enum AppRules {
         return excludedBundleIDs.contains(bundleID)
     }
 
+    private static func isExcluded(_ bundleID: String) -> Bool {
+        excludedBundleIDs.contains(bundleID)
+            || UserDefaults.standard.stringArray(forKey: "apprules.userExcluded")?.contains(bundleID) == true
+    }
+
     /// 被动入口是否应当放行。自己的应用、密码管理器都不取词。
     static func allowsPassiveLookup() -> Bool {
         guard let bundleID = frontmostBundleID else { return true }
         if bundleID == Bundle.main.bundleIdentifier { return false }
-        return !excludedBundleIDs.contains(bundleID)
+        return !isExcluded(bundleID)
     }
 }
 

@@ -5,12 +5,21 @@ import Foundation
 /// 只接入一个可由配置指定的服务，不做供应商目录。
 struct OpenAICompatProvider: TranslationProviding {
 
-    let id = "openai-compatible"
-    let displayName = "联网翻译"
+    let id: String
+    let displayName: String
 
     let baseURL: URL
     let model: String
     let apiKey: String
+
+    init(baseURL: URL, model: String, apiKey: String, id: String = "openai-compatible",
+         displayName: String = "联网翻译") {
+        self.baseURL = baseURL
+        self.model = model
+        self.apiKey = apiKey
+        self.id = id
+        self.displayName = displayName
+    }
 
     func translate(_ request: TranslationRequest) async throws -> TranslationResult {
         let text = request.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -35,6 +44,35 @@ struct OpenAICompatProvider: TranslationProviding {
         ]
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
 
+        let data = try await Self.responseData(for: urlRequest)
+        guard let content = Self.content(from: data) else {
+            throw TranslationError.service("响应格式无法解析")
+        }
+        let cleaned = Self.clean(content)
+        guard !cleaned.isEmpty else { throw TranslationError.service("服务返回空译文") }
+
+        return TranslationResult(text: cleaned, providerID: id, providerName: displayName)
+    }
+
+    func fetchModels() async throws -> [String] {
+        var request = URLRequest(url: baseURL.appendingPathComponent("models"))
+        request.timeoutInterval = 20
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        return try Self.models(from: await Self.responseData(for: request))
+    }
+
+    nonisolated static func models(from data: Data) throws -> [String] {
+        struct ModelList: Decodable {
+            struct Item: Decodable { let id: String }
+            let data: [Item]
+        }
+        guard let list = try? JSONDecoder().decode(ModelList.self, from: data) else {
+            throw TranslationError.service("模型列表格式无法解析")
+        }
+        return Array(Set(list.data.map(\.id).filter { !$0.isEmpty })).sorted()
+    }
+
+    static func responseData(for urlRequest: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
@@ -59,18 +97,12 @@ struct OpenAICompatProvider: TranslationProviding {
             throw TranslationError.service("HTTP \(http.statusCode)\(Self.errorDetail(from: data))")
         }
 
-        guard let content = Self.content(from: data) else {
-            throw TranslationError.service("响应格式无法解析")
-        }
-        let cleaned = Self.clean(content)
-        guard !cleaned.isEmpty else { throw TranslationError.service("服务返回空译文") }
-
-        return TranslationResult(text: cleaned, providerID: id, providerName: displayName)
+        return data
     }
 
     // MARK: - 解析
 
-    private static func prompt(target: String) -> String {
+    static func prompt(target: String) -> String {
         let language = target.hasPrefix("zh") ? "简体中文" : target
         return """
         你是英译中翻译器。只输出\(language)译文，不要解释、不要加引号、不要重复原文。\

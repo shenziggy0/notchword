@@ -2,7 +2,7 @@ import Carbon.HIToolbox
 import Foundation
 
 /// 可持久化的全局热键：Carbon 键码 + 修饰键。
-struct HotKeySpec: Codable, Equatable {
+struct HotKeySpec: Codable, Hashable {
     var keyCode: UInt32
     var modifiers: UInt32
 
