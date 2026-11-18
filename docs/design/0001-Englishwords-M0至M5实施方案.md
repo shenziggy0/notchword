@@ -4,7 +4,7 @@
 - 日期：2026-11-03
 - 状态：草稿
 - 架构基准：[ARCHITECTURE.md](../ARCHITECTURE.md)，重点为第 5—9、12—14 节。
-- 实施仓库：`/Users/ziggy/Documents/projects/Myworkspace/Englishwords`
+- 实施仓库：`Englishwords`（仓库根目录）
 - 本次交付仅为设计文档；以下改动与验收均未实施。
 
 ## 1. 需求理解

@@ -13,25 +13,33 @@
 ```
 Englishwords/
 ├── docs/
-│   ├── ARCHITECTURE.md          ← 架构与逆向分析
-│   ├── design/                  ← 设计文档（M0—M5 实施、商业化与授权）
-│   ├── dipword-analysis/        ← 独立复核报告
+│   ├── ARCHITECTURE.md          ← 架构说明
+│   ├── design/                  ← 设计文档（M0—M7、Windows MVP 等）
 │   └── images/
 ├── demo/                        ← 交互原型（HTML，仅演示）
-└── macos-starter/               ← 原生应用
-    ├── Package.swift
-    ├── build.sh                 ← Universal 打包
-    ├── test.sh                  ← 核心逻辑测试
-    ├── data/                    ← 词素源数据 + 来源说明
-    ├── scripts/                 ← 数据库生成脚本
-    └── Sources/Englishwords/
-        ├── App/                 ← 入口、菜单栏、资源定位
-        ├── Lookup/              ← 分类、AX 取词、协调器、悬停/划词
-        ├── Dictionary/          ← SQLite 词库、词素、系统词典桥
-        ├── Notch/               ← 几何、面板状态机、结果视图
-        ├── Translate/           ← Apple 本地 / 联网 / 缓存
-        ├── Settings/            ← 偏好与设置窗口
-        └── Support/             ← 热键、权限、钥匙串、日志
+├── macos-starter/               ← macOS 原生应用
+│   ├── Package.swift
+│   ├── build.sh                 ← Universal 打包
+│   ├── test.sh                  ← 核心逻辑测试
+│   ├── data/                    ← 词素源数据 + 来源说明
+│   ├── scripts/                 ← 数据库生成脚本
+│   └── Sources/Englishwords/
+│       ├── App/                 ← 入口、菜单栏、资源定位
+│       ├── Capture/             ← 区域选框与屏幕 OCR
+│       ├── Lookup/              ← 分类、AX 取词、协调器、悬停/划词
+│       ├── Dictionary/          ← SQLite 词库、StarDict、词素、系统词典桥
+│       ├── Notch/               ← 几何、面板状态机、结果与字幕视图
+│       ├── Notebook/            ← 笔记本与持久化
+│       ├── Onboarding/          ← 首次引导窗口
+│       ├── Subtitle/            ← 浏览器字幕桥接与对齐
+│       ├── Translate/           ← Apple 本地 / 联网 / 缓存
+│       ├── Settings/            ← 偏好与设置窗口
+│       └── Support/             ← 热键、权限、钥匙串、日志
+└── windows-starter/             ← Windows 原生应用（.NET 8 / WPF）
+    ├── Englishwords.sln
+    ├── build.ps1                ← 构建、测试与自检
+    ├── src/                     ← Englishwords.Core / Englishwords.Win
+    └── tests/                   ← 核心逻辑单元测试
 ```
 
 ---
@@ -192,11 +200,12 @@ python3 scripts/build_wordparts.py
 
 ## 7. 许可
 
-本仓库代码由本项目编写。第三方数据与许可见
+本项目代码基于 [MIT License](LICENSE) 开源。第三方数据与许可见
 [THIRD-PARTY-NOTICES.md](macos-starter/Sources/Englishwords/Resources/THIRD-PARTY-NOTICES.md)。
 
 | 数据 / 组件 | 许可 |
 |---|---|
+| 本项目代码 | MIT |
 | ECDICT | MIT |
 | 词根词缀整理数据 | CC BY-SA 4.0 |
 

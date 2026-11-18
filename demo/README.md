@@ -3,7 +3,7 @@
 双击 `notch-demo.html`，使用浏览器打开即可，不需要启动服务。
 
 ```sh
-open /Users/ziggy/Documents/projects/Myworkspace/Englishwords/demo/notch-demo.html
+open demo/notch-demo.html
 ```
 
 操作：鼠标移到顶部刘海，或按 H 展开；Esc 收起。底部换词按钮切换 8 个示例词；“字幕”切换为 5 行双语字幕；喇叭调用浏览器语音，星标仅演示按钮外观。URL 加 `?open=1` 可默认展开，加 `?mode=subs&open=1` 可直接看字幕。
