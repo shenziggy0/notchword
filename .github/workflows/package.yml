@@ -1,0 +1,85 @@
+name: Package
+# 手动触发构建 Universal (arm64 + x86_64) DMG 安装包（ad-hoc 临时签名，不自动发 Release）。
+# 用法：GitHub Actions -> Package -> Run workflow。
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "版本号（如 0.5.2；留空则取最近 v* tag，若无 tag 则读 Info.plist）"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build-macos-universal:
+    name: macOS Universal DMG
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve Version
+        id: meta
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          elif TAG=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null); then
+            VERSION="${TAG#v}"
+          else
+            VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" macos-starter/Resources/Info.plist)
+          fi
+          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "无效版本号: '$VERSION'（需要 X.Y.Z 格式）" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "版本号: $VERSION (Build ${{ github.run_number }})"
+
+      - name: Run Tests
+        working-directory: macos-starter
+        run: bash ./test.sh
+
+      - name: Build Universal App
+        working-directory: macos-starter
+        env:
+          EW_BUILD_VERSION: ${{ steps.meta.outputs.version }}
+          EW_BUILD_NUMBER: ${{ steps.meta.outputs.build }}
+        run: bash ./build.sh
+
+      - name: Package DMG
+        working-directory: macos-starter
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          DMG_NAME="Englishwords-${VERSION}-universal.dmg"
+          STAGING="$(mktemp -d -t englishwords-dmg)"
+          trap 'rm -rf "$STAGING"' EXIT
+          ROOT="$STAGING/volume"
+          mkdir -p "$ROOT"
+
+          ditto build/Englishwords.app "$ROOT/Englishwords.app"
+          ln -s /Applications "$ROOT/Applications"
+          cp Resources/安装说明.txt "$ROOT/安装说明.txt"
+
+          mkdir -p build/dist
+          hdiutil create -srcfolder "$ROOT" -volname "Englishwords" -format UDZO "$STAGING/$DMG_NAME" >/dev/null
+          hdiutil verify "$STAGING/$DMG_NAME" >/dev/null
+          mv "$STAGING/$DMG_NAME" "build/dist/$DMG_NAME"
+          (cd build/dist && shasum -a 256 "$DMG_NAME" > "$DMG_NAME.sha256")
+          ls -lh build/dist
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Englishwords-${{ steps.meta.outputs.version }}-universal-dmg
+          path: |
+            macos-starter/build/dist/*.dmg
+            macos-starter/build/dist/*.sha256
+          if-no-files-found: error
