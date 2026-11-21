@@ -1,46 +1,83 @@
 name: Package
-# 手动触发构建 Universal (arm64 + x86_64) DMG 安装包（ad-hoc 临时签名，不自动发 Release）。
-# 用法：GitHub Actions -> Package -> Run workflow。
+# 只由手动触发。打出安装包、上传为 Actions artifact，并在 GitHub 服务器内网把双平台包
+# 自动挂到对应 tag 的 Release（已存在则用 --clobber 覆盖同名附件，不改正文与发布状态；
+# 不存在则新建草稿，供人工填文案后发布）。不创建、不推送 tag，也不做代码签名。
+# macOS 为临时签名（ad-hoc），没有 Developer ID，也不公证。Windows 安装包不签名。
+#
+# 版本号由 resolve-version 解析一次，macOS 与 Windows 共用：
+# - Use workflow from 选中 tag 时，用该 tag 名
+# - 选中分支时，用 git describe 能追溯到的最近一个 v* tag
+# 去掉前导 v 后必须是主.次.修订，否则失败，不猜测版本。HEAD 不在该 tag 上时只警告。
+# 该版本写入 macOS 的 CFBundleShortVersionString、DMG 文件名和 Windows zip 文件名。
+# 收尾作业上传解包后的 .dmg、.zip 和 .sha256，不再上传 artifact 外面的那层 zip。
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "版本号（如 0.5.2；留空则取最近 v* tag，若无 tag 则读 Info.plist）"
-        required: false
-        default: ""
 
 permissions:
   contents: read
 
 jobs:
+  resolve-version:
+    name: Resolve version
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # 0 表示全部历史。checkout 在这个深度会连 tags 一起取；
+          # fetch-tags 再声明一次，保证 runner 上能看到 v1.2.3 这类 tag。
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve version from git tag
+        id: version
+        shell: bash
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if [ "$REF_TYPE" = "tag" ]; then
+            RAW_TAG="$REF_NAME"
+          else
+            if ! RAW_TAG=$(git describe --tags --abbrev=0 --match 'v*'); then
+              echo "::error::找不到可用的 v* 版本 tag。请推送形如 v1.2.3 的 tag，或在 Run workflow 的 Use workflow from 里选择该 tag。不会猜测版本号。"
+              exit 1
+            fi
+          fi
+
+          VERSION="${RAW_TAG#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::版本号 '${VERSION}'（来自 tag '${RAW_TAG}'）不是主.次.修订（例如 v0.1.1）。不会猜测版本号。"
+            exit 1
+          fi
+
+          HEAD_COMMIT=$(git rev-parse HEAD)
+          if ! TAG_COMMIT=$(git rev-parse -q --verify "refs/tags/${RAW_TAG}^{commit}"); then
+            echo "::error::无法解析 tag '${RAW_TAG}'，不能确认它指向哪个提交。"
+            exit 1
+          fi
+
+          echo "Version: ${VERSION} (tag: ${RAW_TAG})"
+          echo "tag=${RAW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [ "$TAG_COMMIT" != "$HEAD_COMMIT" ]; then
+            echo "::warning::HEAD ${HEAD_COMMIT} 并不正好在 tag ${RAW_TAG}（${TAG_COMMIT}）上，本次构建包含该 tag 之后的提交。"
+          fi
+
   build-macos-universal:
     name: macOS Universal DMG
+    needs: resolve-version
     runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Resolve Version
-        id: meta
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          if [ -n "$INPUT_VERSION" ]; then
-            VERSION="${INPUT_VERSION#v}"
-          elif TAG=$(git describe --tags --match 'v*' --abbrev=0 2>/dev/null); then
-            VERSION="${TAG#v}"
-          else
-            VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" macos-starter/Resources/Info.plist)
-          fi
-          if ! echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "无效版本号: '$VERSION'（需要 X.Y.Z 格式）" >&2
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "build=${{ github.run_number }}" >> "$GITHUB_OUTPUT"
-          echo "版本号: $VERSION (Build ${{ github.run_number }})"
 
       - name: Run Tests
         working-directory: macos-starter
@@ -49,15 +86,21 @@ jobs:
       - name: Build Universal App
         working-directory: macos-starter
         env:
-          EW_BUILD_VERSION: ${{ steps.meta.outputs.version }}
-          EW_BUILD_NUMBER: ${{ steps.meta.outputs.build }}
+          EW_BUILD_VERSION: ${{ needs.resolve-version.outputs.version }}
+          EW_BUILD_NUMBER: ${{ github.run_number }}
         run: bash ./build.sh
 
       - name: Package DMG
         working-directory: macos-starter
         env:
-          VERSION: ${{ steps.meta.outputs.version }}
+          VERSION: ${{ needs.resolve-version.outputs.version }}
         run: |
+          PLIST_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/Englishwords.app/Contents/Info.plist)"
+          if [ "$PLIST_VERSION" != "$VERSION" ]; then
+            echo "::error::CFBundleShortVersionString 是 '${PLIST_VERSION}'，与本次版本 '${VERSION}' 不一致。"
+            exit 1
+          fi
+
           DMG_NAME="Englishwords-${VERSION}-universal.dmg"
           STAGING="$(mktemp -d -t englishwords-dmg)"
           trap 'rm -rf "$STAGING"' EXIT
@@ -78,7 +121,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Englishwords-${{ steps.meta.outputs.version }}-universal-dmg
+          name: Englishwords-${{ needs.resolve-version.outputs.version }}-universal-dmg
           path: |
             macos-starter/build/dist/*.dmg
             macos-starter/build/dist/*.sha256
@@ -86,6 +129,7 @@ jobs:
 
   build-windows-x64:
     name: Windows x64 ZIP
+    needs: resolve-version
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -98,34 +142,93 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Resolve Version
-        id: meta
-        shell: pwsh
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          if ($env:INPUT_VERSION) {
-            $version = $env:INPUT_VERSION.TrimStart('v')
-          } else {
-            $tag = git describe --tags --match 'v*' --abbrev=0 2>$null
-            if ($LASTEXITCODE -eq 0 -and $tag) {
-              $version = $tag.TrimStart('v')
-            } else {
-              $version = "0.5.2"
-            }
-          }
-          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-
       - name: Test, Build and Self-Check
         working-directory: windows-starter
         shell: pwsh
-        run: ./build.ps1 -Version "${{ steps.meta.outputs.version }}"
+        env:
+          EW_VERSION: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:EW_VERSION)) {
+            Write-Error "缺少版本号。不会使用写死的默认版本。"
+            exit 1
+          }
+          ./build.ps1 -Version $env:EW_VERSION
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Englishwords-${{ steps.meta.outputs.version }}-win-x64-zip
+          name: Englishwords-${{ needs.resolve-version.outputs.version }}-win-x64-zip
           path: |
             windows-starter/build/dist/*.zip
             windows-starter/build/dist/*.sha256
           if-no-files-found: error
+
+  draft-release:
+    name: Upload assets to draft release
+    needs: [resolve-version, build-macos-universal, build-windows-x64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Stage release assets
+        shell: bash
+        env:
+          VERSION: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          names=(
+            "Englishwords-${VERSION}-universal.dmg"
+            "Englishwords-${VERSION}-universal.dmg.sha256"
+            "Englishwords-${VERSION}-win-x64.zip"
+            "Englishwords-${VERSION}-win-x64.zip.sha256"
+          )
+          for name in "${names[@]}"; do
+            found="$(find artifacts -type f -name "$name")"
+            count="$(printf '%s\n' "$found" | sed '/^$/d' | wc -l | tr -d ' ')"
+            if [ "$count" -ne 1 ]; then
+              echo "::error::期望恰好 1 个 ${name}，实际 ${count} 个。"
+              find artifacts -type f -print
+              exit 1
+            fi
+            cp "$found" "release-assets/${name}"
+            test -s "release-assets/${name}"
+          done
+          (
+            cd release-assets
+            sha256sum -c "Englishwords-${VERSION}-universal.dmg.sha256"
+            sha256sum -c "Englishwords-${VERSION}-win-x64.zip.sha256"
+          )
+          ls -lh release-assets
+
+      - name: Attach assets to release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.resolve-version.outputs.tag }}
+          VERSION: ${{ needs.resolve-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          assets=(
+            "release-assets/Englishwords-${VERSION}-universal.dmg"
+            "release-assets/Englishwords-${VERSION}-universal.dmg.sha256"
+            "release-assets/Englishwords-${VERSION}-win-x64.zip"
+            "release-assets/Englishwords-${VERSION}-win-x64.zip.sha256"
+          )
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists; uploading assets with --clobber..."
+            gh release upload "$TAG" "${assets[@]}" --clobber
+          else
+            echo "Creating draft release for ${TAG}..."
+            gh release create "$TAG" "${assets[@]}" \
+              --draft \
+              --verify-tag \
+              --title "Englishwords v${VERSION}" \
+              --notes ""
+          fi
