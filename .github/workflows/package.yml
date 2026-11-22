@@ -1,13 +1,14 @@
 name: Package
 # 只由手动触发。打出安装包（macOS Universal DMG + PKG、Windows x64 ZIP）、上传为 Actions artifact，
 # 并在 GitHub 服务器内网把双平台包自动挂到对应 tag 的 Release（已存在则用 --clobber 覆盖同名附件，
-# 不改正文与发布状态；不存在则新建草稿，供人工填文案后发布）。不创建、不推送 tag，也不做代码签名。
+# 不改正文与发布状态；不存在则新建草稿，说明取自该 tag 上 CHANGELOG.md 的对应版本章节，
+# 找不到该章节则失败）。不创建、不推送 tag，也不做代码签名。
 # macOS 为临时签名（ad-hoc），没有 Developer ID，也不公证。Windows 安装包不签名。
 #
 # 版本号由 resolve-version 解析一次，macOS 与 Windows 共用：
-# - Use workflow from 选中 tag 时，用该 tag 名
-# - 选中分支时，用 git describe 能追溯到的最近一个 v* tag
-# 去掉前导 v 后必须是主.次.修订，否则失败，不猜测版本。HEAD 不在该 tag 上时只警告。
+# 必须在 Run workflow 的 Use workflow from 里选择 tag；选中分支或其他非 tag 引用时直接失败，
+# 不会回退到最近的 v* tag。去掉前导 v 后必须是主.次.修订，否则失败，不猜测版本。
+# HEAD 不在该 tag 上时只警告。
 # 该版本写入 macOS 的 CFBundleShortVersionString、DMG/PKG 文件名和 Windows zip 文件名。
 # 收尾作业上传解包后的 .dmg、.pkg、.zip 和 .sha256，不再上传 artifact 外面的那层 zip。
 on:
@@ -44,10 +45,8 @@ jobs:
           if [ "$REF_TYPE" = "tag" ]; then
             RAW_TAG="$REF_NAME"
           else
-            if ! RAW_TAG=$(git describe --tags --abbrev=0 --match 'v*'); then
-              echo "::error::找不到可用的 v* 版本 tag。请推送形如 v1.2.3 的 tag，或在 Run workflow 的 Use workflow from 里选择该 tag。不会猜测版本号。"
-              exit 1
-            fi
+            echo "::error::本次工作流必须从 tag 运行（当前 Use workflow from 选中的是 ${REF_TYPE} '${REF_NAME}'）。请推送形如 v1.2.3 的 tag，并在 Run workflow 时选择该 tag。不会回退到最近的 v* tag，也不会猜测版本号。"
+            exit 1
           fi
 
           VERSION="${RAW_TAG#v}"
@@ -176,6 +175,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout tag for changelog
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-version.outputs.tag }}
+
       - name: Download packaged artifacts
         uses: actions/download-artifact@v4
         with:
@@ -236,10 +240,37 @@ jobs:
             echo "Release ${TAG} already exists; uploading assets with --clobber..."
             gh release upload "$TAG" "${assets[@]}" --clobber
           else
-            echo "Creating draft release for ${TAG}..."
+            NOTES_FILE="$(mktemp)"
+            if [ ! -f CHANGELOG.md ]; then
+              echo "::error::tag ${TAG} 上找不到 CHANGELOG.md，拒绝创建说明为空的 Release。"
+              exit 1
+            fi
+            set +e
+            awk -v ver="$VERSION" '
+              $0 ~ ("^## \\[" ver "\\]([ \t]|$)") { found=1; lines[++n]=$0; next }
+              found && (/^##[ \t]/ || /^\[[^]]+\]:[[:space:]]/) { exit }
+              found { lines[++n]=$0 }
+              END {
+                if (!found) exit 2
+                while (n > 0 && lines[n] ~ /^[[:space:]]*$/) n--
+                if (n == 0) exit 2
+                for (i = 1; i <= n; i++) print lines[i]
+              }
+            ' CHANGELOG.md > "$NOTES_FILE"
+            status=$?
+            set -e
+            if [ "$status" -eq 2 ] || [ ! -s "$NOTES_FILE" ]; then
+              echo "::error::CHANGELOG.md 中找不到 '## [${VERSION}]' 章节，拒绝创建说明为空的 Release。"
+              exit 1
+            fi
+            if [ "$status" -ne 0 ]; then
+              echo "::error::从 CHANGELOG.md 提取版本 ${VERSION} 说明失败（退出码 ${status}）。"
+              exit 1
+            fi
+            echo "Creating draft release for ${TAG} with notes from CHANGELOG.md..."
             gh release create "$TAG" "${assets[@]}" \
               --draft \
               --verify-tag \
               --title "Englishwords v${VERSION}" \
-              --notes ""
+              --notes-file "$NOTES_FILE"
           fi
