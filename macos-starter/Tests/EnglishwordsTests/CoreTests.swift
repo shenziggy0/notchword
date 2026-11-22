@@ -209,6 +209,52 @@ private struct SQLiteTestError: Error, CustomStringConvertible {
     init(_ description: String) { self.description = description }
 }
 
+@Suite("词库大小写与屈折回归")
+struct DictionaryLookupTests {
+
+    @Test("大写输入与错映射库都能查到正确词头")
+    func uppercaseAndInflection() throws {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("englishwords-lookup-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+
+        let url = folder.appendingPathComponent("dictionary.sqlite")
+        try writeSQLite(url, """
+            CREATE TABLE words (
+                word TEXT PRIMARY KEY, phonetic TEXT, translation TEXT,
+                pos TEXT, tag TEXT
+            );
+            CREATE TABLE forms (form TEXT PRIMARY KEY, lemma TEXT);
+            INSERT INTO words VALUES ('unbelievable', '', '难以置信的', 'adj.', '');
+            INSERT INTO words VALUES ('found', '', '建立', 'v.', '');
+            INSERT INTO forms VALUES ('founded', 'found');
+            """)
+
+        let store = DictionaryStore(dictionaryURL: url, wordpartsURL: nil)
+        #expect(try store.lookup("UNBELIEVABLE").get()?.word == "unbelievable")
+        #expect(try store.lookup("FOUNDED").get()?.word == "found")
+        #expect(store.lemma(for: "Founded") == "found")
+    }
+}
+
+@Suite("文本分类边界")
+struct TextFilterEdgeTests {
+
+    @Test("带数字或空格的文本按短句处理")
+    func numbersStayInSentence() {
+        #expect(sentence(from: "50% off") == "50% off")
+        #expect(sentence(from: "Chapter 3") == "Chapter 3")
+    }
+
+    @Test("中文标点包裹、单复数括号与 NFD 组合音标仍算单词")
+    func punctuationAndPluralNotation() {
+        #expect(word(from: "「serendipity」") == "serendipity")
+        #expect(word(from: "item(s)") == "item")
+        #expect(word(from: "nai\u{0308}ve") == "nai\u{0308}ve")
+    }
+}
+
 @Suite("响应清洗")
 struct ProviderCleanTests {
 
@@ -220,6 +266,11 @@ struct ProviderCleanTests {
     @Test("普通文本原样返回")
     func keepsPlainText() {
         #expect(OpenAICompatProvider.clean("  hello  ") == "hello")
+    }
+
+    @Test("译文内部引号不被当作外包装删掉")
+    func keepsInnerQuotes() {
+        #expect(OpenAICompatProvider.clean("“苹果”和“橘子”") == "“苹果”和“橘子”")
     }
 
     @Test("系统词典去掉重复词头")

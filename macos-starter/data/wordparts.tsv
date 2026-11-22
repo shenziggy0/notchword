@@ -860,8 +860,8 @@ carelessly	care@care less@less ly@ly	care + -less + -ly	ai
 caricature	caric@caric ature@ure	意大利语 caricare（夸张）+-ature	ai
 carnage	carn@carn age@age_suffix	拉丁语 caro（肉）+-age	ai
 carnal	carn@carn al@al	拉丁语 caro（肉）+-al	ai
-carnivore	carni@carni vore@vore	carni-（肉）+-vore（食……者）	ai
-carnivorous	carni@carni vor@vor ous@ous	carni-（肉）+ vor（吞食）+-ous	ai
+carnivore	carni@carn vore@vore	carni-（肉）+-vore（食……者）	ai
+carnivorous	carni@carn vor@vor ous@ous	carni-（肉）+ vor（吞食）+-ous	ai
 carpenter	carpent@carpent er@er	拉丁语 carpentum（马车）+-er（匠人）	ai
 carping	carp@carp ing@ing	carp（挑剔）+-ing	ai
 carriage	carri@carri age@age_suffix	古法语 carier（运载）+-age	ai
@@ -877,7 +877,7 @@ cataclysm	cata@cata clysm@clysm	希腊语 kata（向下）+ klyzein（冲洗）	
 catalog	cata@cata log@log	cata-（按照）+-log（言；目录）	ai
 catalogue	cata@cata logue@log	cata- + -logue	wiktionary
 catalyst	cata@cata lyst@lyst	cata- + -lyst（松开；分解）	ai
-catalyze	cata@cata lyze@lyze	cata- + -lyze（松开；分解）	ai
+catalyze	cata@cata lyze@lyst	cata- + -lyze（松开；分解）	ai
 catastrophe	cata@cata strophe@strophe	希腊语 kata（向下）+ strophe（转）	ai
 catching	catch@catch ing@ing	catch + -ing	ai
 categorical	categor@categor ical@ic	category + -ical	ai
@@ -4844,8 +4844,8 @@ retails	re@re tail@tail_cut s@s	re-（再）+ tailler（切分）+ -s；零售	a
 retain	re@re tain@tain	re-（回）+ tenere（握持）；保留	ai
 retard	re@re tard@tard	re-（回）+ tardus（慢）；延迟	ai
 retell	re@re tell@tell	re-（再）+ tell（讲述）；复述	wiktionary
-reticence	re@resample_re_intensive tic@tic_silent ence@ance	来自法语及拉丁 reticentia，词基 reticēre 指保持沉默，re- 可用于加强语气。	ai
-reticent	re@resample_re_intensive tic@tic_silent ent@ent	来自拉丁 reticēns。词基 reticēre 中 re- 加强语气，tacēre 表保持沉默。	ai
+reticence	re@audit21_re_emphatic tic@tic_silent ence@ance	来自法语及拉丁 reticentia，词基 reticēre 指保持沉默，re- 可用于加强语气。	ai
+reticent	re@audit21_re_emphatic tic@tic_silent ent@ent	来自拉丁 reticēns。词基 reticēre 中 re- 加强语气，tacēre 表保持沉默。	ai
 retire	re@re tire@tire_draw	re-（回）+ 古法语 tirer（拉）；退休	wiktionary
 retirement	re@re tire@tire_draw ment@ment	re-（回）+ tirer（拉）+ -ment；退休	wiktionary
 retool	re@re tool@tool	re-（再）+ tool（工具）；重新装备	wiktionary
@@ -4863,7 +4863,7 @@ reveal	re@audit3_re_uncover veal@vel	经古法语 reveler，来自拉丁 revēl�
 revelation	re@re vel@vel ation@ion	re-（反）+ vel（遮盖）+ -ation（名词后缀）：揭开，启示	ai
 revenge	re@re venge@venge	re-（回）+ venge（报复）：报复	ai
 reverberate	re@re verber@verber ate@ate	re-（回）+ verber（击打）+ -ate（动词后缀）：击回，回响	ai
-revere	re@resample_re_intensive vere@vere	源于拉丁 reverērī，含加强语气的 re- 与 verērī（敬畏）。	ai
+revere	re@audit21_re_emphatic vere@vere	源于拉丁 reverērī，含加强语气的 re- 与 verērī（敬畏）。	ai
 revered	rever@rever ed@ed	rever（敬畏词干）+ -ed（形容词后缀）：受敬畏的	ai
 reverence	rever@rever ence@ance	rever（敬畏词干）+ -ence（名词后缀）：敬畏	ai
 reverent	rever@rever ent@ent	rever（敬畏词干）+ -ent（形容词后缀）：恭敬的	ai
@@ -6150,7 +6150,7 @@ determine	de@review_de_complete termine@review_termin	经古法语 determiner，
 coincide	co@co in@review_in_into cide@review_cide_fall	经法语 coïncider，来自中古拉丁 coincidere，含 con-（共同）与 incidere（落到、发生），后者由 in- 与 cadere（落下）构成。	ai
 chary	char@review_char_care y@y_adj	上溯古英语 ċeariġ（谨慎、忧虑的），由 ċearu（关切、忧虑）及形容词后缀构成，对应现代 care 与 -y 的同源构词。	ai
 hands-on	hands-@review_hands on@review_on_preposition	由 hands（双手）与 on（接触）组成的连字符复合，表示亲自操作。	ai
-hydrocarbon	hydro@review_hydro carbon@review_carbon	化学术语由 hydro-（此处指氢）和 carbon（碳）组成。	wiktionary
+hydrocarbon	hydro@review_hydro carbon@carbo	化学术语由 hydro-（此处指氢）和 carbon（碳）组成。	wiktionary
 living-room	living-@review_living_hyphen room@room	英语 living（起居）与 room（房间）构成的连字符复合名词。	ai
 industrialized	industrializ@review_industrializ ed@ed	英语 industrialize（使工业化）加 -ed，省去词尾不发音的 e。	wiktionary
 muted	mut@review_mute ed@ed	英语 mute（降低音量、使安静）加过去分词后缀 -ed，省去词尾 e。	ai
@@ -6182,9 +6182,9 @@ announcer	announc@review_surface_announce er@er	英语 announce（宣布、播�
 birth	bir@review_surface_bir th@th	来自中古英语 birthe，上溯古诺尔斯语 burðr，与 bear（生育、负载）加名词后缀 -th 对应。	ai
 dully	dul@review_surface_dull ly@ly	英语 dull（迟钝）加副词后缀 -ly。拼写不连续写三个 l。	ai
 enterprise	enter@review_surface_entre prise@review_surface_prise	经法语 entreprise，源于 entreprendre（着手做），由 entre（在……之间）与 prendre（拿取）构成。	ai
-expire	ex@ex pire@review_surface_spir	经中古法语 expirer，来自拉丁 expīrō，亦写 exspīrō，由 ex-（向外）与 spīrō（呼吸）组成。	ai
-goddess	godd@review_surface_god ess@ess	英语 god（神）加女性后缀 -ess，词干末尾 d 双写。	ai
-liner	lin@review_surface_line er@er	英语 line（线、航线或衬里）加 -er，拼写省去词尾 e。	ai
+expire	ex@ex pire@p04_spir	经中古法语 expirer，来自拉丁 expīrō，亦写 exspīrō，由 ex-（向外）与 spīrō（呼吸）组成。	ai
+goddess	godd@p09_god ess@ess	英语 god（神）加女性后缀 -ess，词干末尾 d 双写。	ai
+liner	lin@line er@er	英语 line（线、航线或衬里）加 -er，拼写省去词尾 e。	ai
 long-lasting	long-@review_surface_long last@last ing@ing	英语 long（长时间）与 lasting（持续）形成连字符复合，lasting 由 last 加 -ing 构成。	ai
 long-range	long-@review_surface_long range@review_surface_range	英语 long（长的）与 range（距离、范围）形成的连字符复合。	ai
 long-standing	long-@review_surface_long stand@stand ing@ing	英语 long（长时间）与 standing（持续存在，stand 的分词）形成连字符复合。	ai
@@ -6387,7 +6387,7 @@ aluminium	alumin@p01_alumin ium@ium	alumin（铝/明矾）+ -ium（金属元素�
 always	al@p01_al_all way@way s@s_adv	all（全）+ way（方式）+ -s（副词性）	ai
 amnesia	a@a_neg mnes@p01_mnes ia@ia_condition	希腊 a-（无）+ mnēsis（记忆）+ -ia（状态）	ai
 analyse	ana@ana lyse@p01_lyse	希腊 ana-（向上/分解）+ lysis（松开）	ai
-analyze	ana@ana lyze@lyze	希腊 ana-（向上/分解）+ lysis（松开）	ai
+analyze	ana@ana lyze@lyst	希腊 ana-（向上/分解）+ lysis（松开）	ai
 annex	an@p01_an_toward nex@p01_nex	拉丁 ad-（向，an-）+ nectere（绑）	ai
 annihilate	an@p01_an_toward nihil@p01_nihil ate@ate	拉丁 ad-（向，an-）+ nihil（无）+ -ate（使）	ai
 annotate	an@p01_an_toward not@not ate@ate	拉丁 ad-（向，an-）+ notāre（标记）+ -ate	ai
@@ -6405,7 +6405,7 @@ antiquated	antiqu@antiqu ated@p01_ate_ed	antiquus（古老）+ -ate + -ed	ai
 blazing	blaz@p03_blaze ing@ing	blaze（燃烧）加 -ing，去 e	ai
 bloody	blood@p03_blood y@y_adj	blood（血）加形容词后缀 -y	wiktionary
 bodily	bodi@p03_body ly@ly_adj	body（身体）加形容词后缀 -ly，拼写 body→bodi	ai
-breadth	bread@p03_broad th@th	broad（宽广）加 -th，拼写变体 bread	ai
+breadth	bread@broad th@th	broad（宽广）加 -th，拼写变体 bread	ai
 brutal	brut@p03_brute al@al	brute（野兽；粗暴的）加 -al，去 e	ai
 businessman	business@business man@man_person	英语 business（商业、事务）与 man（人、男子）复合。	wiktionary
 cacti	cact@p03_cactus i@i_plural	cactus（仙人掌）的拉丁复数，cactus→cact 加 -i	ai
@@ -6487,7 +6487,7 @@ crosscut	cross@cross cut@cut	cross（交叉）+ cut（切）	wiktionary
 crossing	cross@cross ing@ing	cross（交叉；穿过）+ -ing（行为）	ai
 crossroads	cross@cross road@road s@s	cross（交叉）+ road（道路）+ -s（复数后缀）	ai
 crowded	crowd@p05_crowd ed@ed	crowd（人群；挤满）+ -ed（已……的）	ai
-crucial	cruc@p05_cruc ial@al	cruc（十字；交叉）+ -ial（形容词后缀）	ai
+crucial	cruc@cross ial@al	cruc（十字；交叉）+ -ial（形容词后缀）	ai
 cruelty	cruel@p05_cruel ty@ty	cruel（残酷的）+ -ty（名词后缀：状态）	ai
 crumble	crumb@p05_crumb le@le	crumb（碎屑）+ -le（指小/反复后缀）	wiktionary
 crumple	crump@p05_crump le@le	crump（弯曲；起皱）+ -le（反复后缀）	wiktionary
@@ -6512,7 +6512,7 @@ cutter	cutt@p05_cutt er@er	cut（切；剪）+ -er（人；物）	ai
 cutting	cutt@p05_cutt ing@ing	cut（切；剪）+ -ing（行为）	ai
 cycling	cycl@p05_cycle ing@ing	cycle（循环；轮）+ -ing（行为）	ai
 cyclist	cycl@p05_cycle ist@ist	cycle（循环；轮）+ -ist（人）	wiktionary
-daily	dai@p05_day ly@audit7_yearly	day（日；天）+ -ly（副词/形容词后缀）	ai
+daily	dai@day ly@audit7_yearly	day（日；天）+ -ly（副词/形容词后缀）	ai
 darling	dar@p05_dear ling@ling	dear（亲爱的）+ -ling（指小/所属后缀）	ai
 dated	dat@p05_dat ed@ed	date（日期；注明日期）+ -ed（已……的）	ai
 debate	de@de bate@p05_bate	de-（向下；分开）+ bate（打；击）	ai
@@ -6520,7 +6520,7 @@ decay	de@de cay@p05_cay	de-（向下）+ cad（落；发生）	ai
 decidedly	decid@p05_decid ed@ed ly@ly	decide（决定）+ -ed + -ly（副词后缀）	ai
 decision	decis@p05_decid ion@ion	decide（决定）+ -ion（名词后缀：行为或结果）	ai
 decisive	decis@p05_decid ive@ive	decide（决定）+ -ive（形容词后缀）	ai
-declare	de@de clare@p05_clare	de-（加强）+ clar（清楚）	ai
+declare	de@de clare@clar	de-（加强）+ clar（清楚）	ai
 decompose	de@de compose@compose	de-（去除）+ compose（组成）	wiktionary
 decomposition	de@de com@co pos@pos ition@ion	de-（去除）+ com-（共同）+ pos（放置）+ -ition（名词后缀）	ai
 dedicated	de@de dic@dic at@p06_at_ate ed@ed	英语 dedicate（献身）加 -ed；dedicate 源自 de-（完全）+ dic（说、宣告）+ -ate，-ate 在 -ed 前写作 at。	ai
@@ -6555,7 +6555,7 @@ dioxide	di@p06_di_two ox@ox_oxygen ide@ide	di-（二）+ ox（氧）+ -ide（化
 disabled	disabl@p06_disabl ed@ed	disable（使丧失能力）加 -ed；disable = dis-（否定）+ able（能……的）。	wiktionary
 disapproval	dis@dis approv@p06_approv al@al	dis-（否定）+ approve（赞成，词干 approv-）+ -al（名词后缀）→ 不赞成。	ai
 disastrous	dis@dis astr@p06_astr ous@ous	disaster + -ous；disaster 源自 dis-（不良）+ astrum（星），加 -ous（充满……的）。	ai
-discouraging	dis@dis courag@p06_courage ing@ing	dis-（去除）+ courage（勇气，词干 courag-）+ -ing（分词/形容词后缀）→ 令人气馁的。	ai
+discouraging	dis@dis courag@courage ing@ing	dis-（去除）+ courage（勇气，词干 courag-）+ -ing（分词/形容词后缀）→ 令人气馁的。	ai
 discreet	dis@dis creet@p06_cret_sift	拉丁 discrētus，dis-（分开）+ cernere（筛、区分）→ 谨慎的。	ai
 discrete	dis@dis crete@p06_cret_sift	拉丁 discrētus，dis-（分开）+ cernere（筛、区分）→ 离散的。	ai
 dismal	dis@p06_dis_day mal@p06_mal_bad	古法语 dis mals（坏日子），dis 为日（复数），mal 为坏；后转为阴沉的。	ai
@@ -6585,7 +6585,7 @@ edible	ed@p07_ed ible@able	ed（吃）+ -ible（能……的）	ai
 educable	educ@p07_educ able@able	educ（教育）+ -able（能……的）	ai
 educate	educ@p07_educ ate@ate	educ（教育）+ -ate（动词后缀）	ai
 educe	e@ex duce@duce	ex-（出）+ duce（引导）	ai
-eighth	eigh@p07_eight th@th_ord	eight（八）+ -th（序数后缀），拼写省略一个 t	ai
+eighth	eigh@eight th@th_ord	eight（八）+ -th（序数后缀），拼写省略一个 t	ai
 elated	e@ex lat@p07_lat ed@ed	ex-（出/向上）+ lat（携带；举起）+ -ed（已……的）	ai
 elation	e@ex lat@p07_lat ion@ion	ex-（出/向上）+ lat（携带；举起）+ -ion（名词后缀）	ai
 electrode	electr@electr ode@p07_ode	electr（电；琥珀）+ -ode（路；电极）	ai
@@ -6686,12 +6686,12 @@ hover	hov@p09_hove er@p09_er_freq	hove（悬停、举起）+ -er（反复后缀�
 hydrogen	hydro@p09_hydro gen@gen	hydro-（水）+ -gen（产生）。	ai
 hydrosphere	hydro@p09_hydro sphere@sphere	hydro-（水）+ sphere（球、圈）。	wiktionary
 hypocrisy	hypo@hypo cris@p09_cris y@y	hypo-（在下、假）+ 希腊 krisis（判断）+ -y。	ai
-ice-cream	ice-@p09_ice cream@p09_cream	ice（冰）+ cream（奶油）。	ai
-icicle	ic@p09_ice icle@icle	ic（ice 的变体）+ -icle（指小后缀）。	ai
-icy	ic@p09_ice y@y_adj	ic（ice 去 e）+ -y（形容词后缀）。	ai
+ice-cream	ice-@ice cream@p09_cream	ice（冰）+ cream（奶油）。	ai
+icicle	ic@ice icle@icle	ic（ice 的变体）+ -icle（指小后缀）。	ai
+icy	ic@ice y@y_adj	ic（ice 去 e）+ -y（形容词后缀）。	ai
 identifiable	identifi@p09_identify able@able	identify（识别）+ -able（能……的）；y 变 i。	ai
 identities	identit@p09_identity ies@ies	identity（身份）的复数，-y 变 -ies。	ai
-ignoble	i@p09_in_i gnoble@p09_noble_gn	拉丁 in-（不）+ gnōbilis（高贵）；i 为 in- 的缩合。	ai
+ignoble	i@p09_in_i gnoble@noble	拉丁 in-（不）+ gnōbilis（高贵）；i 为 in- 的缩合。	ai
 ignore	i@p09_in_i gnore@p09_gnarus	拉丁 in-（不）+ gnārus（知道）。	ai
 immense	im@review_lexical_neg mense@p09_mensus	in-（不）+ 拉丁 mensus（测量）。	ai
 immerse	im@review_in_into merse@p09_merg	in-（向内）+ 拉丁 mergō（浸入）。	ai
@@ -6781,7 +6781,7 @@ maiden	maid@p11_maid en@p11_en_dim	古英语 mæġden，maid（少女）加指�
 mainland	main@p11_main land@land	main（主要的）加 land（土地），表示大陆/本土。	wiktionary
 mainly	main@p11_main ly@ly	main（主要的）加副词后缀 -ly。	wiktionary
 mainspring	main@p11_main spring@preaudit_spring	英语 main（主要的）与 spring（机械发条）复合，原指机械装置的主发条。	wiktionary
-makeup	make@p11_make up@up	由动词短语 make up（组成、化妆）转成名词，make（制作）+ up（完全）。	ai
+makeup	make@make up@up	由动词短语 make up（组成、化妆）转成名词，make（制作）+ up（完全）。	ai
 malicious	malici@p11_malice ous@ous	古法语 malicios，拉丁 malitia（恶意，malice）加 -ious 形容词后缀，malice 在 -ious 前作 malici-。	ai
 maniac	mani@p11_mania ac@p11_ac	拉丁 maniacus，mania（疯狂）加 -ac（形容词/名词后缀），拼写省略词尾 a。	ai
 manufacturer	manu@man fact@fact ur@p11_ure er@er	拉丁 manū factūra，manu（手）+ fact（做）+ -ure（结果），再加 -er 表人；-ure 在 -er 前省 e 作 -ur-。	ai
@@ -6797,7 +6797,7 @@ mobilize	mobil@p11_mobil ize@ize	法语 mobiliser，mobile（可移动的，mobi
 molten	molt@p11_melt en@p11_en_pp	古英语 molten，melt（熔化）的过去分词，加 -en 并发生元音变化。	ai
 monarch	mon@p11_mono arch@arch	希腊 monárkhēs，monos（单一，mon-）加 arkhos（首领），mono- 在元音前作 mon-。	ai
 monarchy	mon@p11_mono arch@arch y@y	希腊 monarkhía，monos（单一，mon-）+ arkhein（统治，arch）+ -y 名词后缀。	ai
-monday	mon@p11_moon day@day	古英语 mōnandæg，mōna（月亮，mon）加 dæg（日），即月亮日。	ai
+monday	mon@moon day@day	古英语 mōnandæg，mōna（月亮，mon）加 dæg（日），即月亮日。	ai
 monopoly	mono@mono poly@p11_poly_sell	希腊 monopōlion，monos（单一，mono-）加 pōlein（卖，poly），mono- + -poly（售卖）。	ai
 motivate	mot@mot iv@p11_ive ate@ate	由 motive（mot 移动 + -ive）加 -ate 动词后缀；-ive 在 -ate 前省 e 作 -iv-。	ai
 motivation	mot@mot iv@p11_ive ation@ion	由 motive（mot 移动 + -ive）加 -ation 名词后缀；-ive 在 -ation 前省 e 作 -iv-。	ai
@@ -6806,7 +6806,7 @@ myriad	myri@p11_myri ad@p11_ad	希腊 μυριάς，词干 myri-（万、无数
 negation	neg@neg ation@ion	拉丁 negātiō，neg（否认）加 -ation 名词后缀。	ai
 negative	neg@neg ative@ative	拉丁 negātīvus，neg（否认）加 -ative 形容词后缀。	ai
 negligence	neg@neg lig@lig ence@ance	拉丁 neglegentia，neg-（不）+ legere（选择/拾取，lig）+ -ence 名词后缀，字面“不拾取/疏忽”。	ai
-ninth	nin@p11_nine th@th_ord	古英语 niġoþa，nine（九）加序数后缀 -th，拼写省 e 并保留 n。	ai
+ninth	nin@nine th@th_ord	古英语 niġoþa，nine（九）加序数后缀 -th，拼写省 e 并保留 n。	ai
 nonconformist	non@non con@co form@form ist@ist	non-（不）加 conform（con- 共同 + form 形状）加 -ist（人），即不信奉国教者。	ai
 nonconformity	non@non con@co form@form ity@ity	non-（不）加 conformity（con- 共同 + form 形状 + -ity）。	ai
 nonviolence	non@non viol@viol ence@ance	non-（非）加 violence（viol 暴力 + -ence 名词后缀）。	ai
@@ -6842,7 +6842,7 @@ pacific	pac@pac ific@p12_ific	pac（和平，拉丁 pax 词干）+ -ific（做�
 packet	pack@pack et@et	pack（包）+ -et（指小后缀），表示小包、数据包。	ai
 painstaking	pain@pain s@s tak@take ing@ing	pains（辛苦，pain + 复数 -s）+ taking（take 承担/拿 + -ing），表示辛苦的、勤勉的。	ai
 paralyse	para@para lyse@p12_lyse	para-（旁/异常）+ -lyse（松开、分解，希腊 lysis 的英式拼写），表示使瘫痪。	ai
-paralyze	para@para lyze@lyze	para-（旁/异常）+ -lyze（松开、分解，希腊 lysis），表示使瘫痪。	ai
+paralyze	para@para lyze@lyst	para-（旁/异常）+ -lyze（松开、分解，希腊 lysis），表示使瘫痪。	ai
 paranoia	para@para no@p12_noos ia@ia_condition	para-（旁/异常）+ noos（心智，表面 no-）+ -ia（疾病状态），表示偏执狂。	ai
 parapsychology	para@para psycho@psycho logy@logy	para-（超越/异常）+ psychology（心理学，psycho 心灵 + -logy 学科），表示心灵学。	ai
 pardon	par@p12_par_per don@don	per-（完全，经法语作 par-）+ don（给予），表示原谅、赦免。	ai
@@ -6874,7 +6874,7 @@ pleasant	pleas@p13_pleas ant@ant	古法语 plaisant，英语表面为 pleas-（p
 pleased	pleas@p13_pleas ed@ed	please（使高兴）去 e 加 -ed（已……的/过去分词），表示感到高兴的。	wiktionary
 pleasing	pleas@p13_pleas ing@ing	please（使高兴）去 e 加 -ing（进行/形容词后缀），表示令人愉快的。	wiktionary
 pleasure	pleas@p13_pleas ure@ure	中古英语 plaisir 受 -ure 影响改形，词基为 please（取悦）的变体 pleas- + -ure（名词后缀：结果/状态）。	ai
-plummet	plumm@p13_plumb et@et	古法语 plommet < plom（铅，拉丁 plumbum）+ -et（指小后缀），英语拼作 plumm- + -et；指测深锤、铅坠。	ai
+plummet	plumm@plumb et@et	古法语 plommet < plom（铅，拉丁 plumbum）+ -et（指小后缀），英语拼作 plumm- + -et；指测深锤、铅坠。	ai
 polish	pol@p13_pol ish@p07_ish_rel	波兰的义为 Pol-（Pole 波兰人，去 e）+ -ish（……的）；擦亮义另源自拉丁 polire，为同形异源。	wiktionary
 porter	port@port er@er	搬运工义为拉丁 portāre（搬运）的词干 port- + -er（人）；门房义另来自 porta（门）+ -er，为同形异源。	ai
 possess	pos@p13_pot_able sess@sess	拉丁 possidēre < potis（能、有） + sedēre（坐），pos- 为 pot- 的同化变体，sess- 来自 sedēre；意为“坐拥、拥有”。	ai
@@ -6891,7 +6891,7 @@ prejudice	pre@pre judice@p13_judice	拉丁 praeiūdicium < prae-（在前）+ i�
 premise	pre@pre mise@mise_put	拉丁 praemissa（前置的命题）< prae-（在前）+ mittere（送、放），mise 为 miss- 的法语变体；指前提。	ai
 presage	pre@pre sage@p13_sag	拉丁 praesāgium < prae-（预先）+ sāgīre（感知），英语表面作 pre- + sage；指预兆、预感。	ai
 present	pre@pre sent@p13_sent_be	拉丁 praesēns < prae-（在前）+ esse（存在）的现在分词，英语表面作 pre- + sent；与“感觉”义的 sent- 同形异源。	ai
-preside	pre@pre side@p13_side_sit	拉丁 praesidēre < prae-（在前）+ sedēre（坐），英语表面作 pre- + side（sed- 的变体）；指坐在前面主持。	ai
+preside	pre@pre side@p16_sede	拉丁 praesidēre < prae-（在前）+ sedēre（坐），英语表面作 pre- + side（sed- 的变体）；指坐在前面主持。	ai
 pretty	prett@p13_prett y@y_adj	古英语 prættiġ < prat（诡计）+ -iġ（-y，形容词后缀），词义由“狡猾”转为“漂亮”。	ai
 primitive	prim@prim itive@p13_itive	拉丁 prīmitīvus < prīmus（第一）+ -īvus（形容词后缀），英语作 -itive；指原始的。	ai
 priority	prior@p13_prior ity@ity	prior（优先的、先前的）+ -ity（名词后缀：性质）→ 优先权。	wiktionary
@@ -6967,7 +6967,7 @@ repeatedly	re@re peat@p14_peat ed@ed ly@ly	repeated（repeat＋-ed）＋-ly；re
 repent	re@re pent@p14_pent	中古英语 repenten 经古法语 repentir，俗拉丁 *repaenitīre 由 re-（再）＋paenitēre（悔）构成。	ai
 repulse	re@re pulse@p14_pulse	拉丁 repulsus 是 repellō 的过去分词，re-（回）＋pellō/pulsus（推、驱动）；表面为 re＋pulse。	ai
 reside	re@re side@p14_side	中古英语 residen 经古法语 resider，拉丁 resideō 由 re-（回、留）＋sedeō（坐）构成。	ai
-resilience	re@re sili@p14_sili ence@ance	拉丁 resiliō（弹回）＋英语 -ence；resiliō 由 re-（回）＋saliō（跳）构成。	ai
+resilience	re@re sili@p14_sali ence@ance	拉丁 resiliō（弹回）＋英语 -ence；resiliō 由 re-（回）＋saliō（跳）构成。	ai
 resolution	re@re solu@solu tion@ion	拉丁 resolūtiō 来自 resolvō，re-（加强/回）＋solvō/solu-（松开），-tion 为名词后缀。	ai
 respiration	re@re spir@p14_spir ation@ion	中古英语 respiracioun 借自拉丁 respīrātiō，re-（回、再）＋spīrō（呼吸）＋-ation。	ai
 respiratory	re@re spir@p14_spir atory@atory	新拉丁 respīrātōrius，由 respire（呼吸）＋-atory 构成；respire 含 re-＋spīrō（呼吸）。	ai
@@ -6979,7 +6979,7 @@ retriever	re@re triev@p14_triev er@er	retrieve＋-er；retrieve 由 re-（回）
 revenue	re@re venue@p14_venue	中古英语 revenue 来自古法语 revenue，是 revenir（回来）的阴性过去分词，re-（回）＋venir（来）。	ai
 revile	re@re vile@p14_vile	中古英语 revilen 来自 re- 加古法语 aviler（使卑贱），与 vil/vile（卑贱）有关。	ai
 revitalization	re@re vital@vital ization@ization	revitalize＋-ation；re-（再）＋vital（生命的）＋-ization（……化）。	ai
-rewrite	re@re write@p14_write	re-（再）＋write（写），英语表面为 re＋write。	wiktionary
+rewrite	re@re write@write	re-（再）＋write（写），英语表面为 re＋write。	wiktionary
 righteous	right@right eous@eous	中古英语 rightwise，源自古英语 rihtwīs（right＋-wise），后受 -ous 影响变为 righteous；表面为 right＋-eous。	ai
 rising	ris@p14_ris ing@ing	rise＋-ing；加 -ing 时 rise 去 e 为 ris-。	ai
 rivet	riv@riv et@et	古法语 rivet 是 rive（边缘，源自拉丁 ripa 河岸）的指小形式；-et 为指小后缀。	ai
@@ -6997,7 +6997,7 @@ satiate	sati@p15_sati ate@ate	拉丁 satis（足够）的词干 sati- 加 -ate�
 saturated	satur@satur ated@p15_ated	拉丁 satur（满）加 -ate 再带 -ed，-ate 的 e 与 -ed 合并为 -ated，表示饱和的。	ai
 saturday	satur@p15_saturn day@day	古英语 Sæternesdæg，来自 Saturn（土星）加 day（日），即“土星日”。	ai
 scaled	scal@p15_scale_fish ed@ed	scale（鳞片）加 -ed，去 e 后拼作 scaled，表示有鳞的。	ai
-schoolbag	school@school bag@p15_bag	school（学校）+ bag（包），复合名词，指书包。	wiktionary
+schoolbag	school@school bag@bag	school（学校）+ bag（包），复合名词，指书包。	wiktionary
 scientific	sci@sci ent@ent ific@p15_ific	拉丁 scientia（知识，sci- 知道 + -ent-）加 -ific（产生……的），经中古法语 scientifique。	ai
 scientist	sci@sci ent@ent ist@ist	拉丁 scientia 的词干 scient-（sci- 知道 + -ent-）加 -ist（人），19世纪仿 artist 造出。	ai
 scientists	sci@sci ent@ent ist@ist s@s	scientist（科学家）加复数 -s。	ai
@@ -7117,7 +7117,7 @@ tablet	tabl@p17_tabl et@et	table 的指小形式，经古法语 tablete，表面
 tablets	tabl@p17_tabl et@et s@s	tabl + -et + 复数 -s	ai
 tableware	table@table ware@ware_goods	table（餐桌）加 ware（器皿），指餐具	ai
 tabulate	tabul@p17_tabul ate@ate	拉丁 tabula（板、表）加 -ate 动词后缀，作成表	ai
-tasty	tast@p17_taste y@y_adj	taste（味道）去 e 加 -y，构成形容词	ai
+tasty	tast@taste y@y_adj	taste（味道）去 e 加 -y，构成形容词	ai
 technical	techn@p17_techn ical@ic	希腊 tekhnē（技艺）的词干 techn- 加 -ical	ai
 technician	techn@p17_techn ic@ic ian@ian	techn-（技艺）加 -ic 和 -ian（人）	ai
 technology	techno@p17_techn logy@logy	techno-（技艺）加 -logy（学科）	ai
@@ -7134,15 +7134,15 @@ terrestrial	terrestr@p17_terrestr ial@al	拉丁 terrestris（土地的）词干 
 terrible	terr@terr_fright ible@able	拉丁 terrere（恐吓）词干 terr- 加 -ible（可……的）	ai
 testimony	testi@p17_testi mony@audit21_mony	经古法语借自拉丁 testimōnium，词基来自表示证人的 testis，-mōnium 构成名词。	ai
 textured	textur@p17_textur ed@ed	texture 去 e 加 -ed	wiktionary
-thanksgiving	thank@thank s@s giv@p17_give ing@ing	thanks（thank + -s）加 giving（give + -ing）	ai
-themselves	them@p17_them selve@p17_self s@s	them 加 self 的复数 selves（f 变 v 加 -s）	ai
+thanksgiving	thank@thank s@s giv@p09_give ing@ing	thanks（thank + -s）加 giving（give + -ing）	ai
+themselves	them@p17_them selve@self s@s	them 加 self 的复数 selves（f 变 v 加 -s）	ai
 theological	theo@p17_theo log@log ical@ic	theo-（神）加 log（言、学科）加 -ical	ai
 thermodynamics	thermo@p17_thermo dynamics@dynamics	thermo-（热）加 dynamics（动力学）	ai
 thermometer	thermo@p17_thermo meter@metr	thermo-（热）加 -meter（测量器）	wiktionary
-thousand-fold	thousand-@p17_thousand_comb fold@fold_mult	thousand（千）加 -fold（倍）	ai
-three-dimensional	three-@p17_three_comb dimension@dimension al@al	three（三）加 dimension（维度）加 -al	ai
+thousand-fold	thousand-@thousand fold@fold_mult	thousand（千）加 -fold（倍）	ai
+three-dimensional	three-@three dimension@dimension al@al	three（三）加 dimension（维度）加 -al	ai
 throttle	thrott@p17_throat le@le	throat（喉咙）的变体 thrott- 加指小、反复后缀 -le	ai
-time-consuming	time-@p17_time_comb consum@p17_consume ing@ing	time（时间）加 consuming（consume + -ing）	ai
+time-consuming	time-@time consum@p17_consume ing@ing	time（时间）加 consuming（consume + -ing）	ai
 tired	tir@p17_tire_weary ed@ed	tire（使疲倦）去 e 加 -ed	ai
 toed	to@p17_toe ed@ed	toe（脚趾）去 e 加 -ed	ai
 tradesman	trade@trade s@s_poss man@man_person	trade 加连接、属格 -s- 加 man（人）	wiktionary
@@ -7168,7 +7168,7 @@ unbearable	un@un bear@p18_bear able@able	un-（不）+ bear（承受）+ -able�
 unbroken	un@un broken@p18_broken	un-（不）+ broken（break 的过去分词，破碎的）。	wiktionary
 undertake	under@audit17_undertake take@take_full	与中古英语 undertaken 同源，指着手承担或承诺。under- 在此与承担、担保的关系有关。	wiktionary
 undertaking	under@under tak@take ing@ing	undertake（承担）+ -ing；拼写去 e 作 tak-。	ai
-underwrite	under@under write@p18_write	under-（在下）+ write（写），原指在文件下方签名。	ai
+underwrite	under@under write@write	under-（在下）+ write（写），原指在文件下方签名。	ai
 undifferentiated	un@un different@different iat@p18_iat ed@ed	un-（不）+ differentiate（区分）+ -ed；differentiate = different + -iate。	ai
 undivided	un@un divid@divid ed@ed	un-（不）+ divide（划分）+ -ed，拼写作 divid-。	ai
 unhappy	un@un happ@hap y@y_adj	un-（不）+ happy；happy 源自古诺斯 happ（运气）+ -y。	ai
@@ -7319,7 +7319,7 @@ architect	archi@archi tect@g02b_tect	源自古希腊语 architecton，由 archi-
 architectural	architect@architect ur@g02b_ur al@al	英语 architecture（建筑）的词干加形容词后缀 -al。	ai
 ardor	ard@ard or@g02b_or	源自拉丁语 ardor，由 ardēre(燃烧) + -or(名词后缀，表状态) 构成	ai
 armory	arm@arm_weapon ory@ory	arm(武器) + -ory(场所后缀)	ai
-ashamed	a@a sham@g02c_sham ed@ed	源自古英语 āsċamod，由前缀 a- + shame（羞耻，表面作 sham-）+ -ed（形容词后缀）构成	ai
+ashamed	a@a sham@shame ed@ed	源自古英语 āsċamod，由前缀 a- + shame（羞耻，表面作 sham-）+ -ed（形容词后缀）构成	ai
 assume	as@ad sume@sume	源自拉丁语 assūmō，由前缀 ad-（朝向，同化为 as-）和词根 sūmō（拿、取）构成	ai
 authoritative	authorit@g02c_author ative@ative	英语 authority（权威）的词干 authorit- 加形容词后缀 -ative。	ai
 authority	author@g02c_author ity@ity	经古法语 auctorité，源自拉丁 auctōritās（权威），来自 auctor（作者、权威人士）。英语表面可拆为 author 与 -ity。	ai
@@ -7333,9 +7333,9 @@ awfully	aw@g02c_awe ful@ful ly@ly	由 awful（可怕的、极度的）+ -ly（�
 baby	bab@g02c_babe y@g02c_y_dim	源自 babe（婴儿，表面作 bab-）+ -y（指小爱称后缀）构成	ai
 bacteria	bacteri@g02d_bacteri a@a_plural	借自新拉丁语 bacteria，是 bacterium（细菌）的中性复数，词尾 -a 对应复数形式。	ai
 bacterium	bacteri@g02d_bacteri um@um	借自新拉丁语 bacterium，上溯希腊语 baktērion（小杆），-um 是拉丁中性名词的词尾。	ai
-balanced	balanc@g02d_balanc ed@ed	英语 balance（平衡）加 -ed，拼写省去词尾不发音的 e。	ai
-basic	bas@g02d_bas ic@ic	英语 base（基础）的词干加形容词后缀 -ic。	ai
-basically	bas@g02d_bas ic@ic al@al ly@ly	英语 basic（基本的）加副词后缀 -ally。	ai
+balanced	balanc@balance ed@ed	英语 balance（平衡）加 -ed，拼写省去词尾不发音的 e。	ai
+basic	bas@base ic@ic	英语 base（基础）的词干加形容词后缀 -ic。	ai
+basically	bas@base ic@ic al@al ly@ly	英语 basic（基本的）加副词后缀 -ally。	ai
 bearing	bear@g02d_bear ing@ing	英语 bear（承受、携带）加分词或名词后缀 -ing。	wiktionary
 becoming	becom@become ing@ing	英语 become（变成、适合）加 -ing，拼写省去词尾不发音的 e。	ai
 fertilizer	fertil@fert izer@izer	英语 fertilize（施肥，使肥沃）加表示作用者或器物的 -er，拼写省去词尾 e。	ai
@@ -7343,7 +7343,7 @@ figurehead	figure@g08b_figure head@head	figure(人像) + head(船头) -> 船头�
 fireman	fire@fire man@man_person	fire(火) + man(人) -> 救火的人，即消防员	wiktionary
 fisherman	fish@fish er@er man@man_person	fish(捕鱼) + er(人) + man(人) -> 捕鱼的人，即渔夫	wiktionary
 brunch	br@review_r2_form_br unch@review_r2_form_unch	由早餐 breakfast 与午餐 lunch 截取片段混成，表示早午餐。	ai
-daisy	dais@review_r2_form_days y@review_r2_form_eye	经中古英语 dayesye，来自古英语 dæġes ēage（白昼之眼），白天开放、夜间闭合。两个历史成分的拼写已缩合。	ai
+daisy	dais@review_r2_form_days y@eye	经中古英语 dayesye，来自古英语 dæġes ēage（白昼之眼），白天开放、夜间闭合。两个历史成分的拼写已缩合。	ai
 cd-rom	cd-@review_r2_form_cd rom@review_r2_form_rom	由两个首字母缩写 CD（光盘）与 ROM（只读存储器）通过连字符组成。	ai
 detriment	de@de tri@review_r2_form_tri ment@ment	经古法语，来自拉丁 detrimentum（损害），含 de-（去除）、terere（磨损）和结果名词词尾 -ment 对应的成分。	ai
 buggy	bugg@review_r2_form_bug y@y_adj	多虫或有软件故障义来自 bug（虫、故障）加 -y，词干末尾 g 双写。马车义另有来源。	ai
@@ -7353,7 +7353,7 @@ fulfill	ful@pr2_04_full fill@pr2_04_fill	来自古英语 fullfyllan。英语可�
 broad-brimmed	broad-@review_r2_form_broad brimm@review_r2_form_brim ed@ed	由 broad（宽）与 brimmed（有边的）组成。brim 加 -ed 时双写 m。	ai
 cast-iron	cast-@review_r2_form_cast iron@review_r2_form_iron	英语 cast（铸造）与 iron（铁）的连字符复合，表示铸铁或铸铁制的。	ai
 eye-catching	eye-@review_r2_form_eyecatch catch@catch ing@ing	英语 eye（目光）与 catching（抓住，catch 的分词）组成的连字符复合。	ai
-father-in-law	father-@review_r2_form_father in-@review_r2_form_in law@law	英语 father 与 in-law 复合，指婚姻关系中具有父亲身份的家人。	ai
+father-in-law	father-@father in-@review_r2_form_in law@law	英语 father 与 in-law 复合，指婚姻关系中具有父亲身份的家人。	ai
 felt	fel@review_r2_form_feel t@review_r2_form_t	feel（感到）的不规则过去式，词末 t 反映历史齿音后缀。毛毡义是另一词源。	ai
 modem	mo@review_r2_extra_mo dem@review_r2_extra_dem	从 modulator（调制器）和 demodulator（解调器）各取一个片段，构成调制解调器的简称。	ai
 motel	mo@review_r2_extra_motor tel@review_r2_extra_hotel	由 motor（机动车）与 hotel（旅馆）截取片段混成。	ai
@@ -7430,7 +7430,7 @@ bent	ben@pr2_01_bend_stem t@p12_t_past	由 bend（弯曲）的过去分词词干
 bequest	be@be_prefix quest@pr2_01_quest_saying	中古英语 biqueste，由 be-（关于、加强）加 quiste/queste（遗言、遗嘱，源自古英语 cwiss）构成；与拉丁词源的 quest 无关，表“遗赠”。	ai
 billion	bi@bi llion@p17_llion	源自法语 billion，由 bi-（二）加 -illion（百万的幂）构成，原指百万的二次方，后指十亿。	ai
 birmingham	birming@pr2_01_birming ham@ham_village	古英语 Beormingahām，“Beorma 追随者的家园”，由 Beormingas（人名派生族称，词干 birming-）加 hām（家园、村庄）构成。	ai
-abstruse	abs@ab truse@review_r2_trude	借自拉丁 abstrūsus（藏起来的），源自 abs-（离开）与 trudere（推）。	ai
+abstruse	abs@ab truse@p13_trud	借自拉丁 abstrūsus（藏起来的），源自 abs-（离开）与 trudere（推）。	ai
 alight	a@review_r2_a_state light@review_r2_light	点亮、着火义来自古英语 ālīhtan（点亮），可见前缀 a- 与 light 的构词关系。下车义另有历史来源。	ai
 born	bor@pr2_02_bear_birth n@p19_en_pp	born 是 bear（生育）的过去分词，古英语 boren，相当于 bear 加过去分词后缀 -en，后拼作 bor + n。	ai
 brandish	brand@pr2_02_brand ish@p18_ish_verb	brandish 来自古法语 brandir，词干 brand（火把、剑）加动词后缀 -ish，表示挥舞。	wiktionary
@@ -7498,7 +7498,7 @@ founder	found@pr2_04_found_establish er@er	found（建立） + -er（人），�
 founding	found@pr2_04_found_establish ing@ing	英语 found（建立）加分词或名词后缀 -ing，表示创建或奠基。另有同形铸造义。	ai
 freezing	freez@pr2_04_freeze ing@ing	freeze（结冰）的词干 freez- + -ing（分词/名词后缀），表示冰冻的或冻结。	ai
 frenetic	fren@pr2_04_phren etic@etic	phren（心智，希腊 φρήν）的变体 fren- + -etic（形容词后缀），表示心神失常的、狂热的。	ai
-frequency	frequen@pr2_04_frequent cy@cy	frequent（频繁的）的词干 frequen- + -cy（名词后缀：状态），源自拉丁 frequentia。	ai
+frequency	frequen@frequent cy@cy	frequent（频繁的）的词干 frequen- + -cy（名词后缀：状态），源自拉丁 frequentia。	ai
 friday	fri@pr2_04_frigg day@day	Frigg（女神弗丽格）的变体 fri- + day（日），原为“弗丽格之日”。	ai
 fulfil	ful@pr2_04_full fil@pr2_04_fill	full（满）的变体 ful- + fill（填满）的变体 fil-，英式拼写省略一个 l。	ai
 fulsome	ful@pr2_04_full some@some	full（满）的变体 ful- + -some（令人……的），原为“充足的”，后转贬义“过度的”。	ai
@@ -7552,14 +7552,14 @@ tingle	ting@pr2_06_ting le@le	ting（叮响）加反复后缀 -le；可能来自
 tournament	tourn@pr2_06_tourn ament@ament	tourn-（转；参加比武）加名词后缀 -ament（行为/结果），源自古法语 tornoier。	ai
 tragedy	trag@p17_trag edy@pr2_06_ody_song	trag-（山羊，希腊语 tragos）加 edy（歌，希腊语 ōidē）。	ai
 traitor	trait@pr2_06_trait or@er	trait-（交出；背叛，源自拉丁 trādere）加表示人的后缀 -or。	ai
-transpire	trans@trans pire@review_surface_spir	trans-（穿过）加 spirare（呼吸）的变体 pire，经中世纪拉丁 transpirare。	ai
-trapper	trapp@pr2_06_trapp er@er	trap（设陷阱捕捉）加 -er（人），词干双写 p 作 trapp-。	ai
+transpire	trans@trans pire@p04_spir	trans-（穿过）加 spirare（呼吸）的变体 pire，经中世纪拉丁 transpirare。	ai
+trapper	trapp@trap er@er	trap（设陷阱捕捉）加 -er（人），词干双写 p 作 trapp-。	ai
 turnip	turn@turn ip@pr2_06_nepe	turn（转；圆）加 nepe（芜菁，拉丁 napus）的缩略形式 -ip。	ai
 unfertilized	un@un fertil@fert iz@p05_iz ed@ed	un-（不）加 fertil（肥沃）加 -ize（使……化）加 -ed（已……的）。	ai
 until	un@pr2_06_un_until til@pr2_06_till	un-（到；朝，古义）加 till（直到），来自中古英语 until，不是否定前缀。	ai
 up-to-date	up-@pr2_06_up_hyphen to-@pr2_06_to_hyphen date@date	up（直到）加 to（到）加 date（日期），指直到现在的。	ai
-water-clock	water-@pr2_06_water_hyphen clock@clock	water（水）加 clock（钟），指水钟。	ai
-water-proof	water-@pr2_06_water_hyphen proof@proof	water（水）加 -proof（防……的），指防水的。	ai
+water-clock	water-@water clock@clock	water（水）加 clock（钟），指水钟。	ai
+water-proof	water-@water proof@proof	water（水）加 -proof（防……的），指防水的。	ai
 wedge-shaped	wedge-@pr2_06_wedge shape@shape d@p07_ed_d	wedge（楔）加 shape（形状）加 -ed（……的，省 e 作 -d）。	ai
 well-being	well-@pr2_06_well be@be_verb ing@ing	well（好）加 be（存在）加 -ing（状态），指安康。	ai
 well-known	well-@pr2_06_well known@known	well（好）加 known（已知的），指众所周知的。	ai
@@ -7600,7 +7600,7 @@ worst	wor@review_r3_wor st@review_r3_st_super	源于古英语 wierrest，与 wor
 touchy	touch@touch y@y_adj	早期 tetchy 受 touch（触动）影响形成该拼写，现代可类推为 touch 加 -y。	wiktionary
 waver	wav@review_r3_wave er@er	挥动者这个名词由 wave（挥动）加表示人的 -er。动摇义动词的历史来源未定。	wiktionary
 trader	trad@review_r3_trade er@er	英语 trade（贸易）加表示人的 -er，拼写省去词尾不发音的 e。	ai
-water-skiing	water-@review_r3_water ski@review_r3_ski ing@ing	由 water（水）与 skiing（划行、滑雪，ski 加 -ing）组成的连字符复合，表示在水面滑行。	ai
+water-skiing	water-@water ski@review_r3_ski ing@ing	由 water（水）与 skiing（划行、滑雪，ski 加 -ing）组成的连字符复合，表示在水面滑行。	ai
 upside-down	upside-@review_r3_upside down@down	英语 upside（上面）与 down（向下）组成连字符复合，表示上下颠倒。	ai
 x-ray	x-@review_r3_x ray@review_r3_ray	用代表未知量的 X 与 ray（射线）连写，命名未知性质的射线。	ai
 world-wide	world-@review_r3_world wide@wide	英语 world（世界）与 wide（广泛）组成的连字符复合，表示遍及全世界。	ai
@@ -7620,7 +7620,7 @@ dismay	dis@dis may@pr3_01_may_power	经古法语 esmaier/desmaiier，源自通�
 dispatch	dis@dis patch@pr3_01_patch_fasten	借自西班牙语 despachar 或意大利语 dispacciare。前部对应 des-/dis-，后段可能关联拉丁语表示束缚的词，具体来源未定。	ai
 divorce	di@dis vorce@pr3_01_vert_turn	拉丁 di-（分开）+ vertere（转）的名词 divortium，经古法语 divorce；转开即分离、离婚。	ai
 endue	en@p07_en_in due@pr3_01_uere_put	拉丁 in-（进入）+ uere（穿上），induere 经古法语 enduire；en- + 词根 due（穿、赋予）。	ai
-execute	ex@ex ecute@pr3_01_sequ_follow	拉丁 ex-（出、彻底）+ sequi（跟随），过去分词 exsecutus，经古法语 executer；跟随到底即执行。	ai
+execute	ex@ex ecute@pr2_05_sequ	拉丁 ex-（出、彻底）+ sequi（跟随），过去分词 exsecutus，经古法语 executer；跟随到底即执行。	ai
 gabble	gabb@pr3_01_gab le@le	gab（喋喋、嘴）+ -le（反复动词后缀），辅音双写；中古英语 gabben 类词。	ai
 gamble	gamb@pr3_01_game le@le	与 game 同源，古英语 gamenian；game + -le（反复后缀），拼写插入 b，早期作 gamel。	ai
 huddle	hud@pr2_04_hide dle@p07_le_freq	可能来自中古英语 hudelen，历史上与 hide（藏）和反复动词词尾 -le 有关。	ai
@@ -7666,7 +7666,7 @@ aesthetic	aesthet@audit4_aesthet ic@ic	来自表示感知的希腊 aisthētikós
 dynasty	dynast@audit4_dynast y@y	经法语和拉丁语从希腊 dynasteía（统治、权力）传入，与 dynástēs（统治者）和名词尾相应。	ai
 wager	wag@audit4_wage_pledge er@audit5_eure	经古北法语 wageure，由 wagier（承诺、抵押）相关词基及名词形成词尾组成。	ai
 chicken	chick@audit4_chicken_base en@audit4_en_nominal	源于古英语 cicen（小鸡），同日耳曼语其他指小形式可以比较，现有词形保留历史名词词尾。	ai
-endeavor	en@p07_en_in deavor@audit5_artwork_en	来自中古英语 endeveren，含 en- 和 dever（义务、职责）；与英式 endeavour 同源。	ai
+endeavor	en@p07_en_in deavor@preaudit_dever	来自中古英语 endeveren，含 en- 和 dever（义务、职责）；与英式 endeavour 同源。	ai
 panel	pan@audit5_paine el@audit4_el_diminutive	从中古英语 panel 上溯古法语，由 pan（一片、一块布）和指小词尾形成。	ai
 finish	fin@fine ish@audit6_ish_french	经古法语 finir（结束）的词干 finiss-，远源 fīnis 表界限、结尾。英语 -ish 对应该法语词干成分。	ai
 visit	vis@vis it@audit6_it_freq	经古法语 visiter，来自拉丁 vīsitāre（反复去看），由表示看望的 vīsere 和表示反复动作的成分形成。	ai

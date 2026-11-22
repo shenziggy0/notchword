@@ -5,6 +5,7 @@ import AppKit
 final class RegionPicker {
 
     private var windows: [RegionWindow] = []
+    private var keyMonitors: [Any] = []
     private var onSelect: ((CGRect, NSScreen) -> Void)?
 
     var isPicking: Bool { !windows.isEmpty }
@@ -21,6 +22,7 @@ final class RegionPicker {
             windows.append(window)
             window.makeKeyAndOrderFront(nil)
         }
+        installEscapeMonitors()
     }
 
     func cancel() {
@@ -28,6 +30,29 @@ final class RegionPicker {
             window.orderOut(nil)
             window.close()
         }
+    }
+
+    /// Esc 随时可取消：全局监听盖住未激活的情况，本地监听盖住窗口拿到焦点的情况。
+    private func installEscapeMonitors() {
+        removeEscapeMonitors()
+        if let global = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            guard event.keyCode == 53 else { return }
+            Task { @MainActor in self?.cancel() }
+        }) {
+            keyMonitors.append(global)
+        }
+        if let local = NSEvent.addLocalMonitorForEvents(matching: .keyDown, handler: { [weak self] event in
+            guard event.keyCode == 53 else { return event }
+            MainActor.assumeIsolated { self?.cancel() }
+            return nil
+        }) {
+            keyMonitors.append(local)
+        }
+    }
+
+    private func removeEscapeMonitors() {
+        for monitor in keyMonitors { NSEvent.removeMonitor(monitor) }
+        keyMonitors.removeAll()
     }
 
     private func finish(_ rect: CGRect, on screen: NSScreen) {
@@ -44,6 +69,7 @@ final class RegionPicker {
 
     @discardableResult
     private func dismissWindows() -> [RegionWindow] {
+        removeEscapeMonitors()
         let active = windows
         windows.removeAll()
         onSelect = nil
@@ -56,7 +82,7 @@ final class RegionPicker {
 }
 
 @MainActor
-private final class RegionWindow: NSWindow {
+private final class RegionWindow: NSPanel {
     var onSelect: ((CGRect, NSScreen) -> Void)?
     var onCancel: (() -> Void)?
     private let screenFrame: NSScreen
@@ -64,12 +90,14 @@ private final class RegionWindow: NSWindow {
     init(screen: NSScreen) {
         screenFrame = screen
         super.init(
-            contentRect: screen.frame,
-            styleMask: .borderless,
+            contentRect: CGRect(origin: .zero, size: screen.frame.size),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false,
             screen: screen
         )
+        isFloatingPanel = true
+        becomesKeyOnlyIfNeeded = true
         isOpaque = false
         backgroundColor = .clear
         hasShadow = false
@@ -136,6 +164,9 @@ private final class RegionOverlay: NSView {
 
     override var isFlipped: Bool { false }
 
+    /// 首次点击就生效，不需要先激活应用。
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
     override func resetCursorRects() {
         addCursorRect(bounds, cursor: .crosshair)
     }
@@ -165,6 +196,11 @@ private final class RegionOverlay: NSView {
 
     func update(to point: CGPoint) {
         guard let anchor else { return }
+        // 拖出窗口时仍钳位到可视区域内，避免选区越界
+        let point = CGPoint(
+            x: min(max(point.x, bounds.minX), bounds.maxX),
+            y: min(max(point.y, bounds.minY), bounds.maxY)
+        )
         selection = CGRect(
             x: min(anchor.x, point.x),
             y: min(anchor.y, point.y),

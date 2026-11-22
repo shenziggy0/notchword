@@ -18,7 +18,7 @@ final class SubtitleTracker: ObservableObject {
     private struct ScreenArea {
         let bundle: String
         let rect: CGRect
-        let screen: NSScreen
+        let displayID: CGDirectDisplayID
     }
 
     @Published private(set) var cues: [SubtitleCue] = []
@@ -38,6 +38,9 @@ final class SubtitleTracker: ObservableObject {
     private var area: ScreenArea?
     private var lastScreenCue = ""
     private var screening: [SubtitleCue] = []
+    private var ocrGeneration = 0
+    private var isPausing = false
+    private var failures = 0
     private var presentation = 0
     private var presenting = false
     private var frontmost: String?
@@ -56,7 +59,9 @@ final class SubtitleTracker: ObservableObject {
             tracking = Task { [weak self] in
                 while !Task.isCancelled {
                     await self?.poll()
-                    try? await Task.sleep(for: .milliseconds(500))
+                    // 连续无视频/出错后退避到约 2 秒一次
+                    let backoff = (self?.failures ?? 0) >= 3
+                    try? await Task.sleep(for: .milliseconds(backoff ? 2000 : 500))
                 }
             }
         } else {
@@ -69,9 +74,11 @@ final class SubtitleTracker: ObservableObject {
     }
 
     func configureOCR(rect: CGRect, screen: NSScreen, browser: String) {
-        area = ScreenArea(bundle: browser, rect: rect, screen: screen)
+        ocrGeneration &+= 1
+        area = ScreenArea(bundle: browser, rect: rect, displayID: Self.displayID(of: screen))
         screening = []
         lastScreenCue = ""
+        failures = 0
     }
 
     func peek() {
@@ -80,9 +87,12 @@ final class SubtitleTracker: ObservableObject {
         presenting = true
         if !cues.isEmpty { position = cues.count - 1 }
         translateCurrent()
-        guard preferences.pausesVideoOnPeek, current != nil, let target, pausedByApp == nil else { return }
+        guard preferences.pausesVideoOnPeek, current != nil, let target,
+              pausedByApp == nil, !isPausing else { return }
+        isPausing = true
         Task {
             let paused = (try? await execute("pause", target: target)) == "true"
+            isPausing = false
             guard paused else { return }
             if presenting, presentation == generation, self.target == target {
                 pausedByApp = target
@@ -119,6 +129,7 @@ final class SubtitleTracker: ObservableObject {
         }
         guard let browser, BrowserBridge.supports(browser) else {
             status = "前台应用不是支持的浏览器。"
+            failures += 1
             return
         }
         do {
@@ -128,6 +139,7 @@ final class SubtitleTracker: ObservableObject {
             }
             guard script != nil else {
                 status = "随包字幕脚本缺失。"
+                failures += 1
                 return
             }
             let response = try await execute("state", browser: browser)
@@ -143,22 +155,27 @@ final class SubtitleTracker: ObservableObject {
                 chinese = snapshot.chinese ?? []
                 update(SentenceMerger.merge(snapshot.cues ?? []))
                 status = "网页字幕"
+                failures = 0
             case "screen":
                 try await screenSubtitles(browser)
             case "drm":
                 update([])
                 status = "当前视频受保护，无法读取字幕。"
+                failures = 0
             case "ad":
                 update([])
                 status = "广告播放中。"
+                failures = 0
             default:
                 update([])
                 status = "没有找到可用字幕。"
+                failures += 1
             }
         } catch {
             guard !Task.isCancelled, AppRules.frontmostBundleID == browser else { return }
             status = error.localizedDescription
             update([])
+            failures += 1
         }
     }
 
@@ -171,20 +188,30 @@ final class SubtitleTracker: ObservableObject {
         guard let area, area.bundle == browser else {
             update([])
             status = "请从菜单栏选择「框选字幕区域…」。"
+            failures += 1
             return
         }
         guard presenting else { return }
-        let text = try await ScreenText.recognize(rect: area.rect, on: area.screen)
-        guard !Task.isCancelled, presenting, AppRules.frontmostBundleID == browser else { return }
+        guard let screen = Self.screen(displayID: area.displayID) else {
+            update([])
+            status = "字幕区域的显示器已断开。"
+            failures += 1
+            return
+        }
+        let generation = ocrGeneration
+        let text = try await ScreenText.recognize(rect: area.rect, on: screen)
+        guard generation == ocrGeneration, !Task.isCancelled, presenting,
+              AppRules.frontmostBundleID == browser else { return }
         if !text.isEmpty, text != lastScreenCue {
             let now = Date().timeIntervalSince1970
             screening.append(SubtitleCue(text: text, start: now, end: now))
             screening = Array(screening.suffix(80))
+            lastScreenCue = text
         }
-        lastScreenCue = text
         chinese = []
         update(SentenceMerger.merge(screening))
         status = screening.isEmpty ? "字幕区域内暂未识别到文字。" : "屏幕字幕"
+        failures = text.isEmpty ? failures + 1 : 0
     }
 
     private func update(_ next: [SubtitleCue]) {
@@ -199,9 +226,12 @@ final class SubtitleTracker: ObservableObject {
 
     private func reset() {
         target = nil
+        pausedByApp = nil
         chinese = []
         lastScreenCue = ""
         screening = []
+        ocrGeneration &+= 1
+        failures = 0
         update([])
     }
 
@@ -220,9 +250,20 @@ final class SubtitleTracker: ObservableObject {
                 ))
                 if !Task.isCancelled, current == sentence { translation = result.text }
             } catch {
-                if !Task.isCancelled, current == sentence { translation = error.localizedDescription }
+                guard !Task.isCancelled, current == sentence,
+                      !TranslationError.isCancellation(error) else { return }
+                translation = error.localizedDescription
             }
         }
+    }
+
+    private static func displayID(of screen: NSScreen) -> CGDirectDisplayID {
+        let number = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        return number.map { CGDirectDisplayID($0.uint32Value) } ?? CGMainDisplayID()
+    }
+
+    private static func screen(displayID: CGDirectDisplayID) -> NSScreen? {
+        NSScreen.screens.first { self.displayID(of: $0) == displayID } ?? NSScreen.main
     }
 
     private func execute(_ command: String, target: Target) async throws -> String {

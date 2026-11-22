@@ -133,19 +133,44 @@ private struct StarDictStore {
     private static func stripMarkup(_ text: String) -> String {
         var result = text.replacingOccurrences(of: #"(?is)<(script|style)\b[^>]*>.*?</\1\s*>"#,
                                               with: "", options: .regularExpression)
-        result = result.replacingOccurrences(of: #"(?i)<br\b[^>]*>|</(?:p|div|li)\s*>"#,
+        result = result.replacingOccurrences(of: #"(?i)<br\b[^>]*>|</(?:p|div|li|k|tr|dtrn|def|ex)\s*>"#,
                                              with: "\n", options: .regularExpression)
         result = result.replacingOccurrences(of: #"<[^>]+>"#, with: "", options: .regularExpression)
         for (entity, replacement) in [("&nbsp;", " "), ("&gt;", ">"), ("&lt;", "<"),
-                                      ("&quot;", "\""), ("&#39;", "'"), ("&amp;", "&")] {
+                                      ("&quot;", "\""), ("&apos;", "'"), ("&#39;", "'"), ("&amp;", "&")] {
             result = result.replacingOccurrences(of: entity, with: replacement)
         }
-        return result
+        return decodeNumericEntities(result)
+    }
+
+    /// 解析 `&#233;` / `&#xE9;` 这类数字字符实体。
+    private static func decodeNumericEntities(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: #"&#(?:x([0-9A-Fa-f]+)|([0-9]+));"#) else { return text }
+        let source = text as NSString
+        var output = ""
+        var cursor = 0
+        for match in regex.matches(in: text, range: NSRange(location: 0, length: source.length)) {
+            output += source.substring(with: NSRange(location: cursor, length: match.range.location - cursor))
+            let hex = match.range(at: 1).location != NSNotFound ? source.substring(with: match.range(at: 1)) : nil
+            let decimal = match.range(at: 2).location != NSNotFound ? source.substring(with: match.range(at: 2)) : nil
+            let value = hex.flatMap { UInt32($0, radix: 16) } ?? decimal.flatMap { UInt32($0, radix: 10) }
+            if let value, let scalar = Unicode.Scalar(value) {
+                output.append(Character(scalar))
+            } else {
+                output += source.substring(with: match.range)
+            }
+            cursor = match.range.location + match.range.length
+        }
+        output += source.substring(from: cursor)
+        return output
     }
 
     private static func metadata(_ url: URL) throws -> [String: String] {
         let data = try read(url, compressed: false, limit: 1024 * 1024)
-        let lines = String(decoding: data, as: UTF8.self).split(whereSeparator: \.isNewline)
+        var text = String(decoding: data, as: UTF8.self)
+        // Windows 工具导出的 .ifo 常带 UTF-8 BOM，先剥掉再校验文件头
+        if text.hasPrefix("\u{FEFF}") { text.removeFirst() }
+        let lines = text.split(whereSeparator: \.isNewline)
         guard lines.first == "StarDict's dict ifo file" else { throw StarDictError.invalid(".ifo 文件头无效") }
         var result: [String: String] = [:]
         for line in lines.dropFirst() {
@@ -226,10 +251,9 @@ actor StarDictLibrary {
         for source in store.files {
             try fm.copyItem(at: source, to: staging.appendingPathComponent(source.lastPathComponent))
         }
-        // Re-open the copied files before publishing the import.
-        let copied = try StarDictStore(ifo: staging.appendingPathComponent(ifo.lastPathComponent))
+        // Re-open the copied files after publishing, so only one large store stays resident.
         try fm.moveItem(at: staging, to: destination)
-        loaded[id] = copied
+        loaded[id] = try StarDictStore(ifo: destination.appendingPathComponent(ifo.lastPathComponent))
         return DictionarySource(id: id, kind: .stardict, name: store.name, enabled: true)
     }
 

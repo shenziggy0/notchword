@@ -51,7 +51,7 @@ public sealed class DictionaryStore : IDisposable
         {
             try
             {
-                return DictionaryLookupOutcome.Success(FindEntry(word));
+                return DictionaryLookupOutcome.Success(FindEntry(NormalizeKey(word)));
             }
             catch (DictionaryException ex)
             {
@@ -79,19 +79,28 @@ public sealed class DictionaryStore : IDisposable
     /// </summary>
     public Morphology? GetMorphology(string word)
     {
+        var key = NormalizeKey(word);
         lock (_sync)
         {
-            if (_morphologyCache.TryGetValue(word, out var cached))
+            try
             {
-                return cached;
-            }
+                if (_morphologyCache.TryGetValue(key, out var cached))
+                {
+                    return cached;
+                }
 
-            var resolved = ResolveMorphology(word);
-            if (resolved is not null)
-            {
-                _morphologyCache[word] = resolved;
+                var resolved = ResolveMorphology(key);
+                if (resolved is not null)
+                {
+                    _morphologyCache[key] = resolved;
+                }
+                return resolved;
             }
-            return resolved;
+            catch
+            {
+                // 词素库缺失、损坏或查询失败一律降级为「无词素」，绝不阻断主释义。
+                return null;
+            }
         }
     }
 
@@ -110,6 +119,7 @@ public sealed class DictionaryStore : IDisposable
     /// </summary>
     public string? GetLemma(string form)
     {
+        var key = NormalizeKey(form);
         lock (_sync)
         {
             if (_db is null || _openError is not null)
@@ -119,7 +129,7 @@ public sealed class DictionaryStore : IDisposable
 
             try
             {
-                return QuerySingleString(_db, "SELECT lemma FROM forms WHERE form = $form LIMIT 1", "$form", form);
+                return QuerySingleString(_db, "SELECT lemma FROM forms WHERE form = $form LIMIT 1", "$form", key);
             }
             catch
             {
@@ -127,6 +137,11 @@ public sealed class DictionaryStore : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// 词库统一小写化入口，保证 <c>UNBELIEVABLE</c> / <c>Founded</c> 等大写输入可命中。
+    /// </summary>
+    private static string NormalizeKey(string? word) => (word ?? string.Empty).ToLowerInvariant();
 
     private Entry? FindEntry(string word)
     {
@@ -319,7 +334,11 @@ public sealed class DictionaryStore : IDisposable
 
     public void Dispose()
     {
-        _db?.Dispose();
-        _partsDb?.Dispose();
+        // 与后台查询/词素加载共用同一把锁，避免释放期间仍在使用连接。
+        lock (_sync)
+        {
+            _db?.Dispose();
+            _partsDb?.Dispose();
+        }
     }
 }

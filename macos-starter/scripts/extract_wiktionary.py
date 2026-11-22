@@ -14,11 +14,12 @@ COMPONENT = re.compile(r"-?[a-z]+(?:['-][a-z]+)*-?")
 
 
 def template_parts(template):
-    args = template.get("args", {})
-    name = template.get("name")
+    args = (template or {}).get("args") or {}
+    name = (template or {}).get("name")
     first = 2
-    if name == "ety" and args.get("2", "").startswith(":"):
-        name = args["2"][1:]
+    second = args.get("2") or ""
+    if name == "ety" and isinstance(second, str) and second.startswith(":"):
+        name = second[1:]
         first = 3
     if name not in TEMPLATES or args.get("1") != "en":
         return None
@@ -26,7 +27,7 @@ def template_parts(template):
     keys = sorted(int(key) for key in args if key.isdecimal() and int(key) >= first)
     if not keys or keys != list(range(first, keys[-1] + 1)):
         return None
-    parts = tuple(args[str(key)].strip().lower() for key in keys)
+    parts = tuple(str(args[str(key)] or "").strip().lower() for key in keys)
     if len(parts) < 2 or not all(COMPONENT.fullmatch(part) for part in parts):
         return None
     return parts, name
@@ -43,17 +44,17 @@ def collect_templates(source, targets=frozenset(), evidence=None):
                 entry = json.loads(line)
             except json.JSONDecodeError as error:
                 raise ValueError(f"{source}:{number}: {error.msg}") from error
-            word = entry.get("word", "").strip().lower()
+            word = (entry.get("word") or "").strip().lower()
             if entry.get("lang_code") != "en" or not WORD_PATTERN.fullmatch(word):
                 continue
             if evidence is not None and word in targets:
-                text = entry.get("etymology_text", "").strip()
+                text = (entry.get("etymology_text") or "").strip()
                 if text.startswith("Etymology tree\n"):
                     text = text.rsplit("\n", 1)[-1]
                 text = " ".join(text.split())
                 if text and not text.startswith("See ") and entry.get("word") == word:
                     evidence[word].add(text[:650])
-            for template in entry.get("etymology_templates", []):
+            for template in (entry.get("etymology_templates") or []):
                 candidate = template_parts(template)
                 if candidate:
                     records[word].add(candidate)

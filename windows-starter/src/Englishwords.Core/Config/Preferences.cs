@@ -76,6 +76,14 @@ public sealed class Preferences
             var json = File.ReadAllText(filePath);
             var loaded = JsonSerializer.Deserialize<Preferences>(json, JsonOptions);
             if (loaded is null) return new Preferences();
+
+            // 反序列化后补齐可能为 null 的属性，避免旧配置文件里缺字段导致空引用。
+            loaded.LookupHotKey ??= HotKeySpec.DefaultLookup();
+            loaded.TranslateHotKey ??= HotKeySpec.DefaultTranslate();
+            loaded.RegionOcrHotKey ??= HotKeySpec.DefaultRegionOcr();
+            loaded.DictionarySources ??= DictionarySource.CreateDefaults();
+            loaded.ExcludedProcesses ??= [];
+
             if (loaded.DictionarySources.Count == 0)
             {
                 loaded.DictionarySources = DictionarySource.CreateDefaults();
@@ -92,6 +100,10 @@ public sealed class Preferences
     {
         var dir = Path.GetDirectoryName(filePath);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-        File.WriteAllText(filePath, JsonSerializer.Serialize(this, JsonOptions));
+
+        // 先写同目录临时文件再原子替换，避免写到一半断电/崩溃把设置文件写坏。
+        var tempPath = filePath + ".tmp";
+        File.WriteAllText(tempPath, JsonSerializer.Serialize(this, JsonOptions));
+        File.Move(tempPath, filePath, overwrite: true);
     }
 }

@@ -28,8 +28,13 @@ python3 scripts/build_dictionary.py \
 python3 scripts/build_wordparts.py \
   --morphemes data/morphemes.tsv \
   --words data/wordparts.tsv \
+  --coverage-db Sources/Englishwords/Resources/dictionary.sqlite \
+  --simplex data/simplex.txt \
+  --extra data/wordlist-extra.txt \
   --output Sources/Englishwords/Resources/wordparts.sqlite
 ```
+
+`--coverage-db`、`--simplex`、`--extra` 缺一不可：没有它们脚本不会校验 11,444 目标词的覆盖，也不会写入 `coverage_target` / `simplex_count`。
 
 ## 3. 校验点
 
@@ -52,9 +57,13 @@ python3 scripts/build_wordparts.py \
 ## 4. 覆盖率的真实情况
 
 `wordparts.sqlite` 当前已实现七类考试标签与小学补充目标词（合计 **11,444** 词）**100% 覆盖**，无未判定缺口：
-- 语素库共 **4,626** 个语素；
+- 语素库共 **4,550** 个语素；
 - 拆分词库共 **7,757** 词（其中 `manual=147`、`wiktionary=1,832`、`ai=5,778`）；
 - 单纯词清单 `simplex.txt` 共 **3,698** 词（单纯词不写入空拆分 SQLite 行，界面只展示释义而不杜撰拆分）。
+
+语素与拆分在入库前统一清洗：`parts.label` 必须是词典形态（`-able` 而非中文注释、纯语言码或下划线 key），
+同形同义语素合并成一条 key 并保留显式绑定；无法拼回原词或只出现一次的孤立语素不保留。
+入库后由 `build_wordparts.py` 重算 `source_counts` 与 `coverage_target`，不使用缓存数字。
 
 ## 5. M5.5 数据生产
 

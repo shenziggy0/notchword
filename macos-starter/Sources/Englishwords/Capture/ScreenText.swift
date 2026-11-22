@@ -28,12 +28,21 @@ struct RecognizedFragment {
 enum ScreenText {
 
     /// 同一行的 y 差距上限（归一化坐标）。0.80 与 0.81 算一行，0.60 另起一行。
-    static let lineThreshold = 0.02
+    /// 阈值放宽到 0.035，避免带下伸字母的紧密单行被拆成两行。
+    static let lineThreshold = 0.035
+
+    private struct CapturePlan {
+        let displayID: CGDirectDisplayID?
+        let sourceRect: CGRect
+        let scale: CGFloat
+    }
 
     static func recognize(rect: CGRect, on screen: NSScreen) async throws -> String {
         guard Permissions.isScreenCaptureGranted else { throw ScreenTextError.notAuthorized }
         try Task.checkCancellation()
-        let image = try await capture(rect: rect, on: screen)
+        // 屏幕几何必须在主线程读；截图与识别放到后台。
+        let plan = await Self.capturePlan(rect: rect, screen: screen)
+        let image = try await capture(plan)
         try Task.checkCancellation()
         let fastText = try? recognize(image, level: .fast)
         try Task.checkCancellation()
@@ -51,6 +60,13 @@ enum ScreenText {
         } catch {
             throw ScreenTextError.recognition(error.localizedDescription)
         }
+    }
+
+    @MainActor
+    private static func capturePlan(rect: CGRect, screen: NSScreen) -> CapturePlan {
+        CapturePlan(displayID: displayID(of: screen),
+                    sourceRect: sourceRect(rect, on: screen),
+                    scale: screen.backingScaleFactor)
     }
 
     /// 按 y 接近程度归行，行内按 x 从左到右。阅读顺序是从上到下。
@@ -72,8 +88,9 @@ enum ScreenText {
     // MARK: - 截图
 
     /// `rect` 使用 AppKit 全局坐标（左下原点）。转成该显示器内、左上原点的 sourceRect。
-    private static func capture(rect: CGRect, on screen: NSScreen) async throws -> CGImage {
-        guard rect.width >= 1, rect.height >= 1 else {
+    private static func capture(_ plan: CapturePlan) async throws -> CGImage {
+        let local = plan.sourceRect
+        guard local.width >= 1, local.height >= 1 else {
             throw ScreenTextError.capture("区域太小")
         }
         let content: SCShareableContent
@@ -82,15 +99,16 @@ enum ScreenText {
         } catch {
             throw ScreenTextError.capture(error.localizedDescription)
         }
-        guard let displayID = displayID(of: screen),
+        guard let displayID = plan.displayID,
               let display = content.displays.first(where: { $0.displayID == displayID }) else {
             throw ScreenTextError.capture("找不到对应的显示器")
         }
 
-        let filter = SCContentFilter(display: display, excludingWindows: [])
+        // 排除本应用的所有窗口（框选遮罩 / 刘海面板），避免截进自家黑框
+        let ownWindows = content.windows.filter { $0.owningApplication?.processID == getpid() }
+        let filter = SCContentFilter(display: display, excludingWindows: ownWindows)
         let configuration = SCStreamConfiguration()
-        let local = sourceRect(rect, on: screen)
-        let scale = screen.backingScaleFactor
+        let scale = plan.scale
         configuration.sourceRect = local
         configuration.width = max(1, Int((local.width * scale).rounded()))
         configuration.height = max(1, Int((local.height * scale).rounded()))

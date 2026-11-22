@@ -41,6 +41,8 @@ final class HoverMonitor {
     }
 
     private func tick() {
+        // 鼠标按下时（拖拽/滚动）不触发悬停取词
+        guard NSEvent.pressedMouseButtons == 0 else { return }
         let point = NSEvent.mouseLocation
         guard distance(point, lastPoint) > movementThreshold else { return }
         lastPoint = point
@@ -61,8 +63,9 @@ final class HoverMonitor {
     }
 
     private func fire(at point: NSPoint) {
-        // 指针已经移开：取消本次查询
+        // 指针已经移开或按键仍按下：取消本次查询
         guard preferences.hoverEnabled, AppRules.allowsPassiveLookup(),
+              NSEvent.pressedMouseButtons == 0,
               distance(NSEvent.mouseLocation, point) <= movementThreshold else { return }
         guard let candidate = AXPicker.word(at: Screens.accessibilityPoint(from: point)) else { return }
 

@@ -52,15 +52,16 @@ public sealed class AnthropicProvider : ITranslationProviding
             }
         };
 
-        using var httpReq = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        var body = await OpenAICompatProvider.SendAsync(_httpClient, () =>
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-        };
-        httpReq.Headers.Add("x-api-key", ApiKey);
-        httpReq.Headers.Add("anthropic-version", "2023-06-01");
-
-        var body = await OpenAICompatProvider.SendAsync(_httpClient, httpReq, Timeout, cancellationToken)
-            .ConfigureAwait(false);
+            var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            };
+            message.Headers.Add("x-api-key", ApiKey);
+            message.Headers.Add("anthropic-version", "2023-06-01");
+            return message;
+        }, Timeout, cancellationToken).ConfigureAwait(false);
         var translation = ParseTranslationText(body);
         return new TranslationResult(translation, Id, DisplayName);
     }

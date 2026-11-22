@@ -43,7 +43,7 @@
 
         <TabItem Header="统计">
             <StackPanel Margin="12">
-                <TextBlock x:Name="TotalCountText" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12" />
+                <TextBlock x:Name="TotalCountText" FontSize="15" FontWeight="SemiBold" Foreground="#F4F4F5" Margin="0,0,0,12" />
                 <TextBlock Text="近七天查词次数" Foreground="#A1A1AA" Margin="0,0,0,6" />
                 <ItemsControl x:Name="DailyList" Margin="0,0,0,16">
                     <ItemsControl.ItemTemplate>

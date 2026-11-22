@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build and sign a DMG and emit an appcast item for review.
+# Build a manual PKG plus a signed Sparkle DMG and appcast item.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -28,16 +28,17 @@ bash ./build.sh
 
 BASE="Englishwords-$EW_BUILD_VERSION-$EW_BUILD_NUMBER"
 DMG="build/$BASE.dmg"
+PKG="build/$BASE.pkg"
 APPCAST="build/$BASE-appcast.xml"
-[[ ! -e "$DMG" && ! -e "$APPCAST" ]] || { echo "该版本文件已存在，请使用新构建号" >&2; exit 1; }
+[[ ! -e "$DMG" && ! -e "$PKG" && ! -e "$APPCAST" ]] || { echo "该版本文件已存在，请使用新构建号" >&2; exit 1; }
 STAGING="$(mktemp -d -t englishwords-release)"
 ROOT="$STAGING/volume"
 mkdir -p "$ROOT"
 trap 'if [[ -d "$STAGING" ]]; then find "$STAGING" -depth -delete; fi' EXIT
 
+bash scripts/build-installer.sh "$EW_APP_OUTPUT" "$STAGING/$BASE.pkg"
 ditto "$EW_APP_OUTPUT" "$ROOT/Englishwords.app"
 ln -s /Applications "$ROOT/Applications"
-cp Resources/安装说明.txt "$ROOT/安装说明.txt"
 hdiutil create -srcfolder "$ROOT" -volname "Englishwords" -format UDZO "$STAGING/$BASE.dmg" >/dev/null
 hdiutil verify "$STAGING/$BASE.dmg" >/dev/null
 
@@ -71,7 +72,8 @@ with open(sys.argv[1], "w", encoding="utf-8") as output:
     output.write("  <enclosure " + " ".join(f"{name}={quoteattr(value)}" for name, value in attributes.items()) + " />\n</item>\n")
 PY
 
+mv "$STAGING/$BASE.pkg" "$PKG"
 mv "$STAGING/$BASE.dmg" "$DMG"
 mv "$STAGING/$BASE-appcast.xml" "$APPCAST"
-shasum -a 256 "$DMG" > "$DMG.sha256"
-printf '%s\n' "$DMG" "$DMG.sha256" "$APPCAST"
+(cd build && shasum -a 256 "$BASE.pkg" > "$BASE.pkg.sha256" && shasum -a 256 "$BASE.dmg" > "$BASE.dmg.sha256")
+printf '%s\n' "$PKG" "$PKG.sha256" "$DMG" "$DMG.sha256" "$APPCAST"

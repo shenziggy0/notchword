@@ -14,6 +14,13 @@ public sealed class SelectionCapture
 {
     private readonly Preferences _preferences;
 
+    /// <summary>
+    /// 串行化「模拟 Ctrl+C → 读取 → 还原」的剪贴板路径，防止并发取词互相覆盖剪贴板。
+    /// </summary>
+    private static readonly SemaphoreSlim ClipboardGate = new(1, 1);
+
+    private const int UiaTimeoutMilliseconds = 250;
+
     public SelectionCapture(Preferences preferences)
     {
         _preferences = preferences;
@@ -27,6 +34,13 @@ public sealed class SelectionCapture
 
         _ = NativeMethods.GetWindowThreadProcessId(hwnd, out var pid);
         if (pid == 0) return false;
+
+        // 自身进程（面板 / 设置 / 笔记本）永远不取词，否则点击自家窗口会反复触发查询。
+        if (pid == Environment.ProcessId)
+        {
+            processName = "Englishwords";
+            return true;
+        }
 
         try
         {
@@ -50,7 +64,7 @@ public sealed class SelectionCapture
         }
 
         // 1. 优先尝试 UIAutomation 只读读取选区
-        var uiaText = TryReadViaUIAutomation();
+        var uiaText = await TryReadViaUIAutomationAsync().ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(uiaText))
         {
             return (uiaText, null);
@@ -66,7 +80,40 @@ public sealed class SelectionCapture
         return (string.Empty, null);
     }
 
-    private static string? TryReadViaUIAutomation()
+    /// <summary>
+    /// 在独立 STA 线程上跨进程读取 UIA 选区，并限时 250ms。
+    /// <para>
+    /// 跨进程 UIA 是 COM 调用，在 WPF UI 线程同步调用会阻塞消息循环、
+    /// 严重时可被系统摘掉低级钩子。
+    /// </para>
+    /// </summary>
+    private static async Task<string?> TryReadViaUIAutomationAsync()
+    {
+        var completion = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                completion.TrySetResult(ReadSelectionOnStaThread());
+            }
+            catch
+            {
+                completion.TrySetResult(null);
+            }
+        })
+        {
+            IsBackground = true,
+            Name = "Englishwords.UIA"
+        };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+
+        var finished = await Task.WhenAny(completion.Task, Task.Delay(UiaTimeoutMilliseconds)).ConfigureAwait(false);
+        return finished == completion.Task ? await completion.Task.ConfigureAwait(false) : null;
+    }
+
+    private static string? ReadSelectionOnStaThread()
     {
         try
         {
@@ -96,86 +143,140 @@ public sealed class SelectionCapture
         var dispatcher = System.Windows.Application.Current?.Dispatcher;
         if (dispatcher is null) return null;
 
-        string? previousText = null;
-        var hadText = false;
-        uint seqBefore = 0;
-
-        await dispatcher.InvokeAsync(() =>
+        // 同一时刻只允许一个模拟剪贴板流程，避免两个入口同时 Ctrl+C 互相覆盖。
+        if (!await ClipboardGate.WaitAsync(TimeSpan.FromMilliseconds(500)).ConfigureAwait(false))
         {
-            seqBefore = NativeMethods.GetClipboardSequenceNumber();
-            try
-            {
-                if (System.Windows.Clipboard.ContainsText())
-                {
-                    previousText = System.Windows.Clipboard.GetText();
-                    hadText = true;
-                }
-            }
-            catch
-            {
-                // 剪贴板暂时被其他进程占用
-            }
-        });
-
-        SendCtrlC();
-
-        // 最长等待 150ms 观察剪贴板序号变化
-        var changed = false;
-        for (var i = 0; i < 15; i++)
-        {
-            await Task.Delay(10).ConfigureAwait(false);
-            if (NativeMethods.GetClipboardSequenceNumber() != seqBefore)
-            {
-                changed = true;
-                break;
-            }
+            return null;
         }
 
-        if (!changed) return null;
-
-        string? captured = null;
-        await dispatcher.InvokeAsync(() =>
+        try
         {
-            try
-            {
-                if (System.Windows.Clipboard.ContainsText())
-                {
-                    captured = System.Windows.Clipboard.GetText();
-                }
+            string? previousText = null;
+            System.Windows.IDataObject? previousData = null;
+            var hadText = false;
+            var hadNonTextContent = false;
+            var readFailed = false;
+            uint seqBefore = 0;
 
-                // 立即还原原剪贴板内容
-                if (hadText && previousText is not null)
+            await dispatcher.InvokeAsync(() =>
+            {
+                seqBefore = NativeMethods.GetClipboardSequenceNumber();
+                try
                 {
-                    System.Windows.Clipboard.SetText(previousText);
+                    var data = System.Windows.Clipboard.GetDataObject();
+                    previousData = data;
+                    if (data is null) return;
+
+                    hadText = data.GetDataPresent(System.Windows.DataFormats.Text)
+                              || data.GetDataPresent(System.Windows.DataFormats.UnicodeText);
+
+                    // 图片 / 文件等非文本内容必须整体保留，否则还原时会清掉用户的原剪贴板。
+                    hadNonTextContent = data.GetFormats(false).Length > 0 && !hadText;
+
+                    if (hadText) previousText = System.Windows.Clipboard.GetText();
                 }
-                else
+                catch
                 {
-                    System.Windows.Clipboard.Clear();
+                    // 剪贴板被其他进程占用时直接中止降级，不能盲着 Ctrl+C 覆盖别人内容
+                    readFailed = true;
+                }
+            });
+
+            if (readFailed) return null;
+
+            SendCtrlC();
+
+            // 最长等待 150ms 观察剪贴板序号变化
+            var changed = false;
+            for (var i = 0; i < 15; i++)
+            {
+                await Task.Delay(10).ConfigureAwait(false);
+                if (NativeMethods.GetClipboardSequenceNumber() != seqBefore)
+                {
+                    changed = true;
+                    break;
                 }
             }
-            catch
-            {
-                // 还原失败不阻断返回
-            }
-        });
 
-        return captured;
+            if (!changed) return null;
+
+            string? captured = null;
+            await dispatcher.InvokeAsync(() =>
+            {
+                try
+                {
+                    if (System.Windows.Clipboard.ContainsText())
+                    {
+                        captured = System.Windows.Clipboard.GetText();
+                    }
+
+                    if (hadNonTextContent && previousData is not null)
+                    {
+                        // 原剪贴板带图片/文件：整体还原原 DataObject，绝不调用 Clipboard.Clear()
+                        System.Windows.Clipboard.SetDataObject(previousData, true);
+                    }
+                    else if (hadText && previousText is not null)
+                    {
+                        var current = System.Windows.Clipboard.ContainsText()
+                            ? System.Windows.Clipboard.GetText()
+                            : null;
+
+                        // 仅在剪贴板里仍是刚复制的文本时还原，不覆盖用户期间的新拷贝
+                        if (captured is not null && string.Equals(current, captured, StringComparison.Ordinal))
+                        {
+                            System.Windows.Clipboard.SetText(previousText);
+                        }
+                    }
+                    else if (!hadText && !hadNonTextContent && captured is not null)
+                    {
+                        // 仅当原剪贴板本来就完全为空时才允许清空
+                        var current = System.Windows.Clipboard.ContainsText()
+                            ? System.Windows.Clipboard.GetText()
+                            : null;
+                        if (string.Equals(current, captured, StringComparison.Ordinal))
+                        {
+                            System.Windows.Clipboard.Clear();
+                        }
+                    }
+                }
+                catch
+                {
+                    // 还原失败不阻断返回
+                }
+            });
+
+            return captured;
+        }
+        finally
+        {
+            ClipboardGate.Release();
+        }
     }
 
     private static void SendCtrlC()
     {
-        // 先释放可能按住的 Alt/Shift/Win 修饰键，避免组合成 Alt+Ctrl+C
-        var inputs = new List<NativeMethods.INPUT>
+        var inputs = new List<NativeMethods.INPUT>();
+
+        // 只对实际处于按下状态的修饰键补发 KEYUP，避免凭空构建 Alt/Ctrl 组合干扰前台应用。
+        ushort[] modifiers =
+        [
+            NativeMethods.VK_LMENU, NativeMethods.VK_RMENU,
+            NativeMethods.VK_LSHIFT, NativeMethods.VK_RSHIFT,
+            NativeMethods.VK_LWIN, NativeMethods.VK_RWIN
+        ];
+
+        foreach (var vk in modifiers)
         {
-            KeyEvent(NativeMethods.VK_MENU, keyUp: true),
-            KeyEvent(NativeMethods.VK_SHIFT, keyUp: true),
-            KeyEvent(NativeMethods.VK_LWIN, keyUp: true),
-            KeyEvent(NativeMethods.VK_RWIN, keyUp: true),
-            KeyEvent(NativeMethods.VK_CONTROL, keyUp: false),
-            KeyEvent(NativeMethods.VK_C, keyUp: false),
-            KeyEvent(NativeMethods.VK_C, keyUp: true),
-            KeyEvent(NativeMethods.VK_CONTROL, keyUp: true)
-        };
+            if (NativeMethods.GetAsyncKeyState(vk) < 0)
+            {
+                inputs.Add(KeyEvent(vk, keyUp: true));
+            }
+        }
+
+        inputs.Add(KeyEvent(NativeMethods.VK_CONTROL, keyUp: false));
+        inputs.Add(KeyEvent(NativeMethods.VK_C, keyUp: false));
+        inputs.Add(KeyEvent(NativeMethods.VK_C, keyUp: true));
+        inputs.Add(KeyEvent(NativeMethods.VK_CONTROL, keyUp: true));
 
         var arr = inputs.ToArray();
         _ = NativeMethods.SendInput((uint)arr.Length, arr, Marshal.SizeOf<NativeMethods.INPUT>());

@@ -58,7 +58,10 @@ final class LookupCoordinator {
                 self.task = nil
                 self.onState?(state)
             } catch {
-                // 取消不显示为查询失败。
+                // 取消不显示为查询失败；其他错误必须落地，避免面板永久停在 loading。
+                guard !Task.isCancelled, currentGeneration == self.generation else { return }
+                self.task = nil
+                self.onState?(.failure(request, Self.describe(error)))
             }
         }
         return true

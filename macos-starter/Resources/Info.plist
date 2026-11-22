@@ -19,18 +19,27 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.5.1</string>
+	<string>0.5.2</string>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>7</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>用于读取浏览器中正在播放视频的字幕，并在查看时暂停视频。</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
 	<key>NSHumanReadableCopyright</key>
-	<string>Englishwords 0.5 — 自主实现，不复用第三方代码</string>
+	<string>Englishwords 0.5.2 — 自主实现，不复用第三方代码</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>用于连接你配置的本地或局域网翻译服务端点。</string>
+	<key>NSScreenCaptureUsageDescription</key>
+	<string>用于截取你框选的屏幕区域或视频字幕区域进行离线文字识别。</string>
 </dict>
 </plist>

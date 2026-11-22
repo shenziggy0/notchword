@@ -10,8 +10,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from contextlib import closing
 from build_wordparts import MORPHEME_HEADER, WORDPARTS_HEADER, build, read_manual_bindings, read_tsv
-from build_dictionary import dedupe
+from build_dictionary import dedupe, parse_exchange
 from draft_morphology import parse_draft, validate_draft
 from extract_wiktionary import candidates, collect_templates
 
@@ -50,6 +51,12 @@ class MorphologyPipelineTests(unittest.TestCase):
             {"word": "reservoir", "tag": "cet6 ky toefl ielts cet4", "frq": 9270, "translation": "水库"},
         ])
 
+    def test_parse_exchange_keeps_inflections_on_own_headword(self):
+        lemma, forms = parse_exchange("0:find/1:dp/d:founded/p:founded/i:founding/3:founds/s:founds", "found")
+        self.assertEqual(lemma, "found")
+        self.assertIn("founded", forms)
+        self.assertIn("founds", forms)
+
     def test_evidenced_recursive_split(self):
         entries = [
             {"word": "unbelievable", "lang_code": "en",
@@ -81,7 +88,7 @@ class MorphologyPipelineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             path = Path(temp) / "wordparts.sqlite"
             build(parts + new_parts, words + new_words, path)
-            with sqlite3.connect(path) as db:
+            with closing(sqlite3.connect(path)) as db:
                 self.assertEqual(db.execute("SELECT count(*) FROM words").fetchone()[0], len(words) + 1)
                 self.assertTrue(db.execute("SELECT 1 FROM words WHERE word = 'washable'").fetchone())
         unsupported = response.replace("证据不足\n", "证据不足\t\n")
@@ -123,7 +130,7 @@ class MorphologyPipelineTests(unittest.TestCase):
             )
             self.assertEqual([row["word"] for row in accepted], ["airport"])
             self.assertEqual(pending, {})
-            with sqlite3.connect(path) as database:
+            with closing(sqlite3.connect(path)) as database:
                 for word, index, expected in (("portable", 0, "carry"), ("airport", 1, "harbor")):
                     segments, = database.execute("SELECT segments FROM words WHERE word = ?", (word,)).fetchone()
                     part_id = int(segments.split()[index].split(":")[1])

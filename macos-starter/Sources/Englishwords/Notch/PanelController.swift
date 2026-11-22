@@ -26,6 +26,7 @@ final class PanelHostingView: NSHostingView<AnyView> {
     }
 
     override func mouseDown(with event: NSEvent) {
+        super.mouseDown(with: event)
         onClick?()
     }
 
@@ -60,6 +61,8 @@ final class PanelController {
     private var hideWorkItem: DispatchWorkItem?
     private var pointerTimer: Timer?
     private var escapeMonitor: Any?
+    private var localEscapeMonitor: Any?
+    private var screenObserver: NSObjectProtocol?
     private var state: LookupState?
     private var targetScreen: NSScreen?
     private var mode: Mode = .compact
@@ -71,7 +74,7 @@ final class PanelController {
         self.notebook = notebook
 
         // 显示器增减或分辨率变化后重新定位，避免面板留在旧屏幕上
-        NotificationCenter.default.addObserver(
+        screenObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
@@ -80,15 +83,26 @@ final class PanelController {
         }
     }
 
+    deinit {
+        if let screenObserver { NotificationCenter.default.removeObserver(screenObserver) }
+    }
+
     // MARK: - 对外
 
     func show(_ state: LookupState, mode: Mode = .compact) {
+        // Loading 已展开时，结果回来不要突然塌缩；紧凑切展开时给一次触觉反馈
+        let keepExpanded = isVisible && subtitle == nil
+            && (self.mode == .expanded || pointerInside) && mode == .compact
+        let previousMode = self.mode
         subtitle = nil
         self.state = state
-        self.mode = mode
+        self.mode = keepExpanded ? .expanded : mode
         self.targetScreen = state.request.screen ?? NSScreen.main
         guard let screen = targetScreen else { return }
 
+        if isVisible, previousMode == .compact, self.mode == .expanded, preferences.hapticOnExpand {
+            NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
+        }
         render(on: screen)
         reveal()
         installEscapeMonitor()
@@ -208,14 +222,20 @@ final class PanelController {
         let geometry = NotchGeometry.measure(screen)
         let width = mode == .expanded ? geometry.expandedWidth : geometry.compactWidth
         let maxHeight = max(screen.visibleFrame.height - 60, 260)
+        let subtitleCap: CGFloat? = subtitle == nil ? nil : min(260, maxHeight)
 
-        var view = content(geometry: geometry, width: width, maxHeight: subtitle == nil ? nil : min(260, maxHeight))
+        // 字幕先不设高度上限量一次，真的超过才套 ScrollView
+        var view = content(geometry: geometry, width: width, maxHeight: nil)
         var hosting = makeHosting(view)
         hosting.frame = NSRect(x: 0, y: 0, width: width, height: 0)
         hosting.layoutSubtreeIfNeeded()
         var height = hosting.fittingSize.height
 
-        if height > maxHeight {
+        if let cap = subtitleCap, height > cap {
+            view = content(geometry: geometry, width: width, maxHeight: cap)
+            hosting = makeHosting(view)
+            height = cap
+        } else if height > maxHeight {
             view = content(geometry: geometry, width: width, maxHeight: maxHeight)
             hosting = makeHosting(view)
             height = maxHeight
@@ -236,6 +256,11 @@ final class PanelController {
         }
     }
 
+    private var subtitleShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 16,
+                               bottomTrailingRadius: 16, topTrailingRadius: 0)
+    }
+
     private func content(geometry: NotchGeometry, width: CGFloat, maxHeight: CGFloat?) -> AnyView {
         if let subtitle {
             let view = subtitle
@@ -243,9 +268,9 @@ final class PanelController {
                 .frame(width: width)
             if let maxHeight {
                 return AnyView(ScrollView { view }.frame(width: width, height: maxHeight)
-                    .background(.black, in: RoundedRectangle(cornerRadius: 16)))
+                    .background(.black, in: subtitleShape))
             }
-            return AnyView(view.background(.black, in: RoundedRectangle(cornerRadius: 16)))
+            return AnyView(view.background(.black, in: subtitleShape))
         }
         guard let state else { return AnyView(EmptyView()) }
         return AnyView(ResultView(
@@ -288,6 +313,8 @@ final class PanelController {
     private func restartHideTimer() {
         hideWorkItem?.cancel()
         hideWorkItem = nil
+        // 字幕不需要自动隐藏，由用户或 Esc 收起
+        guard subtitle == nil else { return }
         guard !pointerInside else { return }
         if case .loading? = state { return }
         let item = DispatchWorkItem { [weak self] in self?.hide() }
@@ -297,18 +324,25 @@ final class PanelController {
 
     // MARK: - Esc
 
-    /// 全局监听不吞掉按键：Esc 同时仍会传给原应用。
+    /// 全局监听不吞掉按键：Esc 同时仍会传给原应用；本地监听处理本应用获得焦点的情况。
     private func installEscapeMonitor() {
-        guard escapeMonitor == nil else { return }
+        guard escapeMonitor == nil, localEscapeMonitor == nil else { return }
         escapeMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard event.keyCode == 53 else { return }
             DispatchQueue.main.async { self?.hide() }
+        }
+        localEscapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53 else { return event }
+            MainActor.assumeIsolated { self?.hide() }
+            return nil
         }
     }
 
     private func removeEscapeMonitor() {
         if let escapeMonitor { NSEvent.removeMonitor(escapeMonitor) }
         escapeMonitor = nil
+        if let localEscapeMonitor { NSEvent.removeMonitor(localEscapeMonitor) }
+        localEscapeMonitor = nil
     }
 
     // MARK: - 窗口

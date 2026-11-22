@@ -82,6 +82,31 @@ class BuildWordpartsTests(unittest.TestCase):
             self.assertIn("必须写 key", completed.stderr + completed.stdout)
             self.assertFalse(output.exists())
 
+    def test_dirty_label_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            morphemes = folder / "morphemes.tsv"
+            words = folder / "words.tsv"
+            output = folder / "wordparts.sqlite"
+            morphemes.write_text(
+                "key\trole\tlabel\tforms\tzh\ten\tlemma\n"
+                "act\troot\t做\tact\t做\tdo\tact\n",
+                encoding="utf-8",
+            )
+            words.write_text("word\tsegments\torigin\tsource\nact\tact\t\tmanual\n", encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, str(SCRIPT),
+                 "--morphemes", str(morphemes),
+                 "--words", str(words),
+                 "--output", str(output)],
+                cwd=ROOT,
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(completed.returncode, 0)
+            self.assertIn("label", completed.stderr + completed.stdout)
+            self.assertFalse(output.exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -4,6 +4,42 @@ import CoreGraphics
 
 enum Permissions {
 
+    @MainActor
+    static func resetAfterManualInstallation() async -> String? {
+        let bundleID = "io.github.shenziggy0.notchword"
+        let installedApp = URL(fileURLWithPath: "/Applications/Englishwords.app", isDirectory: true)
+        let marker = "/private/var/db/\(bundleID).install-id"
+        let defaultsKey = "permissions.lastResetInstallID"
+        guard Bundle.main.bundleIdentifier == bundleID,
+              Bundle.main.bundleURL.resolvingSymlinksInPath() == installedApp.resolvingSymlinksInPath(),
+              let contents = try? String(contentsOfFile: marker, encoding: .utf8),
+              let installID = UUID(uuidString: contents.trimmingCharacters(in: .whitespacesAndNewlines))?.uuidString,
+              UserDefaults.standard.string(forKey: defaultsKey) != installID else { return nil }
+
+        let succeeded = await Task.detached(priority: .userInitiated) {
+            let reset = Process()
+            reset.executableURL = URL(fileURLWithPath: "/usr/bin/tccutil")
+            reset.arguments = ["reset", "All", bundleID]
+            reset.standardOutput = FileHandle.nullDevice
+            reset.standardError = FileHandle.nullDevice
+            do {
+                try reset.run()
+                reset.waitUntilExit()
+                if reset.terminationStatus == 0 { return true }
+                FileLog.write("重置系统权限失败（\(reset.terminationStatus)）")
+            } catch {
+                FileLog.write("无法启动系统权限重置")
+            }
+            return false
+        }.value
+
+        if succeeded {
+            UserDefaults.standard.set(installID, forKey: defaultsKey)
+            return "安装后已重置 Englishwords 的系统权限。请按需重新授权，再退出并重开应用。"
+        }
+        return "安装后未能重置系统权限。下次启动会重试，你也可以在系统设置中重新授权。"
+    }
+
     static var isAccessibilityTrusted: Bool { AXIsProcessTrusted() }
 
     @discardableResult
@@ -88,13 +124,14 @@ enum AppRules {
         NSWorkspace.shared.frontmostApplication?.bundleIdentifier
     }
 
-    /// 前台是不是密码管理器（模拟复制时要避开，避免把密码写进剪贴板）。
+    /// 前台是不是密码管理器或用户排除的应用（模拟复制时要避开，避免把密码写进剪贴板）。
     static var isFrontmostExcluded: Bool {
         guard let bundleID = frontmostBundleID else { return false }
-        return excludedBundleIDs.contains(bundleID)
+        return isExcluded(bundleID)
     }
 
-    private static func isExcluded(_ bundleID: String) -> Bool {
+    /// 内置密码管理器列表 + 用户自己添加的排除列表。
+    static func isExcluded(_ bundleID: String) -> Bool {
         excludedBundleIDs.contains(bundleID)
             || UserDefaults.standard.stringArray(forKey: "apprules.userExcluded")?.contains(bundleID) == true
     }

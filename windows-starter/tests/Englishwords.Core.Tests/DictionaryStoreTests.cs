@@ -47,6 +47,34 @@ public sealed class DictionaryStoreTests
     }
 
     [Fact]
+    public void Lookup_UppercaseAndInflections_ResolveToSameResultsAsLowercase()
+    {
+        var (dictPath, partsPath) = LocateRepoResources();
+        using var store = new DictionaryStore(dictPath, partsPath);
+
+        // 入口统一小写化：大写输入必须与 macOS 版一致
+        var upper = store.Lookup("UNBELIEVABLE");
+        Assert.Null(upper.Error);
+        Assert.NotNull(upper.Entry);
+        Assert.Equal("unbelievable", upper.Entry!.Word);
+
+        var upperFounded = store.Lookup("FOUNDED");
+        Assert.Null(upperFounded.Error);
+        Assert.NotNull(upperFounded.Entry);
+        Assert.Equal("found", upperFounded.Entry!.Word);
+
+        // 屈折还原回归：founded → found、roses → rose、wounds → wound
+        Assert.Equal("found", store.GetLemma("founded"));
+        Assert.Equal("rose", store.GetLemma("roses"));
+        Assert.Equal("wound", store.GetLemma("wounds"));
+
+        // 大写词素查询与词素库缺失时均不应抛异常
+        Assert.NotNull(store.GetMorphology("UNBELIEVABLE"));
+        using var missingParts = new DictionaryStore(dictPath, null);
+        Assert.Null(missingParts.GetMorphology("unbelievable"));
+    }
+
+    [Fact]
     public void Lookup_MissingDatabase_ReturnsUnavailableError()
     {
         using var store = new DictionaryStore("/nonexistent/dictionary.sqlite", null);

@@ -24,11 +24,33 @@ internal static class NativeMethods
     public const ushort VK_CONTROL = 0x11;
     public const ushort VK_MENU = 0x12;
     public const ushort VK_SHIFT = 0x10;
+    public const ushort VK_LMENU = 0xA4;
+    public const ushort VK_RMENU = 0xA5;
+    public const ushort VK_LSHIFT = 0xA0;
+    public const ushort VK_RSHIFT = 0xA1;
+    public const ushort VK_LCONTROL = 0xA2;
+    public const ushort VK_RCONTROL = 0xA3;
     public const ushort VK_LWIN = 0x5B;
     public const ushort VK_RWIN = 0x5C;
     public const ushort VK_C = 0x43;
 
+    public const uint MOD_NOREPEAT = 0x4000;
+
     public const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    /// <summary>
+    /// <c>GetDpiForMonitor</c> 的 <c>MONITOR_DPI_TYPE</c>：有效 DPI（已考虑系统缩放）。
+    /// </summary>
+    public const int MDT_EFFECTIVE_DPI = 0;
+
+    public const uint ATTACH_PARENT_PROCESS = 0xFFFFFFFF;
+
+    public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+    public const uint SWP_NOSIZE = 0x0001;
+    public const uint SWP_NOMOVE = 0x0002;
+    public const uint SWP_NOZORDER = 0x0004;
+    public const uint SWP_NOACTIVATE = 0x0010;
+    public const uint SWP_SHOWWINDOW = 0x0040;
 
     public const uint INPUT_KEYBOARD = 1;
     public const uint KEYEVENTF_KEYUP = 0x0002;
@@ -87,10 +109,15 @@ internal static class NativeMethods
         public INPUTUNION U;
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    public struct INPUTUNION
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MOUSEINPUT
     {
-        [FieldOffset(0)] public KEYBDINPUT ki;
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public IntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -101,6 +128,27 @@ internal static class NativeMethods
         public uint dwFlags;
         public uint time;
         public IntPtr dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
+    /// <summary>
+    /// <see cref="INPUT"/> 的联合体。三个成员必须重叠在偏移 0，
+    /// 否则 x64 下 <c>Marshal.SizeOf&lt;INPUT&gt;()</c> 不等于 40（x86 下 28），
+    /// 会导致 <c>SendInput</c> 整体失效。
+    /// </summary>
+    [StructLayout(LayoutKind.Explicit)]
+    public struct INPUTUNION
+    {
+        [FieldOffset(0)] public MOUSEINPUT mi;
+        [FieldOffset(0)] public KEYBDINPUT ki;
+        [FieldOffset(0)] public HARDWAREINPUT hi;
     }
 
     [DllImport("user32.dll", SetLastError = true)]
@@ -144,6 +192,28 @@ internal static class NativeMethods
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll")]
+    public static extern short GetAsyncKeyState(int vKey);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr WindowFromPoint(POINT point);
+
+    [DllImport("shcore.dll")]
+    public static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool AttachConsole(uint dwProcessId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SetWindowPos(
+        IntPtr hWnd,
+        IntPtr hWndInsertAfter,
+        int x,
+        int y,
+        int cx,
+        int cy,
+        uint uFlags);
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
     private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);

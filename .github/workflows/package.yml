@@ -1,15 +1,15 @@
 name: Package
-# 只由手动触发。打出安装包、上传为 Actions artifact，并在 GitHub 服务器内网把双平台包
-# 自动挂到对应 tag 的 Release（已存在则用 --clobber 覆盖同名附件，不改正文与发布状态；
-# 不存在则新建草稿，供人工填文案后发布）。不创建、不推送 tag，也不做代码签名。
+# 只由手动触发。打出安装包（macOS Universal DMG + PKG、Windows x64 ZIP）、上传为 Actions artifact，
+# 并在 GitHub 服务器内网把双平台包自动挂到对应 tag 的 Release（已存在则用 --clobber 覆盖同名附件，
+# 不改正文与发布状态；不存在则新建草稿，供人工填文案后发布）。不创建、不推送 tag，也不做代码签名。
 # macOS 为临时签名（ad-hoc），没有 Developer ID，也不公证。Windows 安装包不签名。
 #
 # 版本号由 resolve-version 解析一次，macOS 与 Windows 共用：
 # - Use workflow from 选中 tag 时，用该 tag 名
 # - 选中分支时，用 git describe 能追溯到的最近一个 v* tag
 # 去掉前导 v 后必须是主.次.修订，否则失败，不猜测版本。HEAD 不在该 tag 上时只警告。
-# 该版本写入 macOS 的 CFBundleShortVersionString、DMG 文件名和 Windows zip 文件名。
-# 收尾作业上传解包后的 .dmg、.zip 和 .sha256，不再上传 artifact 外面的那层 zip。
+# 该版本写入 macOS 的 CFBundleShortVersionString、DMG/PKG 文件名和 Windows zip 文件名。
+# 收尾作业上传解包后的 .dmg、.pkg、.zip 和 .sha256，不再上传 artifact 外面的那层 zip。
 on:
   workflow_dispatch:
 
@@ -70,7 +70,7 @@ jobs:
           fi
 
   build-macos-universal:
-    name: macOS Universal DMG
+    name: macOS Universal DMG & PKG
     needs: resolve-version
     runs-on: macos-15
     steps:
@@ -90,7 +90,7 @@ jobs:
           EW_BUILD_NUMBER: ${{ github.run_number }}
         run: bash ./build.sh
 
-      - name: Package DMG
+      - name: Package DMG & PKG
         working-directory: macos-starter
         env:
           VERSION: ${{ needs.resolve-version.outputs.version }}
@@ -101,30 +101,36 @@ jobs:
             exit 1
           fi
 
+          mkdir -p build/dist
+
           DMG_NAME="Englishwords-${VERSION}-universal.dmg"
           STAGING="$(mktemp -d -t englishwords-dmg)"
           trap 'rm -rf "$STAGING"' EXIT
           ROOT="$STAGING/volume"
           mkdir -p "$ROOT"
-
           ditto build/Englishwords.app "$ROOT/Englishwords.app"
           ln -s /Applications "$ROOT/Applications"
           cp Resources/安装说明.txt "$ROOT/安装说明.txt"
-
-          mkdir -p build/dist
           hdiutil create -srcfolder "$ROOT" -volname "Englishwords" -format UDZO "$STAGING/$DMG_NAME" >/dev/null
           hdiutil verify "$STAGING/$DMG_NAME" >/dev/null
           mv "$STAGING/$DMG_NAME" "build/dist/$DMG_NAME"
           (cd build/dist && shasum -a 256 "$DMG_NAME" > "$DMG_NAME.sha256")
+
+          PKG_NAME="Englishwords-${VERSION}-universal.pkg"
+          bash scripts/build-installer.sh build/Englishwords.app "build/dist/$PKG_NAME"
+          (cd build/dist && shasum -a 256 "$PKG_NAME" > "$PKG_NAME.sha256")
+          cp Resources/安装说明.txt build/dist/
           ls -lh build/dist
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Englishwords-${{ needs.resolve-version.outputs.version }}-universal-dmg
+          name: Englishwords-${{ needs.resolve-version.outputs.version }}-universal-macos
           path: |
             macos-starter/build/dist/*.dmg
+            macos-starter/build/dist/*.pkg
             macos-starter/build/dist/*.sha256
+            macos-starter/build/dist/安装说明.txt
           if-no-files-found: error
 
   build-windows-x64:
@@ -185,6 +191,8 @@ jobs:
           names=(
             "Englishwords-${VERSION}-universal.dmg"
             "Englishwords-${VERSION}-universal.dmg.sha256"
+            "Englishwords-${VERSION}-universal.pkg"
+            "Englishwords-${VERSION}-universal.pkg.sha256"
             "Englishwords-${VERSION}-win-x64.zip"
             "Englishwords-${VERSION}-win-x64.zip.sha256"
           )
@@ -202,6 +210,7 @@ jobs:
           (
             cd release-assets
             sha256sum -c "Englishwords-${VERSION}-universal.dmg.sha256"
+            sha256sum -c "Englishwords-${VERSION}-universal.pkg.sha256"
             sha256sum -c "Englishwords-${VERSION}-win-x64.zip.sha256"
           )
           ls -lh release-assets
@@ -218,6 +227,8 @@ jobs:
           assets=(
             "release-assets/Englishwords-${VERSION}-universal.dmg"
             "release-assets/Englishwords-${VERSION}-universal.dmg.sha256"
+            "release-assets/Englishwords-${VERSION}-universal.pkg"
+            "release-assets/Englishwords-${VERSION}-universal.pkg.sha256"
             "release-assets/Englishwords-${VERSION}-win-x64.zip"
             "release-assets/Englishwords-${VERSION}-win-x64.zip.sha256"
           )

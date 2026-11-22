@@ -85,8 +85,8 @@ if let index = CommandLine.arguments.firstIndex(of: "--render-preview"),
     let demo = index + 2 < CommandLine.arguments.count
         ? PreviewRenderer.Demo(rawValue: CommandLine.arguments[index + 2]) ?? .word
         : .word
-    MainActor.assumeIsolated { PreviewRenderer.render(to: target, demo: demo) }
-    exit(0)
+    let ok = MainActor.assumeIsolated { PreviewRenderer.render(to: target, demo: demo) }
+    exit(ok ? 0 : 1)
 }
 
 // NSApplication 与 AppDelegate 都在主线程上创建；顶层代码在 Swift 5 模式下

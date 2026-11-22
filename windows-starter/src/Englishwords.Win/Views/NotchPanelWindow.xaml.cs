@@ -136,6 +136,11 @@ public partial class NotchPanelWindow : Window
 
         ApplyPosition(state.Request);
         if (!IsVisible) Show();
+
+        // Show() 之后才拿到真实的 SizeToContent 尺寸，需重算一次位置与居中。
+        UpdateLayout();
+        ApplyPosition(state.Request);
+
         SetTransparentPassThrough(false);
         _avoidanceTimer.Start();
         RestartHideTimerIfEligible();
@@ -145,16 +150,41 @@ public partial class NotchPanelWindow : Window
     {
         _autoHideTimer.Stop();
         _avoidanceTimer.Stop();
+        _isPointerInside = false;
+        SetTransparentPassThrough(false);
         if (IsVisible) Hide();
         if (cancelActive) Dismissed?.Invoke();
     }
 
+    /// <summary>
+    /// 判断物理屏幕坐标是否落在本面板内（供划词监听排除自家窗口）。
+    /// </summary>
+    public bool ContainsScreenPoint(int x, int y) => ContainsPhysicalPoint(x, y, margin: 0);
+
+    private bool ContainsPhysicalPoint(int x, int y, double margin)
+    {
+        if (!IsVisible) return false;
+
+        var (scaleX, scaleY) = GetScaleForPoint(new NativeMethods.POINT { X = x, Y = y });
+        var left = Left * scaleX - margin;
+        var top = Top * scaleY - margin;
+        var right = left + ActualWidth * scaleX + margin * 2;
+        var bottom = top + ActualHeight * scaleY + margin * 2;
+
+        return x >= left && x <= right && y >= top && y <= bottom;
+    }
+
     private void RenderResult(LookupResult res)
     {
-        _isExpanded = _preferences.PanelStyle == PanelStyle.Floating || res.Kind == TextKind.Sentence;
+        _isExpanded = _preferences.PanelStyle == PanelStyle.Floating
+                      || res.Kind == TextKind.Sentence
+                      || _isPointerInside;
 
         TitleText.Text = string.IsNullOrEmpty(res.Title) ? "翻译结果" : res.Title;
-        PhoneticText.Text = string.IsNullOrEmpty(res.Phonetic) ? string.Empty : $"/{res.Phonetic}/";
+
+        // 词典里的音标可能已自带斜杠，先去掉再统一包一层，避免出现 //...//。
+        var phonetic = (res.Phonetic ?? string.Empty).Trim().Trim('/').Trim();
+        PhoneticText.Text = phonetic.Length == 0 ? string.Empty : $"/{phonetic}/";
 
         var hasWord = res.NotebookWord is not null;
         SpeakButton.Visibility = hasWord ? Visibility.Visible : Visibility.Collapsed;
@@ -226,6 +256,44 @@ public partial class NotchPanelWindow : Window
             ExpandedContent.Visibility = Visibility.Collapsed;
             CompactSummaryText.Visibility = Visibility.Visible;
         }
+
+        if (IsVisible && _preferences.PanelStyle == PanelStyle.Notch)
+        {
+            // 展开/收起后宽度会变，需重新居中，否则顶部模拟刘海会偏到一边。
+            UpdateLayout();
+            CenterOnCurrentMonitorTop();
+        }
+    }
+
+    private void CenterOnCurrentMonitorTop()
+    {
+        var (info, scaleX, scaleY) = GetMonitorMetrics(PanelCenterPoint());
+        var workLeft = info.rcWork.Left / scaleX;
+        var workTop = info.rcWork.Top / scaleY;
+        var workRight = info.rcWork.Right / scaleX;
+        var width = ActualWidth > 0 ? ActualWidth : 320;
+
+        Left = workLeft + Math.Max(0, (workRight - workLeft - width) / 2.0);
+        Top = workTop + 4;
+    }
+
+    private NativeMethods.POINT PanelCenterPoint()
+    {
+        var centerX = Left + ActualWidth / 2.0;
+        var centerY = Top + ActualHeight / 2.0;
+
+        // 先按 1.0 比例粗定位找到显示器，再用该显示器真实 DPI 精确换算。
+        var (scaleX, scaleY) = GetScaleForPoint(new NativeMethods.POINT
+        {
+            X = (int)Math.Round(centerX),
+            Y = (int)Math.Round(centerY)
+        });
+
+        return new NativeMethods.POINT
+        {
+            X = (int)Math.Round(centerX * scaleX),
+            Y = (int)Math.Round(centerY * scaleY)
+        };
     }
 
     private void ApplyPosition(LookupRequest request)
@@ -242,15 +310,12 @@ public partial class NotchPanelWindow : Window
             NativeMethods.GetCursorPos(out pt);
         }
 
-        var monitor = NativeMethods.MonitorFromPoint(pt, NativeMethods.MONITOR_DEFAULTTONEAREST);
-        var info = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
-        NativeMethods.GetMonitorInfo(monitor, ref info);
-
-        var dpi = VisualTreeHelper.GetDpi(this);
-        var workLeft = info.rcWork.Left / dpi.DpiScaleX;
-        var workTop = info.rcWork.Top / dpi.DpiScaleY;
-        var workRight = info.rcWork.Right / dpi.DpiScaleX;
-        var workBottom = info.rcWork.Bottom / dpi.DpiScaleY;
+        // 用目标显示器的真实 DPI，而不是面板当前所在屏的 DPI，否则跨屏（混缩放）会算错。
+        var (info, scaleX, scaleY) = GetMonitorMetrics(pt);
+        var workLeft = info.rcWork.Left / scaleX;
+        var workTop = info.rcWork.Top / scaleY;
+        var workRight = info.rcWork.Right / scaleX;
+        var workBottom = info.rcWork.Bottom / scaleY;
 
         var width = ActualWidth > 0 ? ActualWidth : 320;
         var height = ActualHeight > 0 ? ActualHeight : 140;
@@ -262,8 +327,8 @@ public partial class NotchPanelWindow : Window
         }
         else
         {
-            var anchorX = pt.X / dpi.DpiScaleX;
-            var anchorY = pt.Y / dpi.DpiScaleY;
+            var anchorX = pt.X / scaleX;
+            var anchorY = pt.Y / scaleY;
 
             var targetLeft = anchorX + 16;
             var targetTop = anchorY + 16;
@@ -274,6 +339,27 @@ public partial class NotchPanelWindow : Window
             Left = Math.Max(workLeft + 8, targetLeft);
             Top = Math.Max(workTop + 8, targetTop);
         }
+    }
+
+    private static (NativeMethods.MONITORINFO Info, double ScaleX, double ScaleY) GetMonitorMetrics(NativeMethods.POINT point)
+    {
+        var info = new NativeMethods.MONITORINFO { cbSize = Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+        var monitor = NativeMethods.MonitorFromPoint(point, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        NativeMethods.GetMonitorInfo(monitor, ref info);
+
+        var (scaleX, scaleY) = GetScaleForPoint(point);
+        return (info, scaleX, scaleY);
+    }
+
+    private static (double ScaleX, double ScaleY) GetScaleForPoint(NativeMethods.POINT point)
+    {
+        var monitor = NativeMethods.MonitorFromPoint(point, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        if (NativeMethods.GetDpiForMonitor(monitor, NativeMethods.MDT_EFFECTIVE_DPI, out var dpiX, out var dpiY) == 0 &&
+            dpiX > 0 && dpiY > 0)
+        {
+            return (dpiX / 96.0, dpiY / 96.0);
+        }
+        return (1.0, 1.0);
     }
 
     private void RestartHideTimerIfEligible()
@@ -296,16 +382,30 @@ public partial class NotchPanelWindow : Window
         }
 
         var fg = NativeMethods.GetForegroundWindow();
-        if (fg != IntPtr.Zero && NativeMethods.IsZoomed(fg) && NativeMethods.GetCursorPos(out var pt))
+        if (fg == IntPtr.Zero || !NativeMethods.IsZoomed(fg) || !NativeMethods.GetCursorPos(out var pt))
         {
-            var dpi = VisualTreeHelper.GetDpi(this);
-            var logicalY = pt.Y / dpi.DpiScaleY;
-            var nearTopBar = logicalY <= Top + 36;
-            SetTransparentPassThrough(nearTopBar);
+            SetTransparentPassThrough(false);
             return;
         }
 
-        SetTransparentPassThrough(false);
+        // 光标必须与面板在同块显示器上，否则多屏下会在错误的屏上误判避让。
+        var cursorMonitor = NativeMethods.MonitorFromPoint(pt, NativeMethods.MONITOR_DEFAULTTONEAREST);
+        var panelMonitor = NativeMethods.MonitorFromPoint(PanelCenterPoint(), NativeMethods.MONITOR_DEFAULTTONEAREST);
+        if (cursorMonitor != panelMonitor)
+        {
+            SetTransparentPassThrough(false);
+            return;
+        }
+
+        var (scaleX, scaleY) = GetScaleForPoint(pt);
+        var leftPhysical = Left * scaleX;
+        var rightPhysical = leftPhysical + ActualWidth * scaleX;
+        var insidePanelX = pt.X >= leftPhysical - 8 && pt.X <= rightPhysical + 8;
+        var nearTopBar = pt.Y / scaleY <= Top + 36;
+
+        // 关键在于「光标确实在面板水平范围之外」：一旦鼠标真的要碰面板，立即恢复可交互，
+        // 避免进入避让后因为不再收到 MouseEnter 而把自己锁死。
+        SetTransparentPassThrough(nearTopBar && !insidePanelX);
     }
 
     private void SetTransparentPassThrough(bool passThrough)

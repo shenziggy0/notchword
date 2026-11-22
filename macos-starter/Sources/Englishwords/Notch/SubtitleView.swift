@@ -23,7 +23,11 @@ struct SubtitleView: View {
                     .foregroundStyle(.white)
                     .fixedSize(horizontal: false, vertical: true)
                     .environment(\.openURL, OpenURLAction { url in
-                        guard url.scheme == "notchword-subtitle", let word = url.host else { return .discarded }
+                        guard url.scheme == "notchword-subtitle",
+                              let word = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                                  .queryItems?.first(where: { $0.name == "word" })?.value else {
+                            return .discarded
+                        }
                         lookup(word)
                         return .handled
                     })
@@ -46,10 +50,19 @@ struct SubtitleView: View {
             var value = AttributedString(String(token))
             if TextFilter.isSingleWord(String(token)) {
                 let word = TextFilter.normalizeWord(String(token))
-                if !word.isEmpty { value.link = URL(string: "notchword-subtitle://\(word)") }
+                if !word.isEmpty { value.link = Self.link(for: word) }
             }
             output.append(value)
         }
         return output
+    }
+
+    /// 用 URLComponents 构造查询串，避免 `don’t`、`café` 被转成 Punycode 主机名。
+    private static func link(for word: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "notchword-subtitle"
+        components.host = "lookup"
+        components.queryItems = [URLQueryItem(name: "word", value: word)]
+        return components.url
     }
 }

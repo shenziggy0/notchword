@@ -44,7 +44,9 @@ final class SelectionMonitor {
 
         // 拖选结束的兜底：只记录鼠标位置，不拦截事件
         if let down = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: { [weak self] _ in
-            Task { @MainActor in self?.dragStart = NSEvent.mouseLocation }
+            // 监控回调里直接采样，别等到 Task 再读（此时指针可能已移动）
+            let point = NSEvent.mouseLocation
+            Task { @MainActor in self?.dragStart = point }
         }) {
             mouseMonitors.append(down)
         }
@@ -75,6 +77,8 @@ final class SelectionMonitor {
 
     private func tick() {
         guard preferences.selectionEnabled, AppRules.allowsPassiveLookup() else { return }
+        // 拖拽未松手时不提前查半截选区
+        guard NSEvent.pressedMouseButtons == 0 else { return }
 
         let selection = AXPicker.selectedText()?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -127,13 +131,9 @@ final class SelectionMonitor {
     private func captureAfterDrag() {
         guard preferences.selectionEnabled, AppRules.allowsPassiveLookup() else { return }
 
-        if let text = AXPicker.selectedText() {
-            observedSelection = text
-            submit(text)
-            return
-        }
-        // AX 读不到（常见于 Electron）：走模拟复制，读完还原剪贴板
-        guard let text = SelectionCapture.read().text else { return }
+        // 被动划词只走只读 AX，不模拟 ⌘C（避免污染剪贴板）
+        guard let text = AXPicker.selectedText() else { return }
+        observedSelection = text
         submit(text)
     }
 

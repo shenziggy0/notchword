@@ -1,11 +1,11 @@
 # 设计文档：Windows 版本 MVP 实施方案
 
 - 日期：2026-11-18
-- 状态：草稿
+- 状态：已实施（待实机/CI 补验项见正文）
 
 ## 1. 需求理解
 
-在现有仓库新增 `windows-starter/`（C# / .NET 8 + WPF + Win32/WinRT Interop），直接链接复用 `macos-starter/Sources/Englishwords/Resources/` 已终审落盘的 `dictionary.sqlite`（43,329 词条 / 29,520 屈折形式）与 `wordparts.sqlite`（4,626 语素 / 7,757 拆分词），实现 Windows 10/11 原生运行的查词与翻译客户端。
+在现有仓库新增 `windows-starter/`（C# / .NET 8 + WPF + Win32/WinRT Interop），直接链接复用 `macos-starter/Sources/Englishwords/Resources/` 已终审落盘的 `dictionary.sqlite`（43,329 词条 / 29,601 屈折形式）与 `wordparts.sqlite`（4,550 语素 / 7,757 拆分词），实现 Windows 10/11 原生运行的查词与翻译客户端。
 首版（MVP）覆盖核心查词闭环：系统托盘常驻、全局快捷键（查词/翻译/区域 OCR）、鼠标拖选划词（`UIAutomation` 优先，安全 `Ctrl+C` 剪贴板备份还原降级）、`Windows.Media.Ocr` 屏幕框选识别、内置词库与 StarDict 导入排序、三色词根词缀拆解、9 大联网翻译预设（OpenAI 兼容 / Anthropic）、笔记本（收藏/历史/近七天统计）及语音朗读。
 主界面采用“顶部可避让模拟刘海 + 鼠标旁轻量悬浮窗”双形态（`WS_EX_NOACTIVATE` 无焦点置顶），默认顶部刘海在窗口最大化且鼠标移入顶栏非面板热区时自动避让，解决 Windows 无物理刘海遮挡浏览器标签页的问题。
 
@@ -23,9 +23,9 @@
   - `macos-starter/Sources/Englishwords/Lookup/{TextFilter,LookupCoordinator,SelectionMonitor,LookupTypes}.swift`：定义单词/短句/拒绝分类（含代码、URL、中日韩过滤）、查询序号 `generation` 取消控制及 4 秒同词去重逻辑。
   - `macos-starter/Sources/Englishwords/Translate/{ProviderPresets,OpenAICompatProvider,AnthropicProvider,TranslationCoordinator,TranslationTypes}.swift`：定义 9 大翻译服务预设、20 秒硬超时与 LRU 缓存。
   - `macos-starter/Sources/Englishwords/Notebook/NotebookStore.swift`：定义 `user.sqlite`（`PRAGMA user_version = 1`）的 `lookups` 与 `favorites` 表结构及统计查询。
-  - `.github/workflows/package.yml`：当前仅包含 `build-macos-universal` 构建任务。
+  - `.github/workflows/package.yml`：已包含 `build-macos-universal` 与 `build-windows-x64` 两个构建任务。
 - **文档与代码现状差异（以实际代码与落盘数据为准）**：
-  - `README.md` 仍记载 `dictionary.sqlite` 为 `43,330 词条 / 29,519 屈折形式`、`wordparts.sqlite` 为 `170 个语素 / 147 个词`。实际落盘的 `dictionary.sqlite` 为 **43,329 词条 / 29,520 屈折形式**，`wordparts.sqlite` 为 **4,626 个语素 / 7,757 个拆分词**（配合 `data/simplex.txt` 的 3,698 个单纯词，已完成 11,444 考纲词 100% 覆盖），与 `macos-starter/data/SOURCES.md` 及 RFC 0007 一致。
+  - `README.md` 仍记载 `dictionary.sqlite` 为 `43,330 词条 / 29,519 屈折形式`、`wordparts.sqlite` 为 `170 个语素 / 147 个词`。实际落盘的 `dictionary.sqlite` 为 **43,329 词条 / 29,601 屈折形式**，`wordparts.sqlite` 为 **4,550 个语素 / 7,757 个拆分词**（配合 `data/simplex.txt` 的 3,698 个单纯词，已完成 11,444 考纲词 100% 覆盖），与 `macos-starter/data/SOURCES.md` 及 RFC 0007 一致。
   - `docs/ARCHITECTURE.md` 记录的是参照对象 Dipword 0.8.3 的逆向结构，实际已实现能力与接口以 `macos-starter/Sources/Englishwords/` 为准。
 
 ## 2. 接口改动
@@ -145,7 +145,7 @@ flowchart TD
 2. **Windows 原生宿主与交互层（`windows-starter/src/Englishwords.Win`）**：
    - 实现单实例互斥、系统托盘常驻、全局热键注册（`Alt+D`、`Alt+T`、`Alt+R`）、`UIAutomation` + 安全剪贴板降级取词、`WH_MOUSE_LL` 拖选监听、`Windows.Media.Ocr` 框选识别、DPAPI 密钥存储与系统语音朗读。
    - 实现 `NotchPanelWindow`（支持“顶部可避让模拟刘海”与“鼠标旁悬浮窗”双模式、`WS_EX_NOACTIVATE` 不抢焦点、三色词素胶囊渲染、`Loading` 态不倒计时、指针悬停暂停收起、按 `Esc` 立即取消并关闭）。
-   - 实现 `SettingsWindow`（通用、词典导入与排序、联网翻译预设与密钥管理、诊断导出）、`NotebookWindow`（收藏、历史、近 7 天统计与高频词）及 `--check-word` / `--diagnose` CLI 自检入口。
+   - 实现 `SettingsWindow`（通用、词典导入与排序、联网翻译预设与密钥管理、打开运行日志目录）、`NotebookWindow`（收藏、历史、近 7 天统计与高频词）及 `--check-word` / `--diagnose` CLI 自检入口。
 3. **自动化测试与 CI 构建扩展**：
    - 新增 `windows-starter/tests/Englishwords.Core.Tests`（覆盖 T1–T6 核心业务路径）与 `windows-starter/build.ps1`。
    - 扩展 `.github/workflows/package.yml`，新增 `build-windows-x64` 任务产出 Windows 发布包与 SHA-256 校验文件。

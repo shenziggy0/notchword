@@ -71,6 +71,10 @@ if [ "${EW_ENABLE_SPARKLE:-0}" = 1 ]; then
         "$PLISTBUDDY" -c "Add :SUFeedURL string $EW_SU_FEED_URL" "$PLIST"
         "$PLISTBUDDY" -c "Add :SUPublicEDKey string $EW_SU_PUBLIC_ED_KEY" "$PLIST"
     fi
+    AUTOUPDATE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B/Autoupdate"
+    if [ -f "$AUTOUPDATE" ]; then
+        codesign --force --sign "$IDENTITY" --preserve-metadata=entitlements,identifier "$AUTOUPDATE"
+    fi
     while IFS= read -r -d '' component; do
         codesign --force --sign "$IDENTITY" --preserve-metadata=entitlements,identifier "$component"
     done < <(find "$APP/Contents/Frameworks" -depth \( -name '*.xpc' -o -name '*.app' -o -name '*.framework' \) -type d -print0)

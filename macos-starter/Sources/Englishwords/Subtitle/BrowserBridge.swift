@@ -36,37 +36,45 @@ struct BrowserBridge {
             end tell
         end timeout
         """
-        return try await withCheckedThrowingContinuation { continuation in
-            Self.queue.async {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-                process.arguments = ["-l", "AppleScript", "-e", script]
-                let output = Pipe()
-                process.standardOutput = output
-                process.standardError = output
-                do {
-                    try process.run()
-                    let watchdog = DispatchWorkItem {
-                        if process.isRunning { process.terminate() }
-                    }
-                    DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: watchdog)
-                    defer { watchdog.cancel() }
-                    let data = output.fileHandleForReading.readDataToEndOfFile()
-                    process.waitUntilExit()
-                    let value = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
-                    if process.terminationStatus == 0, !value.isEmpty {
-                        continuation.resume(returning: value)
-                    } else if value.contains("(-1743)") {
-                        continuation.resume(throwing: BrowserBridgeError.permission)
-                    } else if value.contains("(-1728)") {
-                        continuation.resume(throwing: BrowserBridgeError.noWindow)
-                    } else {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
+        process.arguments = ["-l", "AppleScript", "-e", script]
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = output
+
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                Self.queue.async {
+                    do {
+                        try process.run()
+                        let watchdog = DispatchWorkItem {
+                            if process.isRunning { process.terminate() }
+                        }
+                        DispatchQueue.global().asyncAfter(deadline: .now() + 10, execute: watchdog)
+                        defer { watchdog.cancel() }
+                        let data = output.fileHandleForReading.readDataToEndOfFile()
+                        process.waitUntilExit()
+                        let value = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                        if process.terminationStatus == 0, !value.isEmpty {
+                            continuation.resume(returning: value)
+                        } else if value == "missing value" {
+                            continuation.resume(throwing: BrowserBridgeError.noWindow)
+                        } else if value.contains("(-1743)") {
+                            continuation.resume(throwing: BrowserBridgeError.permission)
+                        } else if value.contains("(-1728)") {
+                            continuation.resume(throwing: BrowserBridgeError.noWindow)
+                        } else {
+                            continuation.resume(throwing: BrowserBridgeError.scriptUnavailable)
+                        }
+                    } catch {
                         continuation.resume(throwing: BrowserBridgeError.scriptUnavailable)
                     }
-                } catch {
-                    continuation.resume(throwing: BrowserBridgeError.scriptUnavailable)
                 }
             }
+        } onCancel: {
+            // 任务取消时尽快结束 osascript，不等看门狗超时
+            if process.isRunning { process.terminate() }
         }
     }
 }

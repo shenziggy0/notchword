@@ -88,7 +88,10 @@ final class NotebookWindow: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        if !NSApp.windows.contains(where: { $0 !== window && $0.isVisible && $0.styleMask.contains(.titled) }) {
+        let closing = notification.object as? NSWindow
+        if !NSApp.windows.contains(where: {
+            $0 !== closing && ($0.isVisible || $0.isMiniaturized) && $0.styleMask.contains(.titled)
+        }) {
             NSApp.setActivationPolicy(.accessory)
         }
     }
@@ -221,6 +224,7 @@ struct NotebookStar: View {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .foregroundStyle(isFavorite ? .yellow : .white.opacity(0.7))
                 .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(isFavorite ? "取消收藏" : "收藏单词")

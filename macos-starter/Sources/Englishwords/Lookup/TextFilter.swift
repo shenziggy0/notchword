@@ -46,7 +46,16 @@ enum TextFilter {
     static let maxPassiveLength = 300
 
     private static let wordScalars = CharacterSet.letters
+        .union(CharacterSet.nonBaseCharacters)
         .union(CharacterSet(charactersIn: "-'’"))
+
+    /// 只剥首尾常见标点，不用 `wordScalars.inverted`，避免把数字、% 和空格裁掉。
+    private static let surroundingPunctuation = CharacterSet(
+        charactersIn: "\"'“”‘’()[]{}.,!?;:「」『』【】《》"
+    )
+
+    /// 英文单复数写法：`item(s)`、`box(es)` 仍是一个单词。
+    private static let pluralNotation = #"^[A-Za-z][\w'’\-]*\((?:s|es|ies)\)$"#
 
     static func classify(_ raw: String) -> TextClassification {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -69,8 +78,9 @@ enum TextFilter {
         if text.hasPrefix("```")
             || text.range(of: #"^(?:let|const|var)\s+[A-Za-z_$]\w*\s*(?::[^=\n]+)?\s*="#,
                           options: .regularExpression) != nil
-            || text.range(of: #"^[A-Za-z_$][\w$.]*\([^()\n]*\)\s*;?$"#,
-                          options: .regularExpression) != nil {
+            || (text.range(of: pluralNotation, options: .regularExpression) == nil
+                && text.range(of: #"^[A-Za-z_$][\w$.]*\([^()\n]*\)\s*;?$"#,
+                              options: .regularExpression) != nil) {
             return .rejected(.code)
         }
 
@@ -84,7 +94,15 @@ enum TextFilter {
     }
 
     static func isSingleWord(_ text: String) -> Bool {
-        let core = text.trimmingCharacters(in: wordScalars.inverted)
+        let raw = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 先识别单复数写法，避免右括号被当成首尾标点剥掉
+        let unquoted = raw.trimmingCharacters(in: surroundingPunctuation.subtracting(CharacterSet(charactersIn: "()")))
+        if unquoted.range(of: pluralNotation, options: .regularExpression) != nil {
+            let base = unquoted.replacingOccurrences(of: #"\((?:s|es|ies)\)$"#, with: "", options: .regularExpression)
+            return !base.isEmpty && base.unicodeScalars.allSatisfy { wordScalars.contains($0) }
+        }
+
+        let core = raw.trimmingCharacters(in: surroundingPunctuation)
         guard !core.isEmpty else { return false }
         return core.unicodeScalars.allSatisfy { wordScalars.contains($0) }
     }
@@ -127,8 +145,9 @@ enum TextFilter {
     /// 中日韩文字、假名、注音符号：当前只做英译中，遇到就不处理。
     private static func containsUnsupportedScript(_ text: String) -> Bool {
         text.unicodeScalars.contains { scalar in
-            (0x2E80...0x9FFF).contains(scalar.value)
-                || (0x3040...0x30FF).contains(scalar.value)
+            // 跳过 U+3000...U+303F（CJK 标点区），「」《》等标点不应阻断取词
+            (0x2E80...0x2FFF).contains(scalar.value)
+                || (0x3040...0x9FFF).contains(scalar.value)
                 || (0x3100...0x312F).contains(scalar.value)
                 || (0x31A0...0x31BF).contains(scalar.value)
                 || (0xAC00...0xD7AF).contains(scalar.value)

@@ -25,7 +25,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         super.init()
     }
 
-    func show() {
+    func show(installationPermissionMessage: String? = nil) {
+        model.installationPermissionMessage = installationPermissionMessage
         if window == nil {
             let view = SettingsView(preferences: preferences, model: model, translator: translator,
                                     recorder: hotkeyRecorder, onPrepareLanguage: { [weak self] in
@@ -62,7 +63,14 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowDidBecomeKey(_ notification: Notification) {
-        if (notification.object as? NSWindow) === window { model.refreshSystemStatus() }
+        guard (notification.object as? NSWindow) === window else { return }
+        model.refreshSystemStatus()
+        Task { await model.checkLocalAvailability() }
+    }
+
+    /// 设置窗失焦时结束录制，避免热键监听泄漏到其他窗口。
+    func windowDidResignKey(_ notification: Notification) {
+        if (notification.object as? NSWindow) === window { hotkeyRecorder.cancel() }
     }
 
     /// 菜单栏应用默认没有 Dock 图标，主动打开窗口时临时切成普通应用才能拿到焦点。
@@ -73,13 +81,15 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        let closesSettings = (notification.object as? NSWindow) === window
-        let closesLanguage = (notification.object as? NSWindow) === languageWindow
+        let closing = notification.object as? NSWindow
+        let closesSettings = closing === window
+        let closesLanguage = closing === languageWindow
         guard closesSettings || closesLanguage else { return }
         if closesSettings { hotkeyRecorder.cancel() }
+        if closesLanguage { languageWindow = nil }
 
         if !NSApp.windows.contains(where: {
-            $0 !== (notification.object as? NSWindow) && $0.isVisible && $0.styleMask.contains(.titled)
+            $0 !== closing && ($0.isVisible || $0.isMiniaturized) && $0.styleMask.contains(.titled)
         }) {
             NSApp.setActivationPolicy(.accessory)
         }
@@ -105,7 +115,10 @@ final class SettingsModel: ObservableObject {
     @Published var automation = "尚无运行中的支持浏览器"
     @Published var loginEnabled = false
     @Published var loginMessage = ""
+    @Published var installationPermissionMessage: String?
     @Published var diagnosticsMessage = ""
+    @Published var selectedTab = 0
+    private var onlineTask: Task<Void, Never>?
 
     func refresh(translator: TranslationCoordinator, preset: ProviderPreset) {
         refreshKey(preset: preset)
@@ -145,25 +158,34 @@ final class SettingsModel: ObservableObject {
     }
 
     func checkOnline(translator: TranslationCoordinator, preferences: Preferences, listModels: Bool) {
+        onlineTask?.cancel()
         let preset = preferences.translationPreset
         let address = preferences.onlineAddress
+        let model = preferences.onlineModel
         serviceBusy = true
         onlineMessage = listModels ? "正在获取模型…" : "正在测试服务…"
-        Task {
-            defer { serviceBusy = false }
+        onlineTask = Task {
+            // 被新请求取消的任务不要抢着把 UI 改回可用
+            defer { if !Task.isCancelled { serviceBusy = false } }
             do {
+                let unchanged = { preferences.translationPreset == preset
+                    && preferences.onlineAddress == address
+                    && preferences.onlineModel == model }
                 if listModels {
                     let choices = try await translator.listModels()
-                    guard preferences.translationPreset == preset, preferences.onlineAddress == address else { return }
+                    guard !Task.isCancelled, unchanged() else { return }
                     modelChoices = choices
                     onlineMessage = choices.isEmpty ? "该端点没有返回模型，可手动输入。" : "已获取 \(choices.count) 个模型。"
                 } else {
                     let result = try await translator.testOnlineTranslation()
-                    guard preferences.translationPreset == preset else { return }
+                    guard !Task.isCancelled, unchanged() else { return }
                     onlineMessage = "测试通过：\(result.text)"
                 }
             } catch {
-                if preferences.translationPreset == preset { onlineMessage = error.localizedDescription }
+                guard !Task.isCancelled, preferences.translationPreset == preset,
+                      preferences.onlineAddress == address,
+                      preferences.onlineModel == model else { return }
+                onlineMessage = error.localizedDescription
             }
         }
     }
@@ -190,6 +212,8 @@ final class SettingsModel: ObservableObject {
         loginEnabled = SMAppService.mainApp.status == .enabled
         if SMAppService.mainApp.status == .requiresApproval {
             loginMessage = "请在系统设置的登录项中允许 Englishwords。"
+        } else {
+            loginMessage = ""
         }
     }
 
@@ -245,8 +269,9 @@ final class SettingsModel: ObservableObject {
         Task {
             defer { dictionaryBusy = false }
             do {
-                try await StarDictLibrary.shared.remove(source)
+                // 先取消引用再删文件，避免查询仍然命中已删的缓存
                 preferences.dictionarySources.removeAll { $0.id == source.id }
+                try await StarDictLibrary.shared.remove(source)
                 dictionaryMessage = "已移除 \(source.name)"
             } catch {
                 dictionaryMessage = error.localizedDescription
@@ -254,7 +279,7 @@ final class SettingsModel: ObservableObject {
         }
     }
 
-    private func checkLocalAvailability() async {
+    func checkLocalAvailability() async {
         let source = Locale.Language(identifier: "en")
         let target = Locale.Language(identifier: "zh-Hans")
         switch await LanguageAvailability().status(from: source, to: target) {
@@ -284,17 +309,20 @@ struct SettingsView: View {
     @FocusState private var translationField: TranslationField?
 
     var body: some View {
-        TabView {
-            page { generalSection; panelSection }.tabItem { Text("通用") }
-            page { automaticSection; hotkeySection }.tabItem { Text("取词") }
-            page { dictionarySection }.tabItem { Text("词典") }
-            page { translationSection }.tabItem { Text("翻译") }
-            page { subtitleSection }.tabItem { Text("字幕") }
-            page { speechSection }.tabItem { Text("朗读") }
-            page { appRulesSection }.tabItem { Text("应用规则") }
-            page { aboutSection }.tabItem { Text("关于") }
+        TabView(selection: $model.selectedTab) {
+            page { generalSection; panelSection }.tabItem { Text("通用") }.tag(0)
+            page { automaticSection; hotkeySection }.tabItem { Text("取词") }.tag(1)
+            page { dictionarySection }.tabItem { Text("词典") }.tag(2)
+            page { translationSection }.tabItem { Text("翻译") }.tag(3)
+            page { subtitleSection }.tabItem { Text("字幕") }.tag(4)
+            page { speechSection }.tabItem { Text("朗读") }.tag(5)
+            page { appRulesSection }.tabItem { Text("应用规则") }.tag(6)
+            page { aboutSection }.tabItem { Text("关于") }.tag(7)
         }
         .frame(width: 540)
+        .onChange(of: model.selectedTab) { _, _ in
+            recorder.cancel()
+        }
         .onChange(of: translationField) { previous, _ in
             if previous != nil { refreshOnlineStatus() }
         }
@@ -317,6 +345,9 @@ struct SettingsView: View {
                     Button("打开登录项设置") { SMAppService.openSystemSettingsLoginItems() }
                 }
                 Divider()
+                if let message = model.installationPermissionMessage {
+                    Text(message).font(.callout)
+                }
                 permissionRow("辅助功能", state: model.accessibility ? "已允许" : "未允许") {
                     _ = Permissions.ensureAccessibility(prompt: true)
                     Permissions.openAccessibilitySettings()
@@ -374,14 +405,24 @@ struct SettingsView: View {
         }
     }
 
+    /// 英文声音列表只取一次，不与视图刷新挂钩。
+    private static let englishVoices: [AVSpeechSynthesisVoice] = AVSpeechSynthesisVoice.speechVoices()
+        .filter { $0.language.hasPrefix("en") }
+        .sorted { $0.name < $1.name }
+
     private var speechSection: some View {
-        let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix("en") }
-            .sorted { $0.name < $1.name }
+        let voices = Self.englishVoices
+        let selected = preferences.speechVoice
+        // 之前选的声音已不可用时仍保留在下拉里，避免值被静默改成默认
+        let missing = !selected.isEmpty && !voices.contains { $0.identifier == selected }
         return GroupBox("朗读") {
             VStack(alignment: .leading, spacing: 12) {
                 Picker("英语声音", selection: binding(\.speechVoice)) {
                     Text("系统默认").tag("")
-                    ForEach(voices, id: \.identifier) { voice in Text(voice.name).tag(voice.identifier) }
+                    if missing { Text("不可用：\(selected)").tag(selected) }
+                    ForEach(voices, id: \.identifier) { voice in
+                        Text(Self.voiceLabel(voice, among: voices)).tag(voice.identifier)
+                    }
                 }
                 Slider(value: binding(\.speechRate), in: 0.15...0.65) { Text("语速") }
                 Button("播放示例") {
@@ -390,6 +431,12 @@ struct SettingsView: View {
             }
             .padding(8)
         }
+    }
+
+    /// 同名声音加上语言标签区分，比如两个 "Samantha"。
+    private static func voiceLabel(_ voice: AVSpeechSynthesisVoice, among voices: [AVSpeechSynthesisVoice]) -> String {
+        let duplicated = voices.contains { $0.identifier != voice.identifier && $0.name == voice.name }
+        return duplicated ? "\(voice.name)（\(voice.language)）" : voice.name
     }
 
     private var appRulesSection: some View {

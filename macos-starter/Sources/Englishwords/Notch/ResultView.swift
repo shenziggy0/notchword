@@ -10,6 +10,7 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published fileprivate(set) var speaking = false
 
     private let synthesizer = AVSpeechSynthesizer()
+    private var currentUtterance: AVSpeechUtterance?
 
     override init() {
         super.init()
@@ -19,6 +20,7 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func speak(_ text: String, voiceID: String = "", rate: Double = 0.48) {
         guard !text.isEmpty else { return }
         if speaking {
+            currentUtterance = nil
             synthesizer.stopSpeaking(at: .immediate)
             speaking = false
             return
@@ -26,16 +28,26 @@ final class Speaker: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(identifier: voiceID) ?? AVSpeechSynthesisVoice(language: "en-US")
         utterance.rate = Float(min(0.65, max(0.15, rate)))
+        currentUtterance = utterance
         synthesizer.speak(utterance)
         speaking = true
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { self.speaking = false }
+        finish(utterance)
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { self.speaking = false }
+        finish(utterance)
+    }
+
+    /// 只有当前那次朗读结束才重置状态，避免旧的回调把新朗读的图标误置为停止。
+    private func finish(_ utterance: AVSpeechUtterance) {
+        DispatchQueue.main.async {
+            guard utterance === self.currentUtterance else { return }
+            self.currentUtterance = nil
+            self.speaking = false
+        }
     }
 }
 
@@ -57,6 +69,8 @@ struct ResultView: View {
     var onBackToSubtitle: (() -> Void)? = nil
     var speechVoice = ""
     var speechRate = 0.48
+    /// 离屏预览没有事件循环，用静态进度环代替 `ProgressView`。
+    var isStaticPreview: Bool = false
 
     @ObservedObject private var speaker = Speaker.shared
 
@@ -155,9 +169,7 @@ struct ResultView: View {
         case .loading(let request):
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 8) {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(.white.opacity(0.8))
+                    loadingIndicator
                     Text("正在查询")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.8))
@@ -259,6 +271,7 @@ struct ResultView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(.white.opacity(speaker.speaking ? 1 : 0.7))
                         .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
                         .background(
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(.white.opacity(speaker.speaking ? 0.14 : 0))
@@ -308,7 +321,7 @@ struct ResultView: View {
                     .foregroundStyle(.green.opacity(0.85))
             }
 
-            HStack(spacing: 6) {
+            FlowLayout(spacing: 6, lineSpacing: 6) {
                 ForEach(Array(result.segments.enumerated()), id: \.offset) { index, segment in
                     if index > 0 {
                         Text("+")
@@ -371,6 +384,20 @@ struct ResultView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    @ViewBuilder
+    private var loadingIndicator: some View {
+        if isStaticPreview {
+            Circle()
+                .trim(from: 0, to: 0.72)
+                .stroke(.white.opacity(0.6), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                .frame(width: 14, height: 14)
+        } else {
+            ProgressView()
+                .controlSize(.small)
+                .tint(.white.opacity(0.8))
+        }
+    }
+
     /// ECDICT 的音标不带斜杠，展示时补上，保持词典排版习惯。
     private static func displayPhonetic(_ raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
@@ -385,6 +412,52 @@ struct ResultView: View {
 }
 
 // MARK: - 语素片段
+
+/// 按可用宽度折行排布词素片段与分隔的 "+"。
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 6
+    var lineSpacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var widest: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > maxWidth {
+                y += lineHeight + lineSpacing
+                x = 0
+                lineHeight = 0
+            }
+            x += size.width
+            widest = max(widest, x)
+            lineHeight = max(lineHeight, size.height)
+            x += spacing
+        }
+        return CGSize(width: proposal.width ?? widest, height: y + lineHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var lineHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX, x + size.width > bounds.maxX {
+                y += lineHeight + lineSpacing
+                x = bounds.minX
+                lineHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            lineHeight = max(lineHeight, size.height)
+        }
+    }
+}
 
 struct SegmentChip: View {
     let seg: Segment
@@ -410,6 +483,7 @@ struct SegmentChip: View {
             Text(seg.label)
                 .font(.system(size: 15, weight: .bold))
                 .foregroundStyle(tint)
+                .lineLimit(1)
             Text(seg.gloss)
                 .font(.system(size: 10.5))
                 .foregroundStyle(.white.opacity(0.62))

@@ -8,7 +8,14 @@
 代码与素材均未复用；词库使用 ECDICT（MIT），词根词缀数据由本项目整理（CC BY-SA 4.0）。
 
 当前实现覆盖设计文档 [0001-Englishwords-M0至M5实施方案](docs/design/0001-Englishwords-M0至M5实施方案.md)
-的 M0—M5：真实词库、多源查词、刘海面板、悬停/划词取词、本地与联网翻译。
+的 M0—M5，以及 [0003](docs/design/0003-内置词根词缀词典.md)／[0004](docs/design/0004-M5.5至M7-macOS实施方案.md)
+的 **M5.5—M7**（词素、字幕、区域取词、设置、引导、笔记本、StarDict、发布链路），
+并已完成 [0008](docs/design/0008-Windows版本MVP实施方案.md) 的 **Windows MVP**。细节状态见
+[ARCHITECTURE §14](docs/ARCHITECTURE.md#14-里程碑)。
+
+双端共用同一份随包词库与词素库。取词安全策略：被动悬停与划词只做**只读 Accessibility** 读取，
+不在任意鼠标拖拽时注入模拟 `⌘C`；读不到选区的应用（部分 Electron／画布）改用显式 `⌥D`／`⌥T`，
+由这两条热键在备份并还原剪贴板的前提下做安全模拟复制兜底。
 
 ```
 Englishwords/
@@ -51,13 +58,13 @@ Englishwords/
 | 菜单栏常驻、无 Dock 图标、Carbon 全局热键 | ✅ |
 | `⌥D` 查词（词典优先）、`⌥T` 直接翻译选中内容 | ✅ |
 | 菜单里「自动取词」可分别开关悬停 / 划词 | ✅ |
-| 内置词库查词（4.3 万词条）与屈折还原（`abandoned → abandon`） | ✅ |
-| 词根词缀拆解 + 词源，三色渲染（`un / believ / able`） | ✅（147 词覆盖） |
+| 内置词库查词（4.3 万词条）与屈折还原（`abandoning → abandon`） | ✅ |
+| 词根词缀拆解 + 词源，三色渲染（`un / believ / able`） | ✅（4,550 语素 / 7,757 拆分词，11,444 考纲词全覆盖） |
 | 未命中时回落 macOS 系统词典 | ✅ |
 | 单词/短句翻译：Apple 本地优先，联网可选降级 | ✅（需准备语言包 / 配置服务） |
 | 刘海面板：紧凑态、悬停展开、离开收起、Esc 关闭、不抢焦点 | ✅ |
 | 悬停取词：鼠标停在单词上 0.35s 自动出结果（需辅助功能） | ✅ |
-| 划词取词：拖选后自动出结果（AX 读不到时模拟 ⌘C 再还原剪贴板） | ✅ |
+| 划词取词：拖选后自动出结果（只读取 AX 选区；读不到时用 `⌥D`/`⌥T` 走安全剪贴板兜底） | ✅ |
 | 区域取词（默认 `⌥R`） | 已实现，需屏幕录制权限 |
 | 字幕查询、上下句导航、字幕点词与双语显示 | 已接入，默认关闭，真实站点待验收 |
 | 笔记本（收藏、历史、近七天与常查词统计） | 已实现，数据保存在本机 |
@@ -82,36 +89,52 @@ open build/Englishwords.app
 `build.sh` 会做三件额外的事：检查产物同时包含两种架构、把 SwiftPM 资源包放进
 `Contents/Resources`、清空 `EW_DICT/EW_PARTS` 后跑一次真实查词自检。
 
-开发时直接跑：
+开发时直接跑（在 `macos-starter/` 下）：
 
 ```bash
 swift build --disable-sandbox
-.build/out/Products/Debug/Englishwords
+"$(swift build --disable-sandbox --show-bin-path)/Englishwords"
 ```
 
 > `--disable-sandbox` 只是绕开本机受限环境里 SwiftPM 清单沙箱的限制；普通终端可省略。
+> 路径不要硬编码：Debug 产物位置随 SwiftPM 版本变化，用 `--show-bin-path` 或 `.build/debug/Englishwords` 定位。
+
+### Windows 版构建
+
+```powershell
+cd windows-starter
+.\build.ps1                     # 单元测试 + 发布 win-x64 + 随包词库自检 + 打 ZIP
+.\build.ps1 -SelfContained      # 自带运行时，包体约 +60–70MB
+```
+
+默认产出框架依赖包，目标机器需安装 **.NET 8 Desktop Runtime**（Windows Desktop x64）。
+两种形态都会把 `LICENSE` 与 `THIRD-PARTY-NOTICES.md` 一起打进输出目录。
 
 ### 自检命令
 
+在 `macos-starter/` 下先定义产物路径，再逐条跑：
+
 ```bash
+BIN="$(swift build --disable-sandbox --show-bin-path)"
+
 # 取词诊断：授权状态、前台应用、选区可读性、指针取词
-.build/out/Products/Debug/Englishwords --diagnose
+"$BIN/Englishwords" --diagnose
 
 # 词库是否随包可用（退出码 0 命中 / 2 未命中 / 3 词库错误）
-.build/out/Products/Debug/Englishwords --check-word unbelievable
+"$BIN/Englishwords" --check-word unbelievable
 
 # 指针位置能否取到词（AX 坐标，左上原点）
-.build/out/Products/Debug/Englishwords --pick-word 240 116
+"$BIN/Englishwords" --pick-word 240 116
 
 # 真实 Apple 本地翻译
-.build/out/Products/Debug/Englishwords --translate "The quick brown fox."
+"$BIN/Englishwords" --translate "The quick brown fox."
 
 # 离屏渲染面板（word / sentence / loading / miss / failure）
-.build/out/Products/Debug/Englishwords --render-preview /tmp/panel.png word
+"$BIN/Englishwords" --render-preview /tmp/panel.png word
 
 # 启动后立即展示一次查询 / 打开设置窗口，便于截图核对布局
-.build/out/Products/Debug/Englishwords --demo-lookup unbelievable
-.build/out/Products/Debug/Englishwords --demo-settings
+"$BIN/Englishwords" --demo-lookup unbelievable
+"$BIN/Englishwords" --demo-settings
 ```
 
 ### 测试
@@ -124,8 +147,9 @@ cd macos-starter
 测试还覆盖查询取消与超时、字幕断句和中文轨对齐、笔记本持久化、StarDict 来源排序及翻译协议解析。
 在同一目录可运行 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -v`，验证词素构建和抽取。
 
-Sparkle 构建可以用 `EW_ENABLE_SPARKLE=1 ./build.sh` 在本机验证。正式 DMG 和 appcast 条目由
-`release.sh` 生成，需先配置稳定签名身份和 EdDSA 更新密钥。见 [发布签名准备](macos-starter/scripts/make_signing_cert.md)。
+手动安装请用 `.pkg`：先退出 Englishwords，再按安装器提示操作。每次安装后首次打开时，应用会重置自己的系统隐私授权；同一份包覆盖重装也一样。普通重启和 Sparkle 自动更新不会触发重置。
+
+Sparkle 构建可以用 `EW_ENABLE_SPARKLE=1 ./build.sh` 在本机验证。`release.sh` 分别生成手动安装用的 PKG 和 Sparkle 更新用的 DMG、appcast 条目。发布前需先配置稳定签名身份和 EdDSA 更新密钥。见 [发布签名准备](macos-starter/scripts/make_signing_cert.md)。
 
 ---
 
@@ -147,18 +171,22 @@ Sparkle 构建可以用 `EW_ENABLE_SPARKLE=1 ./build.sh` 在本机验证。正�
 
 | 文件 | 内容 | 来源与许可 |
 |---|---|---|
-| `dictionary.sqlite` | 43,330 词条 / 29,519 屈折形式 | ECDICT，MIT |
-| `wordparts.sqlite` | 170 个语素 / 147 个词的拆分与词源 | 本项目整理，CC BY-SA 4.0 |
+| `dictionary.sqlite` | 43,329 词条 / 29,601 屈折形式 | ECDICT，MIT |
+| `wordparts.sqlite` | 4,550 个语素 / 7,757 个拆分词（另含 3,698 个单纯词）的拆分与词源 | 本项目整理，CC BY-SA 4.0 |
 
 ```bash
 cd macos-starter
 python3 scripts/build_dictionary.py --input scripts/.cache/ecdict.csv \
   --output Sources/Englishwords/Resources/dictionary.sqlite
-python3 scripts/build_wordparts.py
+python3 scripts/build_wordparts.py \
+  --coverage-db Sources/Englishwords/Resources/dictionary.sqlite \
+  --simplex data/simplex.txt \
+  --extra data/wordlist-extra.txt
 ```
 
 脚本会校验完整性、`forms.lemma` 可回溯、`segments` 能拼回原词、语素引用有效；
-任一失败非零退出且不覆盖已有文件。**词素覆盖有限，没有拆分的词如实缺省，不做猜测。**
+任一失败非零退出且不覆盖已有文件。七类考试标签与小学补充目标词（合计 **11,444** 词）已由
+**7,757 个拆分词 + 3,698 个单纯词** 100% 覆盖；单纯词不写空拆分行，界面只显示释义而不猜拆分。
 
 ---
 
@@ -188,12 +216,13 @@ python3 scripts/build_wordparts.py
 - **联网翻译未用真实密钥验证**：只验证了请求构造与响应解析逻辑，没有可用凭据，因此没有真实调用记录。
 - 本地翻译需要系统语言包；未安装时 `--translate` 会明确提示去「设置 → 翻译 → 准备语言包」，不会伪装成功。
 - **多屏 / 无刘海 / Intel 未实机覆盖**：只在当前内置刘海屏（1470×956，刘海 179×32）验证；
-  外接屏的模拟刘海与 Intel 架构仅保证构建通过。
+  多屏框选、外接屏模拟刘海与 Intel 架构已按屏修复并仅保证构建通过，仍需实机补验。
 - **Esc 关闭依赖辅助功能**：全局键盘监听沿用同一授权；未授权时 Esc 不生效。
-- **换位置运行要重新授权**：辅助功能授权按应用路径生效。把 `.app` 挪到别处或换一份产物，
-  都要在系统设置里重新勾选一次。
-- **词素覆盖有限**：147 个词有拆分，其余只显示释义。
-- **字幕与发布验收**：真实视频站点、双版本升级及签名身份对系统权限的影响待实机验证。
+- **换位置运行或换签名可能需要重新授权**：从 `.pkg` 安装后，首次打开会统一清除本应用的旧授权。直接拖拽 `.app` 不走安装器，换了运行位置或签名后如权限失效，请在系统设置重新授权。
+- **被动取词的能力边界**：被动悬停/划词只读 Accessibility，读不到选区的应用（部分 Electron / 画布）需用 `⌥D`/`⌥T` 主动取词。主动热键会在备份并还原剪贴板（带 `TransientType`）的前提下安全模拟复制。
+- **词素数据边界**：11,444 考纲词已 100% 判定（7,757 拆分 + 3,698 单纯词），但覆盖范围之外的长尾词仍可能没有拆分；这些词只显示释义，不猜拆分。
+- **Windows 侧边界**：框架依赖包需目标机器安装 .NET 8 Desktop Runtime；Windows 编译、单测与 `build.ps1` 自检只能靠 GitHub Actions `windows-latest` 或 Windows 实机验证（本机为 macOS，未安装 .NET SDK）。
+- **字幕与发布验收**：真实视频站点、双版本 Sparkle 升级链及签名身份对系统权限（TCC / Keychain / 登录项）的影响待实机验证。
 - 面板不做毛玻璃，纯黑底以适配任意壁纸。
 
 ---

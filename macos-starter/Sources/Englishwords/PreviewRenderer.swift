@@ -16,7 +16,8 @@ enum PreviewRenderer {
     }
 
     @MainActor
-    static func render(to path: String, demo: Demo = .word) {
+    @discardableResult
+    static func render(to path: String, demo: Demo = .word) -> Bool {
         let view = ResultView(
             state: makeState(demo),
             mode: .expanded,
@@ -24,7 +25,8 @@ enum PreviewRenderer {
             width: 474,
             maxHeight: nil,
             showWordParts: true,
-            lookupShortcut: HotKeySpec.lookup.display
+            lookupShortcut: HotKeySpec.lookup.display,
+            isStaticPreview: true
         )
         .padding(.top, 18)
         .padding(.bottom, 26)
@@ -45,14 +47,16 @@ enum PreviewRenderer {
               let bitmap = NSBitmapImageRep(data: tiff),
               let png = bitmap.representation(using: .png, properties: [:]) else {
             FileLog.write("preview: 渲染失败")
-            return
+            return false
         }
 
         do {
             try png.write(to: URL(fileURLWithPath: path))
             FileLog.write("preview: 已写入 \(path) (\(Int(image.size.width))x\(Int(image.size.height)) @2x)")
+            return true
         } catch {
             FileLog.write("preview: 写文件失败 \(error)")
+            return false
         }
     }
 

@@ -96,6 +96,18 @@ public sealed class LookupCoordinator
             {
                 // 取消翻译静默结束
             }
+            catch (Exception ex)
+            {
+                // 其他异常必须转成失败状态，否则面板会永久停在 Loading。
+                if (token.IsCancellationRequested) return;
+
+                lock (_sync)
+                {
+                    if (currentGen != _generation) return;
+                }
+
+                StateChanged?.Invoke(new LookupState.Failure(request, ex.Message));
+            }
         }, token);
 
         return true;
@@ -106,13 +118,17 @@ public sealed class LookupCoordinator
     /// </summary>
     public void Cancel()
     {
+        CancellationTokenSource? cts;
         lock (_sync)
         {
             _generation++;
-            _activeCts?.Cancel();
-            _activeCts?.Dispose();
+            cts = _activeCts;
             _activeCts = null;
         }
+
+        // 取消与释放必须放在锁外：Cancel 会同步执行已注册的回调，持锁调用容易死锁。
+        cts?.Cancel();
+        cts?.Dispose();
     }
 
     private async Task<LookupState> ResolveAsync(
@@ -142,7 +158,10 @@ public sealed class LookupCoordinator
         var notes = new List<string>();
         if (!string.IsNullOrWhiteSpace(request.Note)) notes.Add(request.Note);
 
-        foreach (var source in _preferences.DictionarySources.Where(s => s.Enabled))
+        // 先快照一份，防止设置页并发修改列表导致「集合已修改」异常。
+        var sources = _preferences.DictionarySources.ToArray();
+
+        foreach (var source in sources.Where(s => s.Enabled))
         {
             ct.ThrowIfCancellationRequested();
             try

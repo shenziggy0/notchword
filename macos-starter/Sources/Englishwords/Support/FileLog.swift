@@ -21,17 +21,18 @@ enum FileLog {
     static func write(_ message: String) {
         let stamp = ISO8601DateFormatter().string(from: Date())
         let line = "[\(stamp)] \(message)\n"
-        FileHandle.standardError.write(Data(line.utf8))
 
         queue.async {
+            // 统一在串行队列里写，Try 版接口出错时只返回 nil，不会抛 ObjC 异常闪退
+            _ = try? FileHandle.standardError.write(contentsOf: Data(line.utf8))
             guard let fileURL else { return }
             if let attributes = try? FileManager.default.attributesOfItem(atPath: fileURL.path),
                let size = attributes[.size] as? Int, size > maxBytes {
                 try? FileManager.default.removeItem(at: fileURL)
             }
             if let handle = try? FileHandle(forWritingTo: fileURL) {
-                handle.seekToEndOfFile()
-                handle.write(Data(line.utf8))
+                _ = try? handle.seekToEnd()
+                _ = try? handle.write(contentsOf: Data(line.utf8))
                 try? handle.close()
             } else {
                 try? line.write(to: fileURL, atomically: true, encoding: .utf8)

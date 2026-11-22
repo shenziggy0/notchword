@@ -38,6 +38,15 @@ public sealed class TranslationTests
     }
 
     [Fact]
+    public void Clean_DoesNotStripInnerQuotes()
+    {
+        // 外层成对、内部还有同种引号时不能剥一层，否则译文会被削掉引号
+        Assert.Equal("“苹果”和“橘子”", OpenAICompatProvider.Clean("“苹果”和“橘子”"));
+        Assert.Equal("你好", OpenAICompatProvider.Clean("“你好”"));
+        Assert.Equal("世界", OpenAICompatProvider.Clean("「世界」"));
+    }
+
+    [Fact]
     public async Task OpenAIAndAnthropicProviders_ParseAndCleanResponses()
     {
         var openAiHandler = new StubHttpMessageHandler((_, _) =>

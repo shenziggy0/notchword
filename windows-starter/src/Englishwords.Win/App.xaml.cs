@@ -20,6 +20,14 @@ public partial class App : System.Windows.Application
     private string _settingsPath = string.Empty;
     private Preferences _preferences = new();
 
+    /// <summary>UI 状态序号：只有最后一次状态更新才能落到面板上。</summary>
+    private long _uiStateSeq;
+
+    /// <summary>用户主动关闭面板的次数，用于丢弃已过时的异步更新。</summary>
+    private long _dismissSeq;
+
+    private bool _isPickingRegion;
+
     private DictionaryStore? _dictionaryStore;
     private StarDictLibrary? _starDictionaries;
     private DpapiSecretStore? _secretStore;
@@ -53,11 +61,30 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        _singleInstanceMutex = new Mutex(initiallyOwned: true, "Global\\Englishwords.Win.Singleton", out var createdNew);
+        // 单实例互斥改到 Local\ 命名空间：不同用户会话可各自运行，同时仍限制同会话多开。
+        var createdNew = true;
+        try
+        {
+            _singleInstanceMutex = new Mutex(initiallyOwned: true, @"Local\Englishwords.Win.Singleton", out createdNew);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // 权限受限时降级为允许多开，而不是直接启动失败
+            FileLog.Write($"单实例互斥创建失败（权限受限，已允许继续启动）: {ex.Message}");
+            _singleInstanceMutex = null;
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write($"单实例互斥创建失败（已允许继续启动）: {ex.Message}");
+            _singleInstanceMutex = null;
+        }
+
         if (!createdNew)
         {
             System.Windows.MessageBox.Show("Englishwords 已在后台运行，请查看系统托盘图标。", "Englishwords",
                 MessageBoxButton.OK, MessageBoxImage.Information);
+            _singleInstanceMutex?.Dispose();
+            _singleInstanceMutex = null;
             Shutdown();
             return;
         }
@@ -70,6 +97,10 @@ public partial class App : System.Windows.Application
     private bool HandleCliIfRequested(string[] args)
     {
         if (args.Length == 0) return false;
+
+        // WinExe 默认没有控制台：先附接到父进程控制台，--check-word / --diagnose 才能正常输出。
+        // 必须在构造任何其它对象之前执行。
+        _ = NativeMethods.AttachConsole(NativeMethods.ATTACH_PARENT_PROCESS);
 
         if (args[0] == "--check-word" && args.Length >= 2)
         {
@@ -141,6 +172,8 @@ public partial class App : System.Windows.Application
         _panel.SpeakRequested += word => _speech?.Speak(word);
         _panel.Dismissed += () =>
         {
+            // 记录主动关闭次数，后续迟到的笔记本写入不能再把面板「诈尸」出来
+            Interlocked.Increment(ref _dismissSeq);
             CancelAllRegionTasks();
             _coordinator?.Cancel();
         };
@@ -155,6 +188,9 @@ public partial class App : System.Windows.Application
 
         _coordinator!.StateChanged += state =>
         {
+            var seq = Interlocked.Increment(ref _uiStateSeq);
+            var dismissAtDispatch = Interlocked.Read(ref _dismissSeq);
+
             Dispatcher.BeginInvoke(async () =>
             {
                 var isFav = false;
@@ -171,6 +207,11 @@ public partial class App : System.Windows.Application
                         FileLog.Write($"笔记本记录失败: {ex.Message}");
                     }
                 }
+
+                // 等待笔记本 IO 期间可能已到达更新的状态，或用户已主动关窗：丢弃这次过时更新
+                if (Interlocked.Read(ref _uiStateSeq) != seq) return;
+                if (Interlocked.Read(ref _dismissSeq) != dismissAtDispatch) return;
+
                 _panel?.UpdateState(state, isFav);
             });
         };
@@ -178,7 +219,8 @@ public partial class App : System.Windows.Application
         _selectionCapture = new SelectionCapture(_preferences);
         _selectionMonitor = new SelectionMonitor(_preferences, _selectionCapture)
         {
-            OnSubmit = SubmitLookup
+            OnSubmit = SubmitLookup,
+            IsInsideOwnWindow = IsScreenPointInsideOwnWindow
         };
         _selectionMonitor.Start();
 
@@ -211,68 +253,136 @@ public partial class App : System.Windows.Application
 
     private async void HandleHotKey(HotKeyAction action)
     {
-        if (action == HotKeyAction.RegionOcr)
+        // async void 里的任何异常会直接弄崩 WPF 进程，必须全包。
+        try
         {
-            await StartRegionOcrAsync();
-            return;
-        }
+            if (action == HotKeyAction.RegionOcr)
+            {
+                await StartRegionOcrAsync();
+                return;
+            }
 
-        if (_selectionCapture is null) return;
-        var trigger = action == HotKeyAction.Translate ? LookupTrigger.Translate : LookupTrigger.Hotkey;
-        var mode = action == HotKeyAction.Translate ? LookupMode.Translate : LookupMode.Lookup;
-        var (text, note) = await _selectionCapture.CaptureAsync(trigger);
-        SubmitLookup(new LookupRequest(text, trigger, mode, note));
+            if (_selectionCapture is null) return;
+            var trigger = action == HotKeyAction.Translate ? LookupTrigger.Translate : LookupTrigger.Hotkey;
+            var mode = action == HotKeyAction.Translate ? LookupMode.Translate : LookupMode.Lookup;
+            var (text, note) = await _selectionCapture.CaptureAsync(trigger);
+            SubmitLookup(new LookupRequest(text, trigger, mode, note));
+        }
+        catch (OperationCanceledException)
+        {
+            // 用户取消，静默
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write($"热键 {action} 处理失败: {ex.Message}");
+        }
     }
 
     private async Task StartRegionOcrAsync()
     {
         if (_ocrEngine is null || _coordinator is null) return;
 
-        CancelAllRegionTasks();
-        _coordinator.Cancel();
+        // 防重入：遮罩还在时就不要再开一层
+        if (_isPickingRegion) return;
+        _isPickingRegion = true;
 
-        // 框选期间暂停被动划词，避免拖选遮罩触发查词
-        var prevSelectionState = _preferences.SelectionLookupEnabled;
-        _preferences.SelectionLookupEnabled = false;
-        Int32Rect? selectedRect = null;
         try
         {
-            var picker = new RegionPickerWindow();
-            if (picker.ShowDialog() == true)
+            CancelAllRegionTasks();
+            _coordinator.Cancel();
+
+            // 框选期间暂停被动划词，避免拖选遮罩触发查词
+            var prevSelectionState = _preferences.SelectionLookupEnabled;
+            _preferences.SelectionLookupEnabled = false;
+            Int32Rect? selectedRect = null;
+            try
             {
-                selectedRect = picker.SelectedPhysicalRect;
+                selectedRect = RegionPickerWindow.PickRegion();
             }
-        }
-        finally
-        {
-            _preferences.SelectionLookupEnabled = prevSelectionState;
-        }
+            finally
+            {
+                _preferences.SelectionLookupEnabled = prevSelectionState;
+            }
 
-        if (selectedRect is not { } rect) return;
+            if (selectedRect is not { } rect) return;
 
-        var requestId = _ocrEngine.NextRequestId();
-        _regionCts = new CancellationTokenSource();
-        var token = _regionCts.Token;
+            // 等 DWM 把暗色遮罩合成清除，否则截图会把自家遮罩一起截进去
+            await Task.Delay(60);
 
-        var loadingReq = new LookupRequest("区域识别中…", LookupTrigger.Region, LookupMode.Lookup);
-        _panel?.UpdateState(new LookupState.Loading(loadingReq));
+            var requestId = _ocrEngine.NextRequestId();
+            var cts = new CancellationTokenSource();
+            _regionCts = cts;
+            var token = cts.Token;
 
-        try
-        {
-            var text = await _ocrEngine.RecognizeRegionAsync(rect, requestId, token);
-            if (token.IsCancellationRequested || !_ocrEngine.IsCurrentRequest(requestId)) return;
-            _regionCts = null;
-            SubmitLookup(new LookupRequest(text, LookupTrigger.Region, LookupMode.Lookup));
-        }
-        catch (OperationCanceledException)
-        {
-            // 已取消
+            var loadingReq = new LookupRequest("区域识别中…", LookupTrigger.Region, LookupMode.Lookup);
+            var loadingShown = false;
+
+            try
+            {
+                // 先把屏幕截好，再在 onCaptured 里展示 Loading，避免把 Loading 窗截入图内
+                var text = await _ocrEngine.RecognizeRegionAsync(rect, requestId, token, onCaptured: () =>
+                {
+                    if (loadingShown) return;
+                    loadingShown = true;
+                    Dispatcher.Invoke(() => _panel?.UpdateState(new LookupState.Loading(loadingReq)));
+                });
+
+                if (token.IsCancellationRequested || !_ocrEngine.IsCurrentRequest(requestId)) return;
+                SubmitLookup(new LookupRequest(text, LookupTrigger.Region, LookupMode.Lookup));
+            }
+            catch (OperationCanceledException)
+            {
+                // 已取消
+            }
+            catch (Exception ex)
+            {
+                if (token.IsCancellationRequested || !_ocrEngine.IsCurrentRequest(requestId)) return;
+                _panel?.UpdateState(new LookupState.Failure(loadingReq, ex.Message));
+            }
+            finally
+            {
+                if (ReferenceEquals(_regionCts, cts))
+                {
+                    _regionCts = null;
+                }
+                cts.Dispose();
+            }
         }
         catch (Exception ex)
         {
-            if (token.IsCancellationRequested || !_ocrEngine.IsCurrentRequest(requestId)) return;
-            _panel?.UpdateState(new LookupState.Failure(loadingReq, ex.Message));
+            FileLog.Write($"区域取词失败: {ex.Message}");
         }
+        finally
+        {
+            _isPickingRegion = false;
+        }
+    }
+
+    /// <summary>
+    /// 判断物理屏幕坐标是否落在自家窗口内（面板 / 设置 / 笔记本），
+    /// 用于排除在自家窗口上拖选时误触发划词。
+    /// </summary>
+    private bool IsScreenPointInsideOwnWindow(int x, int y)
+    {
+        if (_panel?.ContainsScreenPoint(x, y) == true) return true;
+        return WindowContainsScreenPoint(_settingsWindow, x, y)
+               || WindowContainsScreenPoint(_notebookWindow, x, y);
+    }
+
+    private static bool WindowContainsScreenPoint(Window? window, int x, int y)
+    {
+        if (window is null || !window.IsVisible) return false;
+
+        var dpi = System.Windows.Media.VisualTreeHelper.GetDpi(window);
+        var scaleX = dpi.DpiScaleX > 0 ? dpi.DpiScaleX : 1.0;
+        var scaleY = dpi.DpiScaleY > 0 ? dpi.DpiScaleY : 1.0;
+
+        var left = window.Left * scaleX;
+        var top = window.Top * scaleY;
+        var right = left + window.ActualWidth * scaleX;
+        var bottom = top + window.ActualHeight * scaleY;
+
+        return x >= left && x <= right && y >= top && y <= bottom;
     }
 
     private void CancelAllRegionTasks()
@@ -315,6 +425,10 @@ public partial class App : System.Windows.Application
         }
         else
         {
+            if (_notebookWindow.WindowState == WindowState.Minimized)
+            {
+                _notebookWindow.WindowState = WindowState.Normal;
+            }
             _notebookWindow.Activate();
             _ = _notebookWindow.RefreshAsync();
         }
@@ -331,11 +445,23 @@ public partial class App : System.Windows.Application
                 _starDictionaries,
                 _secretStore,
                 _translator,
-                () => _hotKeys?.ApplyPreferences(_preferences));
+                () =>
+                {
+                    var conflicts = _hotKeys?.ApplyPreferences(_preferences) ?? new List<string>();
+                    if (conflicts.Count > 0)
+                    {
+                        FileLog.Write("热键冲突: " + string.Join("; ", conflicts));
+                    }
+                    return conflicts;
+                });
             _settingsWindow.Show();
         }
         else
         {
+            if (_settingsWindow.WindowState == WindowState.Minimized)
+            {
+                _settingsWindow.WindowState = WindowState.Normal;
+            }
             _settingsWindow.Activate();
         }
     }
@@ -354,6 +480,7 @@ public partial class App : System.Windows.Application
         _coordinator?.Cancel();
         _selectionMonitor?.Dispose();
         _hotKeys?.Dispose();
+        _trayIcon?.ContextMenuStrip?.Dispose();
         _trayIcon?.Dispose();
         _speech?.Dispose();
         _notebookStore?.Dispose();

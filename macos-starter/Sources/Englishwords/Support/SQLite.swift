@@ -20,7 +20,14 @@ enum SQLite {
         let stmt = try prepare(db, sql)
         defer { sqlite3_finalize(stmt) }
         sqlite3_bind_text(stmt, 1, argument, -1, SQLITE_TRANSIENT)
-        guard sqlite3_step(stmt) == SQLITE_ROW, let text = sqlite3_column_text(stmt, 0) else { return nil }
-        return String(cString: text)
+        switch sqlite3_step(stmt) {
+        case SQLITE_ROW:
+            guard let text = sqlite3_column_text(stmt, 0) else { return nil }
+            return String(cString: text)
+        case SQLITE_DONE:
+            return nil
+        default:
+            throw DictionaryError.query(String(cString: sqlite3_errmsg(db)))
+        }
     }
 }

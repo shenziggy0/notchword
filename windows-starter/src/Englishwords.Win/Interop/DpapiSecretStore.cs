@@ -110,6 +110,10 @@ public sealed class DpapiSecretStore : ISecretReader
         var json = JsonSerializer.Serialize(map);
         var plain = Encoding.UTF8.GetBytes(json);
         var encrypted = ProtectedData.Protect(plain, null, DataProtectionScope.CurrentUser);
-        File.WriteAllBytes(_filePath, encrypted);
+
+        // 先写同目录临时文件再原子替换，避免写到一半断电/崩溃把密钥文件写坏。
+        var tempPath = _filePath + ".tmp";
+        File.WriteAllBytes(tempPath, encrypted);
+        File.Move(tempPath, _filePath, overwrite: true);
     }
 }

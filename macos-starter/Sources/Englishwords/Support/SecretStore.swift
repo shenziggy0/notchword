@@ -54,7 +54,16 @@ enum SecretStore {
     }
 
     static func hasSecret(account: String) -> Bool {
-        (read(account: account) ?? "").isEmpty == false
+        // 只查属性，不读密文
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account,
+            kSecReturnAttributes as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        return SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess && item != nil
     }
 
     @discardableResult
@@ -113,7 +122,7 @@ enum SecretStore {
     }
 
     /// 旧 service 的条目复制到新 service。`openai-compatible` 改存为 `custom`。
-    /// 新条目写入成功后才删除旧条目；任一条失败则整体未完成，下次启动再试。
+    /// 新版已有密钥时保留新版不覆盖；空白旧密钥直接删除。
     private static func migrateKeychain() -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -143,9 +152,19 @@ enum SecretStore {
         for item in items {
             guard let account = accountName(item),
                   let data = item[kSecValueData as String] as? Data,
-                  let secret = String(data: data, encoding: .utf8),
-                  !secret.isEmpty else { continue }
+                  let secret = String(data: data, encoding: .utf8) else { continue }
             let destination = account == legacyAccount ? "custom" : account
+
+            // 空旧条目没有迁移价值，删掉避免每次启动重试
+            guard !secret.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                guard deleteLegacy(account: account) else { return false }
+                continue
+            }
+            // 新版已经存了密钥：不覆盖用户的新值
+            if hasSecret(account: destination) {
+                guard deleteLegacy(account: account) else { return false }
+                continue
+            }
             switch save(secret, account: destination) {
             case .success:
                 guard deleteLegacy(account: account) else {

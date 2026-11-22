@@ -86,7 +86,9 @@ final class TranslationSessionHost {
         if activeID == id {
             let continuation = activeContinuation
             activeContinuation = nil
+            activeID = nil
             activeTask?.cancel()
+            activeTask = nil
             continuation?.resume(throwing: TranslationError.cancelled)
         }
     }
@@ -110,6 +112,8 @@ final class TranslationSessionHost {
         )
         window.contentView = hosting
         window.isReleasedWhenClosed = false
+        window.canHide = false
+        window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle]
         window.alphaValue = 0
         window.ignoresMouseEvents = true
         window.hasShadow = false
@@ -122,6 +126,13 @@ final class TranslationSessionHost {
 
     private func serve(_ session: TranslationSession, configuration: TranslationSession.Configuration?) async {
         guard let stream, !Task.isCancelled, self.configuration == configuration else { return }
+        // 退出时清空状态，否则后续请求会以为旧会话还能用
+        defer {
+            if self.configuration == configuration {
+                self.configuration = nil
+                self.model.configuration = nil
+            }
+        }
         for await _ in stream {
             guard !Task.isCancelled, self.configuration == configuration else { break }
             // 旧会话的框架调用可能还未释放，完成后会唤醒新会话。

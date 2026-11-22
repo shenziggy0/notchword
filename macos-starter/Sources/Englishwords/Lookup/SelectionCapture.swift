@@ -31,7 +31,7 @@ enum SelectionCapture {
         }
     }
 
-    static func read() -> Result {
+    static func read() async -> Result {
         // 注意：这里不要求辅助功能授权。AX 读取会自己检查权限，
         // 而模拟复制的按键投递在当前环境下不需要该授权（实测可用）。
         if let text = AXPicker.selectedText() {
@@ -39,7 +39,7 @@ enum SelectionCapture {
         }
         // 密码管理器里不做模拟复制，避免密码经过剪贴板
         guard !AppRules.isFrontmostExcluded else { return Result(text: nil, source: .empty) }
-        if let text = copySelection() {
+        if let text = await copySelection() {
             return Result(text: text, source: .copy)
         }
         return Result(text: nil, source: .empty)
@@ -47,18 +47,18 @@ enum SelectionCapture {
 
     // MARK: - 模拟复制
 
-    private static func copySelection() -> String? {
+    private static func copySelection() async -> String? {
         let pasteboard = NSPasteboard.general
         let before = pasteboard.changeCount
         let snapshot = PasteboardSnapshot(pasteboard)
 
         FileLog.write("选区：AX 读不到，尝试模拟复制")
-        postCommandC()
+        await postCommandC()
 
         // 等目标应用把内容写进剪贴板，最多 300ms
         for _ in 0..<30 {
             if pasteboard.changeCount != before { break }
-            usleep(10_000)
+            try? await Task.sleep(for: .milliseconds(10))
         }
 
         // 没有变化说明没有选区（或应用不响应 ⌘C），此时不必改写剪贴板
@@ -69,12 +69,19 @@ enum SelectionCapture {
 
         let copied = (pasteboard.string(forType: .string) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        FileLog.write("选区：模拟复制得到 \(copied.count) 字符，已还原剪贴板")
-        snapshot.restore(to: pasteboard)
+        // 只有剪贴板仍是我们刚复制的文本时才还原，避免覆盖用户刚主动按的 ⌘C
+        let current = pasteboard.string(forType: .string)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        if current == copied {
+            snapshot.restore(to: pasteboard)
+            FileLog.write("选区：模拟复制得到 \(copied.count) 字符，已还原剪贴板")
+        } else {
+            FileLog.write("选区：模拟复制得到 \(copied.count) 字符，剪贴板已被改写，保留当前内容")
+        }
         return copied.isEmpty ? nil : copied
     }
 
-    private static func postCommandC() {
+    private static func postCommandC() async {
         let source = CGEventSource(stateID: .combinedSessionState)
         let keyCode = CGKeyCode(kVK_ANSI_C)
 
@@ -84,7 +91,7 @@ enum SelectionCapture {
         down.flags = .maskCommand
         up.flags = .maskCommand
         down.post(tap: .cgSessionEventTap)
-        usleep(20_000)
+        try? await Task.sleep(for: .milliseconds(20))
         up.post(tap: .cgSessionEventTap)
     }
 }
@@ -105,9 +112,12 @@ struct PasteboardSnapshot {
     }
 
     func restore(to pasteboard: NSPasteboard) {
+        let transient = NSPasteboard.PasteboardType("org.nspasteboard.TransientType")
         let objects: [NSPasteboardItem] = items.map { entry in
             let item = NSPasteboardItem()
             for (type, data) in entry { item.setData(data, forType: type) }
+            // 标记为瞬态，让剪贴板管理器忽略这次写回
+            item.setData(Data(), forType: transient)
             return item
         }
         pasteboard.clearContents()

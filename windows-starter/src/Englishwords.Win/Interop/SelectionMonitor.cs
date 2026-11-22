@@ -19,6 +19,7 @@ public sealed class SelectionMonitor : IDisposable
     private readonly Preferences _preferences;
     private readonly SelectionCapture _capture;
     private readonly NativeMethods.LowLevelHookProc _mouseProc;
+    private readonly object _dedupSync = new();
 
     private IntPtr _mouseHook = IntPtr.Zero;
     private NativeMethods.POINT _downPoint;
@@ -29,6 +30,12 @@ public sealed class SelectionMonitor : IDisposable
     private DateTimeOffset _lastSubmittedAt;
 
     public Func<LookupRequest, bool>? OnSubmit { get; set; }
+
+    /// <summary>
+    /// 判断屏幕坐标是否落在自家窗口（悬浮面板 / 设置 / 笔记本）内，
+    /// 避免拖选自家面板时又触发一次取词。
+    /// </summary>
+    public Func<int, int, bool>? IsInsideOwnWindow { get; set; }
 
     public SelectionMonitor(Preferences preferences, SelectionCapture capture)
     {
@@ -64,29 +71,51 @@ public sealed class SelectionMonitor : IDisposable
 
     private IntPtr MouseHookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
-        if (nCode >= 0 && _preferences.SelectionLookupEnabled)
+        if (nCode < 0 || !_preferences.SelectionLookupEnabled)
         {
-            var msg = wParam.ToInt32();
-            var info = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
+            return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+        }
 
-            if (msg == NativeMethods.WM_LBUTTONDOWN)
+        var msg = wParam.ToInt32();
+
+        // 先判按键再封送：全系统的 WM_MOUSEMOVE 占绝对多数，不应该每条都做一次 Marshal。
+        if (msg != NativeMethods.WM_LBUTTONDOWN && msg != NativeMethods.WM_LBUTTONUP)
+        {
+            return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+        }
+
+        var info = Marshal.PtrToStructure<NativeMethods.MSLLHOOKSTRUCT>(lParam);
+
+        if (msg == NativeMethods.WM_LBUTTONDOWN)
+        {
+            _downPoint = info.pt;
+            _isMouseDown = !IsInOwnWindow(info.pt.X, info.pt.Y);
+        }
+        else if (_isMouseDown)
+        {
+            _isMouseDown = false;
+            var dx = Math.Abs(info.pt.X - _downPoint.X);
+            var dy = Math.Abs(info.pt.Y - _downPoint.Y);
+            if ((dx > DragThresholdPixels || dy > DragThresholdPixels) && !IsInOwnWindow(info.pt.X, info.pt.Y))
             {
-                _downPoint = info.pt;
-                _isMouseDown = true;
-            }
-            else if (msg == NativeMethods.WM_LBUTTONUP && _isMouseDown)
-            {
-                _isMouseDown = false;
-                var dx = Math.Abs(info.pt.X - _downPoint.X);
-                var dy = Math.Abs(info.pt.Y - _downPoint.Y);
-                if (dx > DragThresholdPixels || dy > DragThresholdPixels)
-                {
-                    var upPoint = info.pt;
-                    System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => ScheduleCapture(upPoint));
-                }
+                var upPoint = info.pt;
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => ScheduleCapture(upPoint));
             }
         }
+
         return NativeMethods.CallNextHookEx(_mouseHook, nCode, wParam, lParam);
+    }
+
+    private bool IsInOwnWindow(int x, int y)
+    {
+        try
+        {
+            return IsInsideOwnWindow?.Invoke(x, y) ?? false;
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private void ScheduleCapture(NativeMethods.POINT anchor)
@@ -110,10 +139,13 @@ public sealed class SelectionMonitor : IDisposable
 
                 var normalized = text.Trim();
                 var now = DateTimeOffset.UtcNow;
-                if (string.Equals(normalized, _lastSubmittedText, StringComparison.Ordinal) &&
-                    now - _lastSubmittedAt < DeduplicateWindow)
+                lock (_dedupSync)
                 {
-                    return;
+                    if (string.Equals(normalized, _lastSubmittedText, StringComparison.Ordinal) &&
+                        now - _lastSubmittedAt < DeduplicateWindow)
+                    {
+                        return;
+                    }
                 }
 
                 var req = new LookupRequest(
@@ -128,8 +160,11 @@ public sealed class SelectionMonitor : IDisposable
                 var accepted = OnSubmit?.Invoke(req) ?? false;
                 if (accepted)
                 {
-                    _lastSubmittedText = normalized;
-                    _lastSubmittedAt = now;
+                    lock (_dedupSync)
+                    {
+                        _lastSubmittedText = normalized;
+                        _lastSubmittedAt = now;
+                    }
                 }
             }
             catch (OperationCanceledException)

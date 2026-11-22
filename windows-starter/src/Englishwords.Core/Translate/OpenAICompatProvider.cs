@@ -61,13 +61,15 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
             }
         };
 
-        using var httpReq = new HttpRequestMessage(HttpMethod.Post, endpoint)
+        var body = await SendAsync(_httpClient, () =>
         {
-            Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
-        };
-        httpReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
-
-        var body = await SendAsync(_httpClient, httpReq, Timeout, cancellationToken).ConfigureAwait(false);
+            var message = new HttpRequestMessage(HttpMethod.Post, endpoint)
+            {
+                Content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json")
+            };
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
+            return message;
+        }, Timeout, cancellationToken).ConfigureAwait(false);
         var content = ExtractContent(body)
             ?? throw new TranslationException(TranslationErrorKind.Service, "响应格式无法解析");
 
@@ -80,10 +82,13 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
     public async Task<IReadOnlyList<string>> FetchModelsAsync(CancellationToken cancellationToken = default)
     {
         var endpoint = AppendPath(BaseUrl, "models");
-        using var httpReq = new HttpRequestMessage(HttpMethod.Get, endpoint);
-        httpReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
 
-        var body = await SendAsync(_httpClient, httpReq, Timeout, cancellationToken).ConfigureAwait(false);
+        var body = await SendAsync(_httpClient, () =>
+        {
+            var message = new HttpRequestMessage(HttpMethod.Get, endpoint);
+            message.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ApiKey);
+            return message;
+        }, Timeout, cancellationToken).ConfigureAwait(false);
         return ParseModels(body);
     }
 
@@ -118,9 +123,13 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
         }
     }
 
+    /// <summary>
+    /// 发出请求并读取响应体。请求对象在 <c>workTask</c> 内部创建与释放，
+    /// 超时返回时不会提前 Dispose 仍在飞的 <see cref="HttpRequestMessage"/>。
+    /// </summary>
     internal static async Task<string> SendAsync(
         HttpClient client,
-        HttpRequestMessage request,
+        Func<HttpRequestMessage> createRequest,
         TimeSpan timeout,
         CancellationToken cancellationToken)
     {
@@ -128,6 +137,7 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
         {
             return await TimeoutHelper.RunWithTimeoutAsync(timeout, async ct =>
             {
+                using var request = createRequest();
                 using var resp = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
                     .ConfigureAwait(false);
                 var data = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
@@ -146,7 +156,10 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
         }
         catch (OperationCanceledException)
         {
-            throw new TranslationException(TranslationErrorKind.Cancelled);
+            // 只有调用方主动取消才算 Cancelled；HttpClient 自身超时也要报 TimedOut。
+            throw new TranslationException(cancellationToken.IsCancellationRequested
+                ? TranslationErrorKind.Cancelled
+                : TranslationErrorKind.TimedOut);
         }
         catch (Exception ex)
         {
@@ -205,11 +218,22 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
         {
             if (text.Length >= 2 && text[0] == leading && text[^1] == trailing)
             {
-                text = text[1..^1];
+                var inner = text[1..^1];
+                // 仅当外层成对引号且内部无同种引号时才剥离：
+                // “苹果”和“橘子” 这种内部带引号的译文不能被削掉一层。
+                if (inner.Contains(leading) || inner.Contains(trailing)) continue;
+
+                text = inner;
                 break;
             }
         }
         return text.Trim();
+    }
+
+    private static string Clip(string? detail)
+    {
+        var s = (detail ?? string.Empty).Trim();
+        return s.Length == 0 ? string.Empty : "：" + (s.Length > 120 ? s[..120] : s);
     }
 
     private static string ExtractErrorDetail(string json)
@@ -217,19 +241,29 @@ public sealed partial class OpenAICompatProvider : ITranslationProviding
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("error", out var err) &&
-                err.TryGetProperty("message", out var msg) &&
-                msg.ValueKind == JsonValueKind.String)
+
+            if (doc.RootElement.TryGetProperty("error", out var err))
             {
-                var s = msg.GetString() ?? string.Empty;
-                return "：" + (s.Length > 120 ? s[..120] : s);
+                if (err.ValueKind == JsonValueKind.String) return Clip(err.GetString());
+
+                if (err.ValueKind == JsonValueKind.Object &&
+                    err.TryGetProperty("message", out var msg) &&
+                    msg.ValueKind == JsonValueKind.String)
+                {
+                    return Clip(msg.GetString());
+                }
+            }
+
+            if (doc.RootElement.TryGetProperty("detail", out var detail) &&
+                detail.ValueKind == JsonValueKind.String)
+            {
+                return Clip(detail.GetString());
             }
 
             if (doc.RootElement.TryGetProperty("message", out var topMsg) &&
                 topMsg.ValueKind == JsonValueKind.String)
             {
-                var s = topMsg.GetString() ?? string.Empty;
-                return "：" + (s.Length > 120 ? s[..120] : s);
+                return Clip(topMsg.GetString());
             }
         }
         catch

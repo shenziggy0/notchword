@@ -46,13 +46,14 @@ SOFTWARE.
 | 来源 | 本项目整理，词源依据维基词典（Wiktionary）各词条 Etymology 段 |
 | 输入文件 | `data/morphemes.tsv`、`data/wordparts.tsv` |
 | 许可 | CC BY-SA 4.0 |
-| 规模 | 170 个语素、147 个词 |
+| 规模 | 4,550 个语素、7,757 个拆分词（另含 3,698 个单纯词，覆盖 11,444 个目标词） |
 | 转换 | `scripts/build_wordparts.py` |
 
 说明：
 
 - 只收录拆分可完整拼回原词的条目。没有把握的词不生成拆分，查询时如实缺省。
-- 覆盖范围有限（不是全量词根库）；扩充分片只需往两个 TSV 追加行并重跑脚本。
+- 覆盖七类考试标签与小学补充目标词（合计 11,444 词）：拆分词 7,757 条、单纯词 3,698 条，无未判定缺口。
+- 不是全量词根库；扩充分片只需往两个 TSV 追加行并重跑脚本。
 - `segments` 使用词内的实际拼写（如 `believ`），语素词典形态（`believe`）另存于 `parts.label`。
 - 词源归属 Wiktionary 各词条贡献者，参见对应词条历史及 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)。
 - 小学补充目标来自 [Wiktionary 基础英语词表固定修订](https://en.wiktionary.org/wiki/Special:PermanentLink/78256317)。

@@ -491,7 +491,7 @@
               <span class="word" id="pWord">abduct</span>
               <span class="phonetic" id="pPhon">/əbˈdʌkt/</span>
               <span class="spacer"></span>
-              <button class="icon-btn" id="btnSpeak" title="朗读 (⌘R)" aria-label="朗读单词">
+              <button class="icon-btn" id="btnSpeak" title="朗读" aria-label="朗读单词">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
               </button>
               <button class="icon-btn" id="btnStar" title="收藏" aria-label="收藏单词">
@@ -679,6 +679,7 @@ let currentWord  = 'abduct';
 let currentMode  = 'lookup';   // lookup | subs
 let currentTrig  = '悬停取词';
 let isOpen       = false;
+let leaveTimer   = null;       // 离开收起的延时句柄，重新打开时主动取消
 
 /* ==================== 渲染 ==================== */
 const ROLE_CN = { prefix: '前缀', root: '词根', suffix: '后缀' };
@@ -711,7 +712,6 @@ function renderWord(key){
   document.getElementById('pOrigin').innerHTML = w.origin ? `词源：${w.origin}` : '';
 
   // 紧凑态
-  const firstGloss = w.segs.find(s => s.role === 'root')?.gl || w.trans;
   document.getElementById('compactWord').textContent    = key;
   document.getElementById('compactMeaning').textContent = w.trans.split(/[；;]/)[0];
 
@@ -745,6 +745,7 @@ function setMode(mode){
 
 /* ==================== 展开 / 收起 ==================== */
 function open(){
+  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
   if (isOpen) return;
   isOpen = true;
   notch.classList.add('open');
@@ -760,7 +761,9 @@ function toggle(){ isOpen ? close() : open(); }
 /* 悬停展开（对齐原程序 expandsOnNotchHover） */
 notch.addEventListener('mouseenter', open);
 document.querySelector('.notch-layer').addEventListener('mouseleave', () => {
-  if (currentMode !== 'subs') setTimeout(() => { if (!notch.matches(':hover')) close(); }, 900);
+  if (currentMode !== 'subs') {
+    leaveTimer = setTimeout(() => { leaveTimer = null; if (!notch.matches(':hover')) close(); }, 900);
+  }
 });
 
 /* ==================== 控制台 ==================== */
@@ -771,12 +774,14 @@ document.getElementById('ctrlWords').addEventListener('click', e => {
   const b = e.target.closest('button');
   if (!b) return;
   setMode('lookup');
+  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
   renderWord(b.dataset.word);
   open();
 });
 
 /* 触发方式：唯一状态源 */
 function setTrigger(name, expand){
+  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
   currentTrig = name;
   [...document.querySelectorAll('#ctrlTrigger button')].forEach(b =>
     b.classList.toggle('active', b.dataset.trigger === name));
@@ -820,7 +825,7 @@ document.getElementById('btnClose2').addEventListener('click', close);
 
 /* ==================== 键盘 ==================== */
 window.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
   if (e.key === 'Escape') { close(); return; }
   if (e.key === 'h' || e.key === 'H') { toggle(); return; }
   if (e.key === ' ') { e.preventDefault(); toggle(); }

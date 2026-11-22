@@ -37,11 +37,26 @@ enum SentenceMerger {
         let b = right.split(separator: " ")
         if !a.isEmpty, !b.isEmpty {
             for count in stride(from: min(a.count, b.count), through: 1, by: -1) {
-                if a.suffix(count).elementsEqual(b.prefix(count)) {
+                // 比对时去首尾标点并忽略大小写，但拼接仍用原文
+                let tail = a.suffix(count).map(Self.comparable)
+                let head = b.prefix(count).map(Self.comparable)
+                if tail == head {
                     return (a + b.dropFirst(count)).joined(separator: " ")
                 }
             }
         }
         return left + " " + right
+    }
+
+    private static func comparable(_ word: Substring) -> String {
+        var value = word.lowercased()
+        let punctuation = CharacterSet.punctuationCharacters.union(.symbols)
+        while let first = value.unicodeScalars.first, punctuation.contains(first) {
+            value.removeFirst()
+        }
+        while let last = value.unicodeScalars.last, punctuation.contains(last) {
+            value.removeLast()
+        }
+        return value
     }
 }

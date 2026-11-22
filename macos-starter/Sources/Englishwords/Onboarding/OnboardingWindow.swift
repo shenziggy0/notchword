@@ -13,7 +13,8 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
 
     func show() {
         if window == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: OnboardingView(controller: self)))
+            let view = OnboardingView(controller: self, preferences: preferences)
+            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
             window.title = "开始使用 Englishwords"
             window.styleMask = [.titled, .closable]
             window.setContentSize(NSSize(width: 440, height: 238))
@@ -40,7 +41,12 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
 
     func windowWillClose(_ notification: Notification) {
         preferences.sawOnboarding = true
-        if !NSApp.windows.contains(where: { $0 !== window && $0.isVisible && $0.styleMask.contains(.titled) }) {
+        let closing = notification.object as? NSWindow
+        // 断开 controller ↔ window ↔ hosting view 的引用环
+        if closing === window { window = nil }
+        if !NSApp.windows.contains(where: {
+            $0 !== closing && ($0.isVisible || $0.isMiniaturized) && $0.styleMask.contains(.titled)
+        }) {
             NSApp.setActivationPolicy(.accessory)
         }
     }
@@ -48,6 +54,7 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
 
 private struct OnboardingView: View {
     @ObservedObject var controller: OnboardingWindow
+    @ObservedObject var preferences: Preferences
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -56,7 +63,7 @@ private struct OnboardingView: View {
             Group {
                 switch controller.step {
                 case 0:
-                    Text("选中英文后，按 ⌥D 查词，或按 ⌥T 翻译。你也可以从菜单栏查剪贴板。")
+                    Text("选中英文后，按 \(preferences.lookupHotKey.display) 查词，或按 \(preferences.translateHotKey.display) 翻译。你也可以从菜单栏查剪贴板。")
                 case 1:
                     Text("辅助功能权限用于悬停、划词和读取选区。你也可以稍后从设置授予。")
                     Button("打开辅助功能设置") {
@@ -64,7 +71,7 @@ private struct OnboardingView: View {
                         Permissions.openAccessibilitySettings()
                     }
                 default:
-                    Text("按 ⌥R 可以框选屏幕。要从浏览器查字幕，请在设置中启用字幕并允许浏览器接收 Apple 事件。")
+                    Text("按 \(preferences.regionHotKey.display) 可以框选屏幕。要从浏览器查字幕，请在设置中启用字幕并允许浏览器接收 Apple 事件。")
                     Text("屏幕录制和浏览器自动化将在使用时申请。").foregroundStyle(.secondary)
                 }
             }

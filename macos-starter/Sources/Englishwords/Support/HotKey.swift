@@ -24,6 +24,11 @@ final class HotKeyCenter {
 
     private static let signature: OSType = 0x45574457 // 'EWDW'
 
+    static let shared = HotKeyCenter()
+
+    /// 录制快捷键时暂停触发，避免按下旧组合就弹面板。
+    var isPaused = false
+
     private struct Entry {
         let ref: EventHotKeyRef
         let action: () -> Void
@@ -96,6 +101,7 @@ final class HotKeyCenter {
     }
 
     private func fire(_ identifier: UInt32) {
+        guard !isPaused else { return }
         entries[identifier]?.action()
     }
 

@@ -127,16 +127,18 @@ enum AXPicker {
     }
 
     /// 向下找真正带文字的视图；元素的 frame 必须包含指针，避免拿到整页容器。
+    /// 先下钻包含指针的子节点，子节点都没有文字时才检查容器自身，
+    /// 防止带 AXTitle 的容器阻断内部文字。
     private static func textBearingElement(at point: CGPoint,
                                            in element: AXUIElement,
                                            depth: Int = 0) -> AXUIElement? {
-        if let text = textContent(of: element), !text.isEmpty { return element }
-        guard depth < 5 else { return nil }
-
-        for child in children(of: element) {
-            if let frame = frame(of: child), !frame.contains(point) { continue }
-            if let found = textBearingElement(at: point, in: child, depth: depth + 1) { return found }
+        if depth < 5 {
+            for child in children(of: element) {
+                if let frame = frame(of: child), !frame.contains(point) { continue }
+                if let found = textBearingElement(at: point, in: child, depth: depth + 1) { return found }
+            }
         }
+        if let text = textContent(of: element), !text.isEmpty { return element }
         return nil
     }
 
@@ -170,7 +172,11 @@ enum AXPicker {
               let element = value else { return nil }
 
         var pid: pid_t = 0
-        if AXUIElementGetPid(element, &pid) == .success, pid == getpid() { return nil }
+        if AXUIElementGetPid(element, &pid) == .success {
+            if pid == getpid() { return nil }
+            if let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
+               AppRules.isExcluded(bundleID) { return nil }
+        }
         return element
     }
 
@@ -201,6 +207,11 @@ enum AXPicker {
         while low <= high {
             let mid = (low + high) / 2
             guard let rect = bounds(for: mid, in: element) else { return found }
+            // 换行或视口外的空矩形会把二分推偏，直接跳过
+            if rect.width <= 0 || rect.height <= 0 {
+                low = mid + 1
+                continue
+            }
             if rect.maxY < point.y - 1 {
                 low = mid + 1
             } else if rect.minY > point.y + 1 {
@@ -213,6 +224,11 @@ enum AXPicker {
             } else {
                 return mid
             }
+        }
+        // 行末端右侧空白处不应命中行末单词
+        if let found, let charRect = bounds(for: found, in: element),
+           point.x - charRect.maxX > max(24, charRect.height * 1.5) {
+            return nil
         }
         return found
     }

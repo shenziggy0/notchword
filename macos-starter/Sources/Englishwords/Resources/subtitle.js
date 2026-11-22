@@ -40,17 +40,15 @@
   function cues(track, current) {
     if (!track || !track.cues) return [];
     return Array.from(track.cues)
-      .filter(cue => cue.endTime >= current - 45 && cue.startTime <= current + 45)
+      .filter(cue => Number.isFinite(cue.startTime) && Number.isFinite(cue.endTime)
+        && cue.endTime >= current - 45 && cue.startTime <= current + 45)
       .slice(-80).map(cue => ({ text: clean(cue.text || ""), start: cue.startTime, end: cue.endTime }))
       .filter(cue => cue.text);
   }
 
   const selectors = [
     ["youtube.com", ".ytp-caption-segment"],
-    ["netflix.com", ".player-timedtext-text-container"],
-    ["bilibili.com", ".bpx-player-subtitle-panel-text, .bilibili-player-video-subtitle span"],
-    ["primevideo.com", ".atvwebplayersdk-captions-text, .webPlayerSDKContainer .subtitles"],
-    ["amazon.com", ".atvwebplayersdk-captions-text"]
+    ["bilibili.com", ".bpx-player-subtitle-panel-text, .bilibili-player-video-subtitle span"]
   ];
 
   function captionText() {
@@ -86,17 +84,21 @@
     if (protectedVideo || advertisement) return JSON.stringify({ mode: protectedVideo ? "drm" : "ad", videoID: state.id });
 
     const tracks = Array.from(video.textTracks || []).filter(track => ["captions", "subtitles"].includes(track.kind));
-    const english = tracks.find(track => /^en(?:-|$)/i.test(track.language) && track.mode !== "disabled") ||
+    const english = tracks.find(track => /^(?:en|eng)(?:[-_]|$)/i.test(track.language) && track.mode !== "disabled") ||
       tracks.find(track => track.mode === "showing" && !track.language);
-    const chinese = tracks.find(track => /^zh(?:-|$)/i.test(track.language) && track.mode !== "disabled");
+    const chinese = tracks.find(track => /^(?:zh|zho|chi)(?:[-_]|$)/i.test(track.language) && track.mode !== "disabled");
 
-    let primary = cues(english, current).filter(cue => cue.start <= current);
+    // 先滤已播条目，再取最近 80 条，避免已播内容被空白片段挤掉
+    let primary = cues(english, current).filter(cue => cue.start <= current).slice(-80);
     if (!primary.length) {
       const text = captionText();
       const last = state.cues.at(-1);
       if (last && (current + 0.25 < last.start || current - last.end > 45)) state.cues = [];
-      if (text && text !== state.cues.at(-1)?.text) {
-        state.cues.push({ text, start: current, end: current });
+      if (text && text === state.cues.at(-1)?.text) {
+        // 同一句仍在屏上：延长结束时间，供合句与时间对齐使用
+        state.cues.at(-1).end = current;
+      } else if (text) {
+        state.cues.push({ text, start: current, end: current + 1.5 });
         if (state.cues.length > 80) state.cues.shift();
       }
       primary = state.cues;

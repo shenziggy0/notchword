@@ -9,6 +9,7 @@ final class HotKeyRecorder: ObservableObject {
 
     func begin(name: String, current: @escaping () -> [HotKeySpec], apply: @escaping (HotKeySpec) -> Void) {
         cancel()
+        HotKeyCenter.shared.isPaused = true
         recording = name
         message = "按下新快捷键，Esc 取消。"
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -47,5 +48,6 @@ final class HotKeyRecorder: ObservableObject {
         monitor = nil
         recording = nil
         message = ""
+        HotKeyCenter.shared.isPaused = false
     }
 }

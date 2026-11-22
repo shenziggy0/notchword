@@ -41,6 +41,8 @@ final class TranslationCoordinator: Translating {
             return result
         } catch {
             if Task.isCancelled || TranslationError.isCancellation(error) { throw TranslationError.cancelled }
+            // 空白输入不降级联网
+            if case TranslationError.emptyText = error { throw error }
             localFailure = error
         }
 
@@ -61,13 +63,14 @@ final class TranslationCoordinator: Translating {
     }
 
     /// 密钥缺失或配置非法时，不构造联网服务。
-    private func makeOnlineProvider() -> (any TranslationProviding)? {
+    /// `requireModel` 为 false 时只校验地址与密钥（模型列表接口不需要模型名）。
+    private func makeOnlineProvider(requireModel: Bool = true) -> (any TranslationProviding)? {
         if let onlineProvider { return onlineProvider() }
         let trimmed = preferences.onlineAddress.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme),
               let host = url.host, !host.isEmpty else { return nil }
         let model = preferences.onlineModel.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !model.isEmpty else { return nil }
+        if requireModel, model.isEmpty { return nil }
         guard let key = SecretStore.read(account: preferences.translationPreset.rawValue), !key.isEmpty else { return nil }
         return preferences.translationPreset.makeProvider(url: url, model: model, key: key)
     }
@@ -79,7 +82,7 @@ final class TranslationCoordinator: Translating {
     }
 
     func listModels() async throws -> [String] {
-        guard let provider = makeOnlineProvider() as? OpenAICompatProvider else {
+        guard let provider = makeOnlineProvider(requireModel: false) as? OpenAICompatProvider else {
             throw TranslationError.configurationMissing
         }
         return try await provider.fetchModels()

@@ -22,13 +22,24 @@ dotnet publish src\Englishwords.Win\Englishwords.Win.csproj `
     -c Release `
     -r win-x64 `
     --self-contained $SelfContainedFlag `
-    -o $PublishDir
+    -o $PublishDir `
+    "-p:Version=$Version"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $ExePath = Join-Path $PublishDir "Englishwords.Win.exe"
 Write-Host "==> 随包词库自检: --check-word unbelievable"
-& $ExePath --check-word unbelievable
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+$OutLog = Join-Path $PublishDir "selfcheck-out.txt"
+$ErrLog = Join-Path $PublishDir "selfcheck-err.txt"
+$Proc = Start-Process -FilePath $ExePath -ArgumentList "--check-word","unbelievable" -RedirectStandardOutput $OutLog -RedirectStandardError $ErrLog -NoNewWindow -PassThru -Wait
+$CheckOut = if (Test-Path $OutLog) { Get-Content $OutLog -Raw } else { "" }
+$CheckErr = if (Test-Path $ErrLog) { Get-Content $ErrLog -Raw } else { "" }
+Remove-Item $OutLog, $ErrLog -Force -ErrorAction SilentlyContinue
+if ($CheckOut) { Write-Host $CheckOut }
+if ($CheckErr) { Write-Host $CheckErr }
+if ($Proc.ExitCode -ne 0 -or $CheckOut -notmatch "词素:") {
+    Write-Error "随包词库或词素库自检失败 (ExitCode=$($Proc.ExitCode))"
+    exit 1
+}
 
 $ZipName = "Englishwords-$Version-win-x64.zip"
 $ZipPath = Join-Path $DistDir $ZipName

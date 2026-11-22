@@ -80,6 +80,9 @@ public static class TimeoutHelper
             return await workTask.ConfigureAwait(false);
         }
 
+        // 落败的 workTask 仍可能稍后抛异常，先挂观察回调，避免 UnobservedTaskException。
+        _ = workTask.ContinueWith(static t => _ = t.Exception, TaskContinuationOptions.OnlyOnFaulted);
+
         await linkedCts.CancelAsync().ConfigureAwait(false);
         if (cancellationToken.IsCancellationRequested)
         {

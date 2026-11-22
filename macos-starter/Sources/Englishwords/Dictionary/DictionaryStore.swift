@@ -60,7 +60,38 @@ final class DictionaryStore: @unchecked Sendable {
     // MARK: - 查询
 
     /// 单词查询。`.success(nil)` 表示真实未命中，`.failure` 表示词库本身有问题。
+    /// 入口统一小写，避免大写输入绕过 `forms`/`words` 的精确匹配。
     func lookup(_ word: String) -> Result<Entry?, DictionaryError> {
+        queue.sync { lookupSync(word.lowercased()) }
+    }
+
+    /// 词素补充查询。与释义是否命中无关；缺失只返回 `nil`，不影响释义展示。
+    func morphology(_ word: String) -> Morphology? {
+        queue.sync { morphologySync(word.lowercased()) }
+    }
+
+    /// 屈折还原：`abandoned` → `abandon`。查不到时返回 nil。
+    func lemma(for form: String) -> String? {
+        queue.sync { lemmaSync(form.lowercased()) }
+    }
+
+    // MARK: - 异步包装（串行队列）
+
+    func lookupAsync(_ word: String) async -> Result<Entry?, DictionaryError> {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: self.lookupSync(word.lowercased())) }
+        }
+    }
+
+    func morphologyAsync(_ word: String) async -> Morphology? {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: self.morphologySync(word.lowercased())) }
+        }
+    }
+
+    // MARK: - 同步核心（只在串行队列上执行）
+
+    private func lookupSync(_ word: String) -> Result<Entry?, DictionaryError> {
         do {
             return .success(try findEntry(word))
         } catch let error as DictionaryError {
@@ -70,32 +101,16 @@ final class DictionaryStore: @unchecked Sendable {
         }
     }
 
-    /// 词素补充查询。与释义是否命中无关；缺失只返回 `nil`，不影响释义展示。
-    func morphology(_ word: String) -> Morphology? {
+    private func morphologySync(_ word: String) -> Morphology? {
         if let cached = morphologyCache[word] { return cached }
         let resolved = resolveMorphology(word)
         if let resolved { morphologyCache[word] = resolved }
         return resolved
     }
 
-    /// 屈折还原：`abandoned` → `abandon`。查不到时返回 nil。
-    func lemma(for form: String) -> String? {
+    private func lemmaSync(_ form: String) -> String? {
         guard let db, openError == nil else { return nil }
         return try? SQLite.querySingle(db, "SELECT lemma FROM forms WHERE form = ? LIMIT 1", form)
-    }
-
-    // MARK: - 异步包装（串行队列）
-
-    func lookupAsync(_ word: String) async -> Result<Entry?, DictionaryError> {
-        await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: self.lookup(word)) }
-        }
-    }
-
-    func morphologyAsync(_ word: String) async -> Morphology? {
-        await withCheckedContinuation { continuation in
-            queue.async { continuation.resume(returning: self.morphology(word)) }
-        }
     }
 
     // MARK: - 实现
@@ -113,7 +128,11 @@ final class DictionaryStore: @unchecked Sendable {
         defer { sqlite3_finalize(stmt) }
 
         sqlite3_bind_text(stmt, 1, headword, -1, SQLITE_TRANSIENT)
-        guard sqlite3_step(stmt) == SQLITE_ROW else { return nil }
+        switch sqlite3_step(stmt) {
+        case SQLITE_ROW:  break
+        case SQLITE_DONE: return nil
+        default:          throw DictionaryError.query(String(cString: sqlite3_errmsg(db)))
+        }
 
         func column(_ index: Int32) -> String {
             guard let text = sqlite3_column_text(stmt, index) else { return "" }
@@ -131,7 +150,7 @@ final class DictionaryStore: @unchecked Sendable {
     private func resolveMorphology(_ word: String) -> Morphology? {
         guard partsDB != nil, partsError == nil else { return nil }
         if let morphology = morphologyExact(word) { return morphology }
-        if let lemma = lemma(for: word), lemma != word {
+        if let lemma = lemmaSync(word), lemma != word {
             return morphologyExact(lemma)
         }
         return nil

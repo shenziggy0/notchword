@@ -7,7 +7,6 @@ sub	prefix	sub-	sub sup sus	在下；次级	under	sub
 super	prefix	super-	super	在上；超过	above	super
 trans	prefix	trans-	trans tran	穿过；转移	across	trans
 inter	prefix	inter-	inter	之间	between	inter
-intra	prefix	intra-	intra	内部	within	intra
 extra	prefix	extra-	extra	外部；额外	outside	extra
 ex	prefix	ex-	ex e	出；向外	out	ex
 in	prefix	in-	in im il ir	不；向内	not; into	in
@@ -20,7 +19,6 @@ tri	prefix	tri-	tri	三	three	tri
 multi	prefix	multi-	multi	多	many	multus
 mono	prefix	mono-	mono	单一	one	monos
 micro	prefix	micro-	micro	微小	small	mikros
-macro	prefix	macro-	macro	宏大	large	makros
 tele	prefix	tele-	tele	远	far	tele
 mis	prefix	mis-	mis	错误	wrongly	
 over	prefix	over-	over	过度	over	
@@ -78,7 +76,6 @@ psych	root	psych	psych	心灵	mind	psyche
 log	root	log	log logue	言；学科	word; study	logos
 nom	root	nom	nom nomin	名字	name	nomen
 onym	root	onym	onym nym	名字	name	onoma
-lex	root	lex	lex	词	word	lexicon
 liter	root	liter	liter	文字	letter	littera
 numer	root	numer	numer	数	number	numerus
 equ	root	equ	equ	相等	equal	aequus
@@ -89,7 +86,7 @@ fort	root	fort	fort	强	strong	fortis
 firm	root	firm	firm	坚固	firm	firmus
 val	root	val	val	价值；强	value	valere
 ver	root	ver	ver	真实	true	verus
-clar	root	clar	clar	清楚	clear	clarus
+clar	root	clar	clar clare	清楚	clear	clarus
 luc	root	luc	luc lumin	光	light	lux
 mar	root	mar	mar marin	海	sea	mare
 terr	root	terr	terr	土地	earth	terra
@@ -104,7 +101,6 @@ polit	root	polit	polit	城市；政治	city	polis
 civ	root	civ	civ	公民	citizen	civis
 soci	root	soci	soci	同伴；社会	companion	socius
 popul	root	popul	popul	人民	people	populus
-dom	root	dom	dom	家；领域	home	domus
 habit	root	habit	habit	居住	live	habitare
 sist	root	sist	sist sta	站立	stand	stare
 pos	root	pos	pos pon	放置	put	ponere
@@ -126,8 +122,6 @@ man	root	man	man manu main	手	hand	manus
 dent	root	dent	dent	牙	tooth	dens
 cord	root	cord	cord	心	heart	cor
 ocul	root	ocul	ocul	眼	eye	oculus
-derm	root	derm	derm	皮肤	skin	derma
-neur	root	neur	neur	神经	nerve	neuron
 metr	root	metr	metr meter	测量	measure	metron
 gen	root	gen	gen gener	出生；产生	birth	gignere
 viv	root	viv	viv vit	生命；活	live	vivere
@@ -187,8 +181,8 @@ active	root	active	active activ	活跃的；起作用的	active	activus
 acrimony	root	acrimony	acrimony acrimoni	尖刻；苦	acrimony	acrimonia
 board	root	board	board	板；甲板	board	board
 blaze	root	blaze	blaze	火焰	blaze	blaze
-broad	root	broad	broad	宽广的	broad	broad
-cross	root	cross	cross	十字；交叉	cross	cross
+broad	root	broad	broad bread	宽广的	broad	broad
+cross	root	cross	cross cruc	十字；交叉	cross	cross
 norm	root	norm	norm	规范；标准	norm	norma
 sorb	root	sorb	sorb sorpt	吸；吞	suck in; swallow	sorbeō
 solv	root	solv	solve solute	松开；解开	loosen; free	solvō
@@ -276,7 +270,7 @@ itious	suffix	-itious	itious	形容词后缀：具有……性质的	-itious	adv
 jac	root	jac	jac	躺；位于	lie; be situated	adjacent
 join	root	join	join junct	连接	join; connect	adjoin
 just	root	just	just	公正；正确	just; right	adjust
-line	root	line	line	线；航线	line	airline
+line	root	line	line lin	线；航线	line	airline
 mail	root	mail	mail	邮件	mail	airmail
 minister	root	minister	minister	服务；管理	serve; manage	administer
 mir	root	mir	mire mir	惊奇；看	wonder; look	admire
@@ -364,11 +358,11 @@ body	root	body	body	身体；人	body; person	body
 how	root	how	how	方式；如何	how; manner	how
 one	root	one	one	一；人	one; person	one
 thing	root	thing	thing	事物	thing	thing
-time	root	time	time	时间	time	time
+time	root	time	time time-	时间	time	time
 way	root	way	way	方式；道路	way; manner	way
 where	root	where	where	地方；哪里	where; place	where
 part	root	part	part	部分；分开	part; side	part
-a_neg	prefix	a (否定)	a	无；不	not; without	a-
+a_neg	prefix	a-	a	无；不	not; without	a-
 etic	suffix	etic	etic	形容词后缀：……的	adjective suffix	-ētikos
 apert	root	apert	apert	打开；开口	open; opening	apertūra
 ape	root	ape	ape	猿	ape	apa
@@ -395,9 +389,9 @@ argue	root	argue	argue argu	争论；论证	argue	arguere
 rise	root	rise	rise	升起	rise	rise
 aristo	root	aristo	aristo	最好；最优	best	aristos
 arithm	root	arithm	arithm	数；计算	number; count	arithmos
-arm_weapon	root	arm (武器)	arm	武器；武装	weapon; arm	arma
+arm_weapon	root	arm	arm	武器；武装	weapon; arm	arma
 ament	suffix	ament	ament	名词后缀：结果/状态	noun suffix	-āmentum
-arm_body	root	arm (手臂)	arm	手臂	arm	arm
+arm_body	root	arm	arm	手臂	arm	arm
 chair	root	chair	chair	椅子	chair	chair
 age_suffix	suffix	-age	age	名词后缀：行为或结果	noun suffix: action or result	age
 arrange	root	arrange-	arrange	安排；排列	arrange; put in order	arrange
@@ -477,7 +471,6 @@ avail	root	avail	avail	有用；利益	avail; benefit	avail
 avaric	root	avaric	avaric	贪婪	greed	avaritia
 aver	root	aver	aver	牲畜；负担	beast; burden	aver
 avers	root	avers	avers	转开；厌恶	turned away	aversus
-avoc	root	avoc	avoc	叫走；消遣	call away	avocatio
 avoid	root	avoid	avoid	避免；避开	avoid	avoid
 wait	root	wait	wait	等待；观察	wait; watch	waitier
 wake	root	wake	wake	醒；守夜	wake; watch	wacan
@@ -493,7 +486,7 @@ drop	root	drop	drop	滴；落下	drop	dropa
 ground	root	ground	ground	地；基础	ground	grund
 pack	root	pack	pack	包；捆	pack	pack
 bad	root	bad	bad	坏	bad	bad
-bag	root	bag	bagg	包；袋	bag	baggi
+bag	root	bag	bagg bag	包；袋	bag	baggi
 bake	root	bake	bak	烤	bake	bacan
 ery	suffix	ery	ery	名词后缀：场所；行为	noun suffix: place; practice	-erie
 bald	root	bald	bald	秃的	bald	bald
@@ -515,7 +508,7 @@ barb_beard	root	barb	barb	胡须	beard	barba
 shop	root	shop	shop	商店	shop	shop
 bare	root	bare	bare	赤裸的	bare	bær
 barren	root	barren	barren	贫瘠的；不育的	barren	baraigne
-base	root	base	base	基础；垒	base	base
+base	root	base	base bas	基础；垒	base	base
 baro	prefix	baro	baro	重量；压力	weight; pressure	baros
 be_prefix	prefix	be-	be	be- 动词前缀：使；周围；加强	verbal prefix: around; thoroughly; make	be-
 abash	root	abash	bash	使羞愧；窘迫	to shame; abash	abashed
@@ -536,7 +529,6 @@ bed	root	bed	bed bedd	床；层	bed	bed
 clothes	root	clothes	clothes	衣服	clothes	clothes
 deck	root	deck	deck	装饰；甲板	to decorate; deck	deck
 rock	root	rock	rock	岩石	rock	rock
-sit	root	sit	sit	坐；位于	to sit	sit
 bee	root	bee	bee	蜜蜂	bee	bee
 hive	root	hive	hive	蜂箱；蜂群	hive	hive
 fore	root	fore	fore	前；前面	front; before	fore
@@ -585,93 +577,93 @@ iary_suffix	suffix	-iary	iary	名词后缀：与……有关的人	noun suffix: 
 beat	root	beat	beat	打；击败	to beat	beat
 belt	root	belt	belt	带；腰带	belt	belt
 bid	root	bid	bid bidd	请求；出价	to bid	bid
-ped	root	足	ped	足；脚	foot	ped
-bird	root	鸟	bird	鸟	bird	bird
-cage	root	笼	cage	笼；笼子	cage	cage
-birth	root	出生	birth	出生；诞生	birth	birth
-day	root	日	day	日；天	day	day
-place	root	地方	place	地方；场所	place	place
-bis	prefix	两次	bis	两次	twice	bis
-coct	root	煮	coct cuit	煮；烹饪	cook; boil	coctus
-black	root	黑	black	黑；黑色	black	black
-mail_payment	root	租金	mail	租金；贡金	payment; tribute	mail
-smith	root	铁匠	smith	铁匠；工匠	smith	smith
-bless	root	祝福	bless	祝福；使神圣	bless	bless
-block	root	块	block	块；阻塞	block	block
-blue	root	蓝	blue	蓝色；蓝的	blue	blue
-print	root	印刷	print	印刷；印记	print	print
-blunt	root	钝	blunt	钝的；直率的	blunt	blunt
-house	root	房屋	house	房屋；住宅	house	house
-boast	root	夸耀	boast	吹嘘；夸耀	boast	boast
-boat	root	船	boat	船；小艇	boat	boat
-boil	root	煮沸	boil	煮沸；沸腾	boil	boil
-bombast	root	浮夸	bombast	浮夸；填充物	bombast; padding	bombast
-bond_serf	root	农奴	bond	农奴；依附者	bond; serf	bond
-book	root	书	book	书；书籍	book	book
-case	root	箱柜	case	箱；柜；容器	case; container	case
-keeper	root	保管者	keeper	保管者；看守人	keeper	keeper
-let	suffix	指小后缀	let	指小后缀	diminutive suffix	-let
-list	root	清单	list	清单；列表	list	list
-mark	root	标记	mark	标记；记号	mark	mark
-shelf	root	架子	shelf	架子；搁板	shelf	shelf
-store	root	商店	store	商店；储存	store	store
-boot_footwear	root	靴子	boot	靴子	boot	boot
-bore_weary	root	使厌烦	bore bor	使厌烦	weary; bore	bore
-dom_suffix	suffix	状态后缀	dom	名词后缀：状态或领域	noun-forming suffix: state/domain	-dom
-botany	root	植物学	botany botan	植物学	botany	botany
-bound_limit	root	界限	bound	界限；边界	boundary; limit	bound
-bow_bend	root	弯曲	bow	弯曲；弓形	bend; bow	bow
-leg	root	腿	leg legg	腿	leg	leg
-bowl_game	root	滚球	bowl	滚球；保龄球	bowl; bowling	bowl
-box_fight	root	拳击	box	拳击；打	box; fight	box
-brave	root	勇敢	brave brav	勇敢的	brave	brave
-bitter	root	苦	bitter	苦的；痛苦的	bitter	bitter
-brawl	root	争吵；斗殴	brawl	争吵；斗殴	to brawl; noisy fight	brawl
-break	root	打破；中断	break broke	打破；中断	to break; interrupt	break
-down	root	向下；完全	down	向下；完全	down	down
-fast	root	禁食；斋戒	fast	禁食；斋戒	fast	fast
-through	root	穿过；通过	through	穿过；通过	through	through
-up	root	向上；完全	up	向上；完全	up	up
-breath	root	呼吸；气息	breath	呼吸；气息	breath	breath
-breathe	root	呼吸	breath	呼吸	to breathe	breathe
-take	root	拿；取	tak	拿；取	to take	take
-breed	root	繁殖；培育	breed	繁殖；培育	to breed	breed
-brew	root	酿造；冲煮	brew	酿造；冲煮	to brew	brew
-brief	root	简短；摘要	brief	简短；摘要	brief	brief
-bright	root	明亮；聪明	bright	明亮；聪明	bright	bright
-en_suffix	suffix	动词后缀：使……	en	动词后缀：使……	verbal suffix: make	en
-brilliant	root	光辉的；杰出的	brilliant brilli	光辉的；杰出的	brilliant	brilliant
-brisk	root	轻快；敏捷	brisk	轻快；敏捷	brisk	brisk
-cast	root	投；播	cast	投；播	to cast	cast
-brochure	root	小册子	brochure	小册子	brochure	brochure
-brother	root	兄弟	brother	兄弟	brother	brother
-hood	suffix	名词后缀：身份；状态	hood	名词后缀：身份；状态	noun suffix: state/condition	hood
-brown	root	棕色；褐色	brown	棕色；褐色	brown	brown
-buddha	root	佛陀	buddh	佛陀	Buddha	Buddha
-build	root	建造	build	建造	to build	build
-bulk	root	大量；体积	bulk	大量；体积	bulk	bulk
-y_adj	suffix	形容词后缀：有……性质的	y	形容词后缀：有……性质的	adjectival suffix: -y	y
-bumble	root	嗡嗡；笨拙	bumble	嗡嗡；笨拙	bumble	bumble
-bump	root	碰撞；颠簸	bump	碰撞；颠簸	to bump	bump
-buoy	root	浮标；使浮起	buoy	浮标；使浮起	buoy	buoy
-burden	root	负担	burden	负担	burden	burden
-bureau	root	办公室；局	bureau	办公室；局	bureau	bureau
-cracy	suffix	统治；政体	cracy	统治；政体	rule; -cracy	cracy
-burn	root	燃烧	burn	燃烧	to burn	burn
-busy	root	忙碌的	busi	忙碌的	busy	busy
-business	root	生意；事务	business	生意；事务	business	business
-woman	root	女人	woman	女人	woman	woman
-butter	root	黄油	butter	黄油	butter	butter
-fly	root	飞；苍蝇	fly	飞；苍蝇	fly	fly
-buzz	root	嗡嗡叫	buzz	嗡嗡叫	to buzz	buzz
-by_secondary	prefix	次要；副；旁	by by-	次要；副；旁	secondary; by-	by
-product	root	产品	product	产品	product	product
-pass	root	通过；经过	pass	通过；经过	to pass	pass
-word	root	词；话语	word	词；话语	word	word
-cabin	root	小屋；舱室	cabin	小屋；舱室	cabin	cabin
-et	suffix	指小后缀	et	指小后缀	diminutive suffix	et
-make	root	制作	mak	制作	to make	make
-calc	root	lime	calc	石灰	lime	calcium
+ped	root	ped	ped	足；脚	foot	ped
+bird	root	bird	bird	鸟	bird	bird
+cage	root	cage	cage	笼；笼子	cage	cage
+birth	root	birth	birth	出生；诞生	birth	birth
+day	root	day	day dai	日；天	day	day
+place	root	place	place	地方；场所	place	place
+bis	prefix	bis-	bis	两次	twice	bis
+coct	root	coctus	coct cuit	煮；烹饪	cook; boil	coctus
+black	root	black	black	黑；黑色	black	black
+mail_payment	root	mail	mail	租金；贡金	payment; tribute	mail
+smith	root	smith	smith	铁匠；工匠	smith	smith
+bless	root	bless	bless	祝福；使神圣	bless	bless
+block	root	block	block	块；阻塞	block	block
+blue	root	blue	blue	蓝色；蓝的	blue	blue
+print	root	print	print	印刷；印记	print	print
+blunt	root	blunt	blunt	钝的；直率的	blunt	blunt
+house	root	house	house	房屋；住宅	house	house
+boast	root	boast	boast	吹嘘；夸耀	boast	boast
+boat	root	boat	boat	船；小艇	boat	boat
+boil	root	boil	boil	煮沸；沸腾	boil	boil
+bombast	root	bombast	bombast	浮夸；填充物	bombast; padding	bombast
+bond_serf	root	bond	bond	农奴；依附者	bond; serf	bond
+book	root	book	book	书；书籍	book	book
+case	root	case	case	箱；柜；容器	case; container	case
+keeper	root	keeper	keeper	保管者；看守人	keeper	keeper
+let	suffix	-let	let	指小后缀	diminutive suffix	-let
+list	root	list	list	清单；列表	list	list
+mark	root	mark	mark	标记；记号	mark	mark
+shelf	root	shelf	shelf	架子；搁板	shelf	shelf
+store	root	store	store	商店；储存	store	store
+boot_footwear	root	boot	boot	靴子	boot	boot
+bore_weary	root	bore	bore bor	使厌烦	weary; bore	bore
+dom_suffix	suffix	-dom	dom	名词后缀：状态或领域	noun-forming suffix: state/domain	-dom
+botany	root	botany	botany botan	植物学	botany	botany
+bound_limit	root	bound	bound	界限；边界	boundary; limit	bound
+bow_bend	root	bow	bow	弯曲；弓形	bend; bow	bow
+leg	root	leg	leg legg	腿	leg	leg
+bowl_game	root	bowl	bowl	滚球；保龄球	bowl; bowling	bowl
+box_fight	root	box	box	拳击；打	box; fight	box
+brave	root	brave	brave brav	勇敢的	brave	brave
+bitter	root	bitter	bitter	苦的；痛苦的	bitter	bitter
+brawl	root	brawl	brawl	争吵；斗殴	to brawl; noisy fight	brawl
+break	root	break	break broke	打破；中断	to break; interrupt	break
+down	root	down	down	向下；完全	down	down
+fast	root	fast	fast	禁食；斋戒	fast	fast
+through	root	through	through	穿过；通过	through	through
+up	root	up	up	向上；完全	up	up
+breath	root	breath	breath	呼吸；气息	breath	breath
+breathe	root	breathe	breath	呼吸	to breathe	breathe
+take	root	take	tak	拿；取	to take	take
+breed	root	breed	breed	繁殖；培育	to breed	breed
+brew	root	brew	brew	酿造；冲煮	to brew	brew
+brief	root	brief	brief	简短；摘要	brief	brief
+bright	root	bright	bright	明亮；聪明	bright	bright
+en_suffix	suffix	-en	en	动词后缀：使……	verbal suffix: make	en
+brilliant	root	brilliant	brilliant brilli	光辉的；杰出的	brilliant	brilliant
+brisk	root	brisk	brisk	轻快；敏捷	brisk	brisk
+cast	root	cast	cast	投；播	to cast	cast
+brochure	root	brochure	brochure	小册子	brochure	brochure
+brother	root	brother	brother	兄弟	brother	brother
+hood	suffix	-hood	hood	名词后缀：身份；状态	noun suffix: state/condition	hood
+brown	root	brown	brown	棕色；褐色	brown	brown
+buddha	root	Buddha	buddh	佛陀	Buddha	Buddha
+build	root	build	build	建造	to build	build
+bulk	root	bulk	bulk	大量；体积	bulk	bulk
+y_adj	suffix	-y	y	形容词后缀：有……性质的	adjectival suffix: -y	y
+bumble	root	bumble	bumble	嗡嗡；笨拙	bumble	bumble
+bump	root	bump	bump	碰撞；颠簸	to bump	bump
+buoy	root	buoy	buoy	浮标；使浮起	buoy	buoy
+burden	root	burden	burden	负担	burden	burden
+bureau	root	bureau	bureau	办公室；局	bureau	bureau
+cracy	suffix	-cracy	cracy	统治；政体	rule; -cracy	cracy
+burn	root	burn	burn	燃烧	to burn	burn
+busy	root	busy	busi	忙碌的	busy	busy
+business	root	business	business	生意；事务	business	business
+woman	root	woman	woman	女人	woman	woman
+butter	root	butter	butter	黄油	butter	butter
+fly	root	fly	fly	飞；苍蝇	fly	fly
+buzz	root	buzz	buzz	嗡嗡叫	to buzz	buzz
+by_secondary	prefix	by-	by by-	次要；副；旁	secondary; by-	by
+product	root	product	product	产品	product	product
+pass	root	pass	pass	通过；经过	to pass	pass
+word	root	word	word	词；话语	word	word
+cabin	root	cabin	cabin	小屋；舱室	cabin	cabin
+et	suffix	-et	et	指小后缀	diminutive suffix	et
+make	root	make	mak make	制作	to make	make
+calc	root	calc	calc	石灰	lime	calcium
 ium	suffix	element	ium	金属元素后缀	metallic element suffix	calcium
 calcul	root	reckon	calcul calculat	计算；小石子	reckon; pebble	calculate
 calibr	root	calibrate	calibr	校准	calibrate	calibration
@@ -683,20 +675,19 @@ candle	root	candle	candle	蜡烛	candle	candles
 cannibal	root	cannibal	cannibal	食人者	cannibal	cannibalism
 capable	root	capable	capable capabil	有能力的	capable	capability
 capac	root	capacity	capac capacit	容纳；容量	hold; capacity	capacious
-capill	root	hair	capill	头发	hair	capillary
+capill	root	capill	capill	头发	hair	capillary
 capit	root	head	capit	头；首要	head	capital
 capital	root	capital	capital	资本；首都	capital	capitalism
 capric	root	caprice	capric	反复无常	caprice; whim	capricious
 captiv	root	captive	captiv	俘获；迷住	captive; captivate	captivate
-carbo	root	carbon	carbo	碳	carbon	carbohydrate
+carbo	root	carbon	carbo carbon	碳	carbon	carbohydrate
 hydrate	root	hydrate	hydrate	水合物	hydrate	carbohydrate
 cardin	root	hinge	cardin	铰链；关键	hinge	cardinal
 card	root	card	card	卡片；纸牌	card	cards
 career	root	career	career	职业；生涯	career	careerism
 care	root	care	care	关心；小心	care	careful
 caric	root	caricature	caric	夸张；装载	caricature; load	caricature
-carn	root	flesh	carn	肉	flesh	carnage
-carni	root	flesh	carni	肉	flesh	carnivore
+carn	root	flesh	carn carni	肉	flesh	carnage
 vore	suffix	-eater	vore	食……者	eater of	carnivore
 vor	root	devour	vor	吞食	devour	carnivorous
 carpent	root	carpenter	carpent	木匠；马车	carpenter; wagon	carpenter
@@ -704,7 +695,7 @@ carp	root	carp	carp	挑剔；抱怨	carp; complain	carping
 carri	root	carry	carri	运载	carry	carriage
 carv	root	carve	carv	雕刻	carve	carver
 cass	root	box	cass	盒	box	cassette
-ette	suffix	diminutive	ette	指小后缀	diminutive suffix	cassette
+ette	suffix	-ette	ette	指小后缀	diminutive suffix	cassette
 castig	root	chastise	castig	惩罚；纠正	chastise; correct	castigate
 cas	root	fall	cas	落下；偶然	fall; chance	casual
 ual	suffix	adjective	ual	形容词后缀	adjectival suffix	casual
@@ -714,8 +705,7 @@ caust	root	burn	caust	燃烧	burn	caustic
 caut	root	beware	caut	小心；警惕	beware; caution	caution
 cata	prefix	down	cata	向下；反对	down; against	cataclysm
 clysm	root	flood	clysm	洪水；冲洗	flood; wash	cataclysm
-lyst	root	loosen	lyst	松开；分解	loosen; dissolve	catalyst
-lyze	root	loosen	lyze	松开；分解	loosen; dissolve	catalyze
+lyst	root	loosen	lyst lyze	松开；分解	loosen; dissolve	catalyst
 catch	root	catch	catch	抓住；感染	catch	catching
 categor	root	category	categor	范畴；分类	category	categorical
 cathedr	root	seat	cathedr	座椅；主教座	seat	cathedral
@@ -967,10 +957,10 @@ cotton	root	cotton	cotton	棉；棉花	cotton	cottonwood
 wood	root	wood	wood	木；木材	wood	cottonwood
 counsel	root	counsel	counsel	建议；劝告	advice; counsel	counseling
 counter	prefix	counter-	counter	反对；相反	against; opposite	counteract
-balance	root	balance	balance	平衡	balance	counterbalance
+balance	root	balance	balance balanc	平衡	balance	counterbalance
 countr	root	countr	countr	国家；乡村（country 的表面词干）	country (surface stem)	countries
 country	root	country	country	国家；乡村	country	countryside
-courage	root	courage	courage	勇气	courage	courageous
+courage	root	courage	courage courag	勇气	courage	courageous
 court	root	court	court	宫廷；庭院	court	courteous
 eous	suffix	-eous	eous	形容词后缀：有……性质的	adjectival suffix: having the nature of	courteous
 courteous	root	courteous	courteous	有礼貌的	courteous	courteously
@@ -988,7 +978,7 @@ cultiv	root	cultiv	cultiv	耕作；培养	till; cultivate	cultivare
 cultur	root	cultur	cultur	文化；培养	culture; cultivation	cultura
 cumber	root	cumber	cumber	阻碍；负担	hinder; burden	cumber
 cunn	root	cunn	cunn	知道；能够	know; be able	cunnan
-cur_care	root	cur_care	curi curat	关心；治疗	care; heal	cura
+cur_care	root	cura	curi curat	关心；治疗	care; heal	cura
 curl	root	curl	curl	卷曲	curl	curl
 cyber	prefix	cyber	cyber	网络；控制论	cyber; cybernetics	cybernetics
 cynic	root	cynic	cynic	犬儒；愤世嫉俗	cynic	cynicus
@@ -1022,7 +1012,7 @@ light	root	light	light	光	light	light
 lock	root	lock	lock	锁	lock	lock
 th	suffix	th	th	名词后缀：性质或状态	abstract noun suffix	th
 datum	root	datum	datum dat data	给定；数据	given; data	datum
-a_plural	suffix	a_plural	a	复数后缀：拉丁中性复数	plural suffix: Latin neuter plural	a
+a_plural	suffix	-a	a	复数后缀：拉丁中性复数	plural suffix: Latin neuter plural	a
 cry	root	cry	cry	喊叫；呼喊	cry; shout	crier
 deep	root	deep	deep dep	深	deep	deep
 face	root	face	face	脸；表面	face; surface	facia
@@ -1037,12 +1027,12 @@ frost	root	frost	frost	霜；冰冻	frost; freeze	frost
 funct	root	funct	funct	履行；功能	perform; function	functus
 dei	root	dei	dei	神	god	deus
 delect	root	delect	delect	引诱；使愉悦	entice; delight	delectare
-leg_send	root	leg_send	leg	派遣；选择	send; choose	legare
-liber_balance	root	liber_balance	liber	秤；平衡	balance; weigh	libra
+leg_send	root	legare	leg	派遣；选择	send; choose	legare
+liber_balance	root	libra	liber	秤；平衡	balance; weigh	libra
 delic	root	delic	delic	愉悦；精致	delight; delicate	deliciae
 delight	root	delight	delight	高兴；愉悦	delight; please	delight
 linqu	root	linqu	linqu	离开；犯过	leave; transgress	linquere
-liver_free	root	liver_free	liver	自由；解放	free; liberate	liberare
+liver_free	root	liberare	liver	自由；解放	free; liberate	liberare
 magnet	root	magnet	magnet	磁铁	magnet	magnes
 demo	root	demo	demo	人民	people	demos
 graphy	suffix	graphy	graphy	学科；记录	writing; study	graphia
@@ -1069,8 +1059,8 @@ sol	root	sol	sol	单独	alone	sol
 sper	root	sper	sper spair	希望	hope	sper
 spoil	root	spoil	spoil	剥夺；掠夺	strip; rob	spoil
 destine	root	destine	destin	注定；指定	destine; determine	destin
-tail_cut	root	tail_cut	tail	切；裁	cut	tail
-terr_fright	root	terr_fright	ter terr	恐吓	frighten	terr
+tail_cut	root	tail	tail	切；裁	cut	tail
+terr_fright	root	terr	ter terr	恐吓	frighten	terr
 terg	root	terg	terg	擦；清洁	wipe	terg
 deterior	root	deterior	deterior	更坏	worse	deterior
 determin	root	determin	determin	决定；限定	determine; limit	determin
@@ -1085,7 +1075,7 @@ vour	root	vour	vour	吞食	swallow	vour
 dexter	root	dexter	dexter	右；灵巧	right; skillful	dexter
 gnos	root	gnos	gnose gnosis gnost	知道	know	gnos
 gram	root	gram	gram	写；画	write; draw	gram
-lect_speak	root	lect_speak	lect	说	speak	lect
+lect_speak	root	lect	lect	说	speak	lect
 diet	root	diet	diet	饮食	diet	diet
 dietet	root	dietet	dietet	饮食；生活方式	diet; way of life	dietet
 itian	suffix	itian	itian	名词后缀：从业者（-ician 变体）	practitioner; -ician	itian
@@ -1108,7 +1098,7 @@ diplom	root	diplom	diplom	公文；文凭	document; diploma	diplom
 diploma	root	diploma	diploma	文凭；毕业证书	diploma	diploma
 diplomat	root	diplomat	diplomat	外交官	diplomat	diplomat
 dirt	root	dirt	dirt	污物	dirt	dirt
-serv_service	root	serv_service	serve	服务	serve	serve
+serv_service	root	serve	serve	服务	serve	serve
 desert	root	desert	desert	沙漠；离弃	desert	desert
 design	root	design	design	设计	design	design
 despoil	root	despoil	despoil	掠夺	despoil	despoil
@@ -1176,7 +1166,7 @@ service	root	service	service	服务；公务	service	disservice
 sip_scatter	root	sip	sip	投；散	throw; scatter	dissipate
 still	root	still	still stil	滴；滴落	drip	distil
 stingu	root	stingu	stingu stinct	刺；标记；区分	prick; mark; distinguish	distinct
-taste	root	taste	taste	味道；品尝	taste	distasteful
+taste	root	taste	taste tast	味道；品尝	taste	distasteful
 tort	root	tort	tort	扭；扭曲	twist	distort
 turb	root	turb	turb	搅动；扰乱	agitate; disturb	disturb
 unite	root	unite	unite	联合；统一	unite	disunite
@@ -1259,9 +1249,9 @@ plant	root	plant	plant	植物；种植	plant	plant
 shell	root	shell	shell	壳；外壳	shell	shell
 ego	root	ego	ego	自我	self; ego	ego
 egypt	root	egypt	egypt	埃及	Egypt	egypt
-eight	root	eight	eight	八	eight	eight
+eight	root	eight	eight eigh	八	eight	eight
 een	suffix	een	een	十几（-teen 的缩合形式）	-teen	een
-ty_ten	suffix	ty_ten	y	十；十倍	-ten; times ten	y
+ty_ten	suffix	-y	y	十；十倍	-ten; times ten	y
 lapse	root	lapse	lapse	滑落；流逝	slip; lapse	lapse
 elast	root	elast	elast	驱动；弹性	drive; elastic	elast
 ell	root	ell	ell el	前臂	forearm	ell
@@ -1276,17 +1266,17 @@ ellipt	root	ellipt	ellipt	椭圆；省略	ellipse; omit	ellipt
 else	root	else	else	其他；别的	other	else
 lucid	root	lucid	lucid	明亮；清晰	bright; clear	lucid
 maci	root	maci	maci	瘦；瘦弱	lean	maci
-man_flow	root	man_flow	man	流	flow	man
+man_flow	root	man	man	流	flow	man
 cip	root	cip	cip	拿；抓	take; seize	cip
-bark_ship	root	bark_ship	bark	小船	small ship	bark
+bark_ship	root	bark	bark	小船	small ship	bark
 bosom	root	bosom	bosom	胸怀；内部	bosom	bosom
 boss	root	boss	boss	凸起；肿块	protuberance	boss
 brace	root	brace	brace	手臂；支撑	arm; brace	brace
 embellish	root	embellish	embellish	装饰；润色	embellish	embellish
-merge_sink	root	merge_sink	merge	沉；浸	dip; sink	merge
+merge_sink	root	merge	merge	沉；浸	dip; sink	merge
 emerg	root	emerg	emerg	浮现；出现	emerge	emerg
 emergenc	root	emergenc	emergenc	紧急情况（emergency 的屈折词干）	emergency stem	emergenc
-min_project	root	min_project	min	突出；伸出	project; jut	min
+min_project	root	min	min	突出；伸出	project; jut	min
 emphasis	root	emphasis	emphasis emphas	强调；重点	emphasis	emphasis
 empiric	root	empiric	empiric	经验；实证	experience	empiric
 employ	root	employ	employ	雇用；使用	employ	employ
@@ -1304,7 +1294,7 @@ force	root	force	force	力量；强迫	strength; force	force
 gage	root	gage	gage gag	抵押；保证	pledge	gage
 gender	root	gender	gender	产生；种类	beget; kind	gender
 engine	root	engine	engine	机器；引擎	engine	engine
-grave_carve	root	grave_carve	grave grav	雕刻	carve	grave
+grave_carve	root	grave	grave grav	雕刻	carve	grave
 gross	root	gross	gross	大；粗	large; coarse	gross
 gulf	root	gulf	gulf	海湾；深渊	gulf	gulf
 enigma	root	enigma	enigma	谜；费解的事物	enigma	enigma
@@ -1316,13 +1306,13 @@ rapture	root	rapture	rapture	狂喜	rapture	rapture
 rich	root	rich	rich	富有的	rich	rich
 roll	root	roll	roll rol	卷；名册	roll	roll
 slave	root	slave	slave	奴隶	slave	slave
-sue_follow	root	sue_follow	sue	跟随	follow	sue
+sue_follow	root	sue	sue	跟随	follow	sue
 tangle	root	tangle	tangle	纠缠	tangle	tangle
 entertain	root	entertain	entertain	招待；使娱乐	entertain	entertain
 thrall	root	thrall	thrall thral	奴隶；束缚	thrall	thrall
 enthusiast	root	enthusiast	enthusiast	热衷者；热情者	enthusiast; zealous person	enthusiast
 title	root	title	title	标题；权利	title; right	title
-trap	root	trap	trap	陷阱；捕捉	trap; catch	trap
+trap	root	trap	trap trapp	陷阱；捕捉	trap; catch	trap
 treat	root	treat	treat	对待；处理；交涉	treat; deal with	treat
 trench	root	trench	trench	沟壕；挖沟	trench; ditch	trench
 envy	root	envy	envy envi	嫉妒；羡慕	envy; jealousy	envy
@@ -1345,8 +1335,8 @@ eu	prefix	eu	eu	好；善	good; well	eu
 vacu	root	vacu	vacu	空；空虚	empty; vacant	vacu
 vad	root	vad	vade vas	走；行进	go; walk	vade
 vapor	root	vapor	vapor	蒸汽；汽	vapor; steam	vapor
-even_evening	root	even_evening	even	傍晚；前夕	evening; eve	even
-even_flat	root	even_flat	even	平坦；相等	level; equal	even
+even_evening	root	even	even	傍晚；前夕	evening; eve	even
+even_flat	root	even	even	平坦；相等	level; equal	even
 event	root	event	event	事件；发生	event; occurrence	event
 ever	root	ever	ever	永远；曾经	ever; always	ever
 green	root	green	green	绿色；常青	green; verdant	green
@@ -1412,7 +1402,7 @@ extreme	root	extreme	extreme extrem	极端；最外	extreme; outermost	extreme
 tric	root	tric	tric	诡计；纠缠	tricks; entangle	tric
 trude	root	trude	trude	推；刺	push; thrust	trude
 uber	root	uber	uber	乳房；丰盈	udder; abundant	uber
-eye	root	eye	eye	眼睛	eye	eye
+eye	root	eye	eye y	眼睛	eye	eye
 brow	root	brow	brow	眉；额	brow	brow
 sight	root	sight	sight	视力；景象	sight	sight
 witness	root	witness	witness	见证人；目击者	witness	witness
@@ -1521,7 +1511,7 @@ fool	root	fool	fool	愚人；愚蠢	fool	fool
 foot	root	foot	foot	足；脚	foot	foot
 step	root	step	step	步；台阶	step	step
 for_neg	prefix	for	for	离开；否定；彻底	away; against; completely	for
-father	root	father	father	父亲	father	father
+father	root	father	father father-	父亲	father	father
 foreign	root	foreign	foreign	外国的；外来的	foreign	foreign
 runner	root	runner	runner	奔跑者；先驱	runner	runner
 see	root	see	see	看；看见	see	see
@@ -1552,7 +1542,7 @@ free	root	free	free	自由的；免费的	free	freedom
 freight	root	freight	freight	货物；运费	freight	freighter
 french	root	french	french	法国的；法国人	French	frenchman
 man_person	root	man	man	人；男人	person	frenchman
-frequent	root	frequent	frequent	频繁的	frequent	frequency
+frequent	root	frequent	frequent frequen	频繁的	frequent	frequency
 fresh	root	fresh	fresh	新鲜的	fresh	freshen
 frict	root	frict	frict	摩擦	rub	friction
 fry	root	fry	fri	油炸；煎	fry	fried
@@ -1664,7 +1654,7 @@ ham_village	root	ham	ham	家；村庄	home; village	ham
 hackney	root	hackney	hackney	出租马；陈腐	hackney	hackney
 kerchief	root	kerchief	kerchief	头巾；方巾	head-cloth; kerchief	kerchief
 truck	root	truck	truck	卡车；手推车	truck	truck
-write	root	write	writ	写	write	write
+write	root	write	writ write	写	write	write
 hap	root	hap	hap happ	运气；偶然	chance; luck	hap
 hazard	root	hazard	hazard	骰子游戏；危险	dice game; hazard	hazard
 harass	root	harass	harass	骚扰；使困扰	harass	harass
@@ -1708,7 +1698,7 @@ strong	root	strong	strong	强壮的；坚定的	strong	strong
 teach	root	teach	teach	教；讲授	teach	teach
 heal	root	heal	heal	治愈；痊愈	heal	heal
 health	root	health	health	健康；卫生	health	health
-ine_fem	suffix	ine_fem	ine	女性后缀	feminine suffix	ine
+ine_fem	suffix	-ine	ine	女性后缀	feminine suffix	ine
 bill	root	bill	bill	鸟嘴；喙	beak; bill	bill
 billy	root	billy	billy	家伙；同伴	fellow; companion	billy
 ess	suffix	feminine -ess	ess	女性后缀	feminine suffix	ess
@@ -1723,7 +1713,7 @@ hill	root	hill	hill	山丘	hill	hill
 him	root	him	him	他（宾格）	him	him
 hint	root	hint	hint	暗示；提示	hint	hint
 hinter	prefix	hinter-	hinter	后面	behind	hinter
-hispan	root	Spain	hispan	西班牙	Spain	hispan
+hispan	root	hispan	hispan	西班牙	Spain	hispan
 histor	root	history	histor	历史	history	histor
 hitch	root	hitch	hitch	钩住；搭便车	hitch	hitch
 hike	root	hike	hike	远足；步行	hike	hike
@@ -1751,9 +1741,9 @@ keep	root	keep	keep keeping	保持；管理	keep	keep
 land	root	land	land	土地	land	land
 ly_adj	suffix	adjectival -ly	ly	形容词后缀：具有……性质的	adjectival suffix	ly
 made	root	made	made	制作的	made	made
-moon	root	moon	moon	月亮	moon	moon
+moon	root	moon	moon mon	月亮	moon	moon
 s_poss	suffix	possessive -s	s	属格后缀	possessive suffix	s
-self	root	self	self	自己	self	self
+self	root	self	self selve	自己	self	self
 spun	root	spun	spun	纺成的	spun	spun
 to	root	to	to	到；向	to	to
 wife	root	wife	wife	妻子	wife	wife
@@ -1768,7 +1758,7 @@ aul	root	aul	aul	管；管道	pipe	aul
 sensitive	root	sensitive	sensitive	敏感的	sensitive	sensitive
 thesis	root	thesis	thesis thes	放置；命题	placing; thesis	thesis
 hyster	root	hyster	hyster	子宫；癔症	womb; hysteria	hyster
-ice	root	ice	ice	冰	ice	ice
+ice	root	ice	ice ic ice-	冰	ice	ice
 berg	root	berg	berg	山；冰山	mountain; berg	berg
 ichthy	root	ichthy	ichthy ichthyo	鱼	fish	ichthyo
 icono	root	icono	icono	图像；圣像	image; icon	icono
@@ -1785,7 +1775,7 @@ ign	root	ign	ign	火	fire	ign
 ignomin	root	ignomin	ignomin	耻辱；恶名	disgrace; ignominy	ignomin
 ignor	root	ignor	ignor ignore	不知道；无知	not know; ignorant	ignor
 legal	root	legal	legal	合法的；法律的	legal; law	legal
-leg_read	root	leg_read	leg	读；选择	read; choose	leg
+leg_read	root	leg	leg	读；选择	read; choose	leg
 legitim	root	legitim	legitim	合法的；正当的	lawful; legitimate	legitim
 licit	root	licit	licit	允许的；合法的	permitted; lawful	licit
 ill	root	ill	ill	生病；坏	sick; bad	ill
@@ -1956,7 +1946,7 @@ leth	root	leth	leth	死	death	letum
 letharg	root	letharg	letharg	昏睡；健忘	drowsiness; forgetfulness	lethargos
 level	root	level	level	水平；层面	level	level
 liable	root	liable	liable liabil	有责任的；易受……的	liable	liable
-liber_free	root	liber_free	liber liberat	自由	free	liber
+liber_free	root	liber	liber liberat	自由	free	liber
 library	root	library	library librar	图书馆；藏书	library	library
 lic	root	lic	lic	允许	allow	licere
 lieu	root	lieu	lieu	地方；位置	place	lieu
@@ -2034,7 +2024,6 @@ match_fire	root	match	match	火柴	match (firestick)	match
 materi	root	materi	materi	物质；材料	matter; material	materi
 material	root	material	material	物质；材料	material	material
 matern	root	matern	matern	母亲	mother	matern
-math	root	math	math	数学（mathematics 的缩略）	math (clipping of mathematics)	math
 mathemat	root	mathemat	mathemat	学习；数学	learning; mathematics	mathemat
 matri	root	matri	matri	母亲	mother	matri
 mony	suffix	-mony	mony	名词后缀：义务或状态	noun suffix: obligation or state	mony
@@ -2149,10 +2138,10 @@ nice	root	nice	nice	精细；美好	fine; nice	nice
 nicot	root	nicot	nicot	尼科（人名）	Nicot (surname)	Nicot
 night	root	night	night	夜	night	night
 mare	root	mare	mare	梦魇；恶魔	incubus; nightmare	mare
-nine	root	nine	nine	九	nine	nine
+nine	root	nine	nine nin	九	nine	nine
 nitro	root	nitro	nitro	硝；氮	nitro; nitrogen	nitro
 no	root	no	no	不；无	no; not	no
-noble	root	noble	noble nobil	高贵	noble	noble
+noble	root	noble	noble nobil gnoble	高贵	noble	noble
 nocturn	root	nocturn	nocturn	夜	night	nocturn
 noise	root	noise	noise nois noisi	噪音	noise	noise
 nomad	root	nomad	nomad	游牧者	nomad	nomad
@@ -2278,11 +2267,11 @@ park	root	park	park	公园；停车	park	park
 paddle	root	paddle	paddl	桨；划桨	paddle	paddle
 parl	root	speak	parl parlia	说；商议	speak; discuss	parler
 particip	root	participate	particip	参与；分担	take part; share	particip-
-icle	suffix	diminutive	icle	指小后缀	diminutive suffix	-icula
+icle	suffix	-icle	icle	指小后缀	diminutive suffix	-icula
 particul	root	small-part	particul	小部分；颗粒	small part; particle	particul-
 passenger	root	passenger	passenger	乘客	passenger	passenger
 pasc	root	feed	past	放牧；喂养	feed; graze	past-
-pater	root	father	pater patern	父亲	father	pater
+pater	root	pater	pater patern	父亲	father	pater
 patho	root	disease	patho	疾病；痛苦	disease; suffering	patho-
 path_way	root	path	path	小路；路径	path; way	path
 patri	root	father-family	patri	父亲；家族	father; family	patri-
@@ -2302,7 +2291,7 @@ pedestr	root	foot	pedestr	步行；脚	foot; walking	pedestr-
 peer	root	peer	peer	同辈；同等者	peer; equal	peer
 poen	root	punishment	pen	惩罚	punishment	poena
 pench	root	lean	pench	倾斜；倾向	lean; incline	pencher
-ul	suffix	diminutive	ul	指小后缀	diminutive suffix	-ulus
+ul	suffix	-ul	ul	指小后缀	diminutive suffix	-ulus
 penetr	root	penetrate	penetr penetrat	进入；穿透	enter; penetrate	penetr-
 penny	root	penny	penny penn	便士	penny	penny
 penur	root	lack	penur	缺乏；贫困	lack; want	penur-
@@ -2365,7 +2354,7 @@ wright	root	wright	wright	工匠；制造者	builder; craftsman	wright
 plen	root	plen	plen plenti	满；丰富	full; plenty	plenus
 ply_fold	root	ply	ply pli	折叠；弯曲	fold; bend	plicare
 plume	root	plume	plume plum	羽毛	feather	plume
-plumb	root	plumb	plumb	铅	lead	plumbum
+plumb	root	plumb	plumb plumm	铅	lead	plumbum
 plur	root	plur	plur	更多；多	more; many	plus
 pluto	root	pluto	pluto	财富	wealth	ploutos
 pneumat	root	pneumat	pneumat	呼吸；空气	breath; air	pneuma
@@ -2394,7 +2383,7 @@ portray	root	portray	portray	描绘；扮演	portray	portray
 poss	root	poss	poss	能；可能	able; possible	possible
 ibly	suffix	ibly	ibly	可……地	-ibly	possibly
 possess	root	possess	possess	拥有；占有	possess	possess
-post_mail	root	post_mail	post	邮件；驿站；张贴	post (mail/station)	post
+post_mail	root	post	post	邮件；驿站；张贴	post (mail/station)	post
 poster	root	poster	poster	后来的；后代	following; descendant	posterity
 graduate	root	graduate	graduate	毕业；毕业生	graduate	graduate
 war	root	war	war	战争	war	war
@@ -2478,7 +2467,6 @@ quick	root	quick	quick	快；活的	quick; alive	quicken
 quiesc	root	quiesc	quiesc	休息；静止	rest; be quiet	quiescent
 quilt	root	quilt	quilt	被子；绗缝	quilt	quilter
 quote	root	quote	quote quot	引用；报价	quote	quotation
-race	root	race	race rac	种族；竞赛	race	racial
 radiat	root	radiat	radiat	辐射；发光（radiate 的词干）	radiate	radiator
 radio	prefix	radio	radio	无线电；辐射	radio; radiation	radioactive
 puzzle	root	puzzle	puzzle puzzl	谜；使困惑	puzzle	puzzled
@@ -2490,7 +2478,7 @@ rail	root	rail	rail	铁轨；横杆	rail; bar	rail
 road	root	road	road	道路	road	road
 rain	root	rain	rain	雨	rain	rain
 fall_down	root	fall	fall	落下；下降	fall; descend	fall
-water	root	water	water	水	water	water
+water	root	water	water water-	水	water	water
 ramp	root	ramp	ramp	爬；蔓延	crawl; climb; spread	ramp
 ranch	root	ranch	ranch	牧场；农场	ranch; farm	ranch
 rap_seize	root	rap	rap	抓取；夺取	seize; snatch	rap
@@ -2586,7 +2574,7 @@ rob	root	rob	rob robb	抢劫；掠夺	rob; plunder	robber
 robot	root	robot	robot	机器人；自动机	robot	robots
 romant	root	romant	romant	浪漫；传奇	romantic; romance	romantic
 roost	root	roost	roost	栖息处；栖息	perch; roost	rooster
-rot_wheel	root	rot_wheel	rot	轮；旋转	wheel; turn	rotary
+rot_wheel	root	rotary	rot	轮；旋转	wheel; turn	rotary
 rough	root	rough	rough	粗糙；粗暴	rough; coarse	roughly
 routine	root	routine	routine	常规；例行	routine; habitual	routinely
 row	root	row	row	排；行	line; row	rows
@@ -2601,11 +2589,11 @@ vel	root	vel	vel veal	遮盖；覆盖	cover; veil	reveal
 venge	root	venge	venge	报复；伸冤	avenge; revenge	revenge
 verber	root	verber	verber	击打；鞭打	beat; lash	reverberate
 vere	root	vere	vere	敬畏；畏惧	revere; fear	revere
-vise_see	root	vise_see	vise	看；审视	see; examine	revise
+vise_see	root	revise	vise	看；审视	see; examine	revise
 vive	root	vive	vive	活；生命	live; life	revive
 volt	root	volt	volt	转；翻转	turn; roll	revolt
-ward_guard	root	ward_guard	ward	看守；守卫	guard; keep	reward
-wind_turn	root	wind_turn	wind	缠绕；转动	wind; turn	rewind
+ward_guard	root	reward	ward	看守；守卫	guard; keep	reward
+wind_turn	root	rewind	wind	缠绕；转动	wind; turn	rewind
 rumin	root	rumin-	rumin	反刍；喉	chew the cud; throat	rūminātus
 rur	root	rur-	rur	乡村	countryside	rūs
 russ	root	russ-	russ	罗斯；俄罗斯	Rus; Russia	Rus
@@ -2641,38 +2629,38 @@ sciss	root	sciss-	sciss	切；割	cut; split	sciss-
 salt	root	salt-	salt	盐	salt	salt
 sauce	root	sauce-	sauce sauc	酱汁；调味汁	sauce	sauce
 scaffold	root	scaffold-	scaffold	脚手架；支架	scaffold	scaffold
-score	root	en	score	得分；二十	score	score
-scorn	root	en	scorn	轻蔑；嘲笑	scorn	scorn
-scot	root	en	scot scott scots	苏格兰人	Scot	Scot
-scrape	root	en	scrape scrap	刮；擦	scrape	scrape
-screw	root	en	screw	螺丝；螺旋	screw	screw
-scruple	root	en	scruple scrupul	顾虑；小石	scruple	scruple
-scrutiny	root	en	scrutiny scrutin	细查	scrutiny	scrutiny
-sculpt	root	en	sculpt	雕刻	carve	sculpt
-sculpture	root	en	sculpture sculptur	雕塑	sculpture	sculpture
-food	root	en	food	食物	food	food
-gull	root	en	gull	鸥	gull	gull
-season	root	en	season	季节；调味	season	season
-seat	root	en	seat	座位	seat	seat
-weed	root	en	weed	杂草	weed	weed
-se	prefix	la	se	分开；无	apart/without	sē
-second	root	en	second	第二	second	second
-saecul	root	la	saecul secul	世代；世俗	age/world	saeculum
-secur	root	la	secur	安全；无忧	secure/safe	securus
-sediment	root	en	sediment	沉积物	sediment	sediment
-seed	root	en	seed	种子	seed	seed
-seem	root	en	seem	似乎	seem	seem
-seg	root	la	seg	切；割	cut	secare
-seism	root	grc	seism seismo	震动；地震	earthquake	seismos
-sell	root	en	sell	卖	sell	sell
-semi	prefix	la	semi	半	half	semi-
-arid	root	en	arid	干旱的	dry	arid
-circle	root	en	circle	圆；圈	circle	circle
-molten	root	en	molten	熔化的	molten	molten
-senat	root	la	senat	元老院	senate	senatus
-sensit	root	la	sensit	感觉	feel	sensit-
-sensitiv	root	la	sensitiv	敏感的	sensitive	sensitiv-
-senti	root	la	senti	感觉	feel	senti-
+score	root	score	score	得分；二十	score	score
+scorn	root	scorn	scorn	轻蔑；嘲笑	scorn	scorn
+scot	root	Scot	scot scott scots	苏格兰人	Scot	Scot
+scrape	root	scrape	scrape scrap	刮；擦	scrape	scrape
+screw	root	screw	screw	螺丝；螺旋	screw	screw
+scruple	root	scruple	scruple scrupul	顾虑；小石	scruple	scruple
+scrutiny	root	scrutiny	scrutiny scrutin	细查	scrutiny	scrutiny
+sculpt	root	sculpt	sculpt	雕刻	carve	sculpt
+sculpture	root	sculpture	sculpture sculptur	雕塑	sculpture	sculpture
+food	root	food	food	食物	food	food
+gull	root	gull	gull	鸥	gull	gull
+season	root	season	season	季节；调味	season	season
+seat	root	seat	seat	座位	seat	seat
+weed	root	weed	weed	杂草	weed	weed
+se	prefix	sē-	se	分开；无	apart/without	sē
+second	root	second	second	第二	second	second
+saecul	root	saeculum	saecul secul	世代；世俗	age/world	saeculum
+secur	root	securus	secur	安全；无忧	secure/safe	securus
+sediment	root	sediment	sediment	沉积物	sediment	sediment
+seed	root	seed	seed	种子	seed	seed
+seem	root	seem	seem	似乎	seem	seem
+seg	root	secare	seg	切；割	cut	secare
+seism	root	seismos	seism seismo	震动；地震	earthquake	seismos
+sell	root	sell	sell	卖	sell	sell
+semi	prefix	semi-	semi	半	half	semi-
+arid	root	arid	arid	干旱的	dry	arid
+circle	root	circle	circle	圆；圈	circle	circle
+molten	root	molten	molten	熔化的	molten	molten
+senat	root	senatus	senat	元老院	senate	senatus
+sensit	root	sensit-	sensit	感觉	feel	sensit-
+sensitiv	root	sensitiv-	sensitiv	敏感的	sensitive	sensitiv-
+senti	root	senti-	senti	感觉	feel	senti-
 seren	root	serene	seren	晴朗；平静	clear; calm	seren
 series	root	series	seri	系列；连续	series; row	seri
 serious	root	serious	serious	严肃的；认真的	serious; grave	serious
@@ -2684,7 +2672,7 @@ sewer_drain	root	sewer	sew sewer	排水；下水道	drain; sewer	sewer
 sex	root	sex	sex	性；性别	sex; gender	sex
 shade	root	shade	shad	荫；遮光	shade; shadow	shade
 shake	root	shake	shak	摇；震动	shake	shake
-shame	root	shame	shame	羞耻；羞愧	shame	shame
+shame	root	shame	shame sham	羞耻；羞愧	shame	shame
 sharp	root	sharp	sharp	尖锐的；锋利	sharp	sharp
 shave	root	shave	shav	剃；刮	shave	shave
 sheep	root	sheep	shep	羊；绵羊	sheep	sheep
@@ -2703,20 +2691,20 @@ ways	suffix	ways	ways	方向；方式	in the direction/manner of	ways
 signific	root	signific	signific	标记；示意	signify	significare
 sil	root	sil	sil	安静；沉默	be silent	silere
 silic	root	silic	silic	燧石；硅	flint; silica	silex
-on_element	suffix	on_element	on	化学元素后缀：……素	chemical element suffix	on
+on_element	suffix	-on	on	化学元素后缀：……素	chemical element suffix	on
 sincer	root	sincer	sincer	真诚（sincere 的词干）	sincere (stem)	sincere
-simpl_simple	root	simpl_simple	simpl	简单（simple 的词干）	simple (stem)	simple
+simpl_simple	root	simple	simpl	简单（simple 的词干）	simple (stem)	simple
 icity	suffix	icity	icity	名词后缀：性质	noun suffix: quality	icity
-ly_haplo	suffix	ly_haplo	y	副词后缀：-ly 的缩合形式	adverb suffix: reduced -ly	ly
+ly_haplo	suffix	-ly	y	副词后缀：-ly 的缩合形式	adverb suffix: reduced -ly	ly
 simul	root	simul	simul simult	相似；同时	like; at the same time	simul
 singul	root	singul	singul	单个；单独	single; one	singulus
 skat	root	skat	skat	滑冰（skate 的词干）	skate (stem)	skate
 skipp	root	skipp	skipp	跳（skip 的重写词干）	skip (geminated stem)	skip
 slav	root	slav	slav	奴隶（slave 的词干）	slave (stem)	slave
 slipp	root	slipp	slipp	滑（slip 的重写词干）	slip (geminated stem)	slip
-slim_slime	root	slim_slime	slim	黏液（slime 的词干）	slime (stem)	slime
-slop_slope	root	slop_slope	slop	斜坡（slope 的词干）	slope (stem)	slope
-slop_spill	root	slop_spill	slop slopp	溢出；邋遢（slop 的词干）	slop (stem)	slop
+slim_slime	root	slime	slim	黏液（slime 的词干）	slime (stem)	slime
+slop_slope	root	slope	slop	斜坡（slope 的词干）	slope (stem)	slope
+slop_spill	root	slop	slop slopp	溢出；邋遢（slop 的词干）	slop (stem)	slop
 sloven	root	sloven	sloven	邋遢者；不修边幅	sloven	sloven
 smoke	root	smoke	smoke smok	烟；吸烟	smoke	smoke
 smooth	root	smooth	smooth	平滑的；顺利的	smooth	smooth
@@ -2761,7 +2749,6 @@ sophist	root	sophist	sophist	智者；诡辩者	sophist	sophist
 sophisticat	root	sophisticate	sophisticat	使复杂；使精致	sophisticate	sophisticat
 sole	root	sole	sole	单独的；仅有的	sole	sole
 specializ	root	specializ	specializ	specialize 的表面词干（special + -ize）	surface stem of specialize	specialize
-specif	root	specif	specif	species 的词干：种类；外观	stem of species: kind, appearance	speciēs
 specifi	root	specifi	specifi	specify 的表面词干（y 变 i）	surface stem of specify	specify
 spec	root	spec	spec	看；种类（拉丁 speciō）	to look; kind	speciō
 acul	suffix	acul	acul	名词后缀：工具或事物（-āculum 的变体）	noun suffix: instrument or thing	-āculum
@@ -2803,7 +2790,7 @@ statistic	root	statistic	statistic	统计量；统计的	statistic	statistic
 stereo	prefix	stereo	stereo	立体	solid; three-dimensional	stereo-
 stimul	root	stimul	stimul stimulat	刺；刺激	goad; stimulate	stimulus
 stiff	root	stiff	stiff	僵硬；坚固	stiff	stiff
-still_quiet	root	still_quiet	still	静止；安静	still; quiet	still
+still_quiet	root	still	still	静止；安静	still; quiet	still
 stomach	root	stomach	stomach	胃；口	stomach	stomachus
 stop	root	stop	stop	停止；塞住	stop	stoppian
 watch	root	watch	watch	看；守候	watch	watch
@@ -2819,14 +2806,14 @@ streng	root	streng	streng	strong 的表面词干	strong stem	strong
 strenuous	root	strenuous	strenuous	用力；紧张	strenuous	strenuus
 stress	root	stress	stress	压力；紧张	stress	stress
 strik	root	strik	strik	打；击	strike	strike
-string_cord	root	string_cord	string	弦；细绳	string; cord	string
+string_cord	root	string	string	弦；细绳	string; cord	string
 structur	root	structur	structur	结构；建造	structure	structure
 stubborn	root	stubborn	stubborn	固执的	stubborn	stubborn
 stud	root	stud	stud	学习；努力	study; zeal	studium
 studi	root	studi	studi	study 的表面词干	study stem	study
 stuff	root	stuff	stuff	材料；填塞	stuff	stuff
 steam	root	steam	steam	蒸汽	steam	steam
-steer_guide	root	steer_guide	steer	驾驶；引导	steer; guide	steer
+steer_guide	root	steer	steer	驾驶；引导	steer; guide	steer
 steadi	root	steadi	steadi	steady 的表面词干	steady stem	steady
 ston	root	ston	ston	stone 的表面词干	stone stem	stone
 stipul	root	stipul	stipul	要求；约定	stipulate	stipulor
@@ -2905,11 +2892,11 @@ thick	root	thick	thick	厚的；浓的	thick	thick
 think	root	think	think	思考	to think	thinking
 third	root	third	third	第三	third	thirdly
 thirst	root	thirst	thirst	渴；渴望	thirst	thirsty
-three	root	three	three thir	三	three	thirteen thirty
+three	root	three	three thir three-	三	three	thirteen thirty
 thorn	root	thorn	thorn	刺；荆棘	thorn	thorny
 thorough	root	thorough	thorough	彻底；完全	thorough	thoroughly
 thought	root	thought	thought	思想；思考	thought	thoughtful
-thousand	root	thousand	thousand	千	thousand	thousandfold
+thousand	root	thousand	thousand thousand-	千	thousand	thousandfold
 thread	root	thread	thread	线；线索	thread	threadlike
 threat	root	threat	threat	威胁	threat	threaten
 thrive	root	thrive	thrive thrif	繁荣；成长	to thrive	thrift
@@ -3068,7 +3055,7 @@ volley	root	volley	volley	凌空击球；截击	volley	volley
 volt_eponym	root	volt	volt	伏特（源自 Volta）	volt (eponym)	Volta
 vouch	root	vouch	vouch	担保；证明	vouch	vouch
 vulgar	root	common	vulgar	平民；粗俗	common people; vulgar	vulgus
-vulner	root	wound	vulner	伤；创伤	wound	vulnerāre
+vulner	root	vulner	vulner	伤；创伤	wound	vulnerāre
 wall	root	wall	wall	墙	wall	wall
 wal_foreign	root	foreign	wal	外来的	foreign	wealh
 warrant	root	warrant	warrant	保证；授权	warrant	warrant
@@ -3149,7 +3136,6 @@ review_char_care	root	care	char	在意；忧虑	care, worry	cearu
 review_hands	root	hands	hands-	双手；亲手	hands; practical	hand
 review_on_preposition	root	on	on	在……上；接触	on; in contact	on
 review_hydro	prefix	hydro-	hydro	水；化学中可指氢	water; hydrogen	hydro-
-review_carbon	root	carbon	carbon	碳	carbon	carbon
 review_living_hyphen	root	living	living-	生活；起居	living	live
 review_industrializ	root	industrialize	industrializ	使工业化	industrialize	industrialize
 review_mute	root	mute	mut	降低音量；使无声	mute	mute
@@ -3182,9 +3168,6 @@ review_surface_bir	root	bear	bir	生育；负载	bear; carry	bear
 review_surface_dull	root	dull	dul	迟钝；钝	dull	dull
 review_surface_entre	prefix	entre-	enter	在……之间	between	entre
 review_surface_prise	root	prise	prise	拿取；着手	take; undertake	prendre
-review_surface_spir	root	spir	pire	呼吸	breathe	spirare
-review_surface_god	root	god	godd	神	god	god
-review_surface_line	root	line	lin	线；航线	line	line
 review_surface_long	root	long	long-	长时间；长距离	long	long
 review_surface_range	root	range	range	范围；距离	range; extent	range
 review_surface_loose	root	loose	loos	松的	loose	loose
@@ -3319,7 +3302,6 @@ p01_ology	suffix	-ology	ology	学科；学	-ology; study	logia
 p03_blaze	root	blaze	blaze blaz	燃烧；闪耀	blaze	blaze
 p03_blood	root	blood	blood	血	blood	blood
 p03_body	root	body	body bodi	身体	body	body
-p03_broad	root	broad	bread	宽广的	broad	broad
 p03_brute	root	brute	brute brut	野兽；粗暴的	brute	brute
 p03_cactus	root	cactus	cactus cact	仙人掌	cactus	cactus
 p03_canada	root	canada	canada canad	加拿大	Canada	Canada
@@ -3340,7 +3322,7 @@ p04_concentrate	root	concentrate	concentrate concentrat	集中；浓缩	concentr
 p04_coni	root	coni	coni	圆锥；松果	cone; pine cone	conus
 p04_conjecture	root	conjecture	conjecture conjectur	推测；猜想	conjecture	conjecture
 p04_conservat	root	conservat	conservat	保存；保守	conserve; conservative	conservate
-p04_spir	root	spir	spir	呼吸	breathe	spirare
+p04_spir	root	spir	spir pire	呼吸	breathe	spirare
 p04_ry_adj	suffix	-ry	ry	形容词或名词后缀：……的	adjective/noun suffix	-ary
 p04_contrive	root	contrive	contrive contriv	设计；图谋	contrive	contrive
 p04_cord_rope	root	cord	cord	绳索；绳	cord; rope	cord
@@ -3361,7 +3343,6 @@ p05_critic	root	critic	critic	批评；判断	critic; to judge	critic
 p05_crook	root	crook	crook	弯曲；钩	crook; bend	crook
 p05_crop	root	crop	crop	作物；剪	crop	crop
 p05_crowd	root	crowd	crowd	人群；挤满	crowd	crowd
-p05_cruc	root	cross	cruc	十字；交叉	cross	cross
 p05_cruel	root	cruel	cruel	残酷的	cruel	cruel
 p05_crumb	root	crumb	crumb	碎屑	crumb	crumb
 p05_crump	root	crump	crump	弯曲；起皱	bent; to wrinkle	crump
@@ -3379,44 +3360,41 @@ p05_ary	suffix	-ary	ary ari	形容词/名词后缀	adjective/noun suffix	ary
 p05_cutis	root	cutis	cut	皮肤	skin	cutis
 p05_cutt	root	cut	cutt	切；剪	to cut	cut
 p05_cycle	root	cycle	cycle cycl	循环；轮	cycle; wheel	cycle
-p05_day	root	day	day dai	日；天	day	day
 p05_dear	root	dear	dear dar	亲爱的；珍贵的	dear	dear
 p05_dat	root	date	dat	日期；注明日期	date	date
 p05_bate	root	bat	bate	打；击	to beat; to strike	bat
 p05_cay	root	cad	cay	落；发生	to fall; to happen	cad
 p05_decid	root	decide	decide decid decis	决定；判断	to decide; to determine	decide
-p05_clare	root	clar	clare	清楚	clear	clar
 p05_criterion	root	criterion	criterion criteri	标准；判据	criterion	criterion
-p06_at_ate	suffix	动词后缀变体	at	动词后缀 -ate 在 -ed 前的缩合形式	-ate before -ed	ate
-p06_hydrat	root	水合词根	hydrat	水合；含水	hydrate; water	hydrate
-p06_deleteri	root	有害词根	deleteri	有害；破坏	harmful; destroy	deleterius
-p06_mobil	root	移动词根	mobil	移动；可动	move; mobile	mobile
-p06_deny	root	否认词根	deny deni	否认；拒绝	deny; refuse	deny
-p06_depend	root	依赖词根	depend	依赖；悬挂	depend; hang	depend
-p06_defer	root	顺从词根	defer	顺从；呈交	defer; yield	defer
-p06_relict	root	遗留词根	relict	留下；遗弃	leave behind; abandon	relictus
-p06_di_two	prefix	数词前缀	di	二	two	di-
-p06_lemma	root	前提词根	lemma	前提；命题	premise; proposition	lemma
-p06_approv	root	赞成词根	approv	赞成；批准	approve	approve
-p06_astr	root	星词根	astr	星；天体	star; celestial body	astrum
-p06_courage	root	勇气词根	courage courag	勇气	courage	courage
-p06_cret_sift	root	区分词根	crete creet	区分；筛	separate; sift	cernere
-p06_dis_day	root	日词根	dis	日；天（复数）	day(s)	dies
-p06_mal_bad	root	坏词根	mal	坏；恶	bad; evil	malus
-p06_spers	root	散播词根	spers sperse	散播；散开	scatter; disperse	spargere
-p06_sens	root	感觉词根	sens	感觉；意见	feel; sense	sentire
-p06_sert_serve	root	服务词根	sert	服务；上菜	serve	servir
-p06_des	prefix	去除前缀	des	去除；分开	away; apart	des-
-p06_stroy	root	建造词根	stroy	建造；堆起	build; pile up	struere
-p06_scent	root	攀爬词根	scent	爬；下降	climb; descend	scandere
-p06_spise	root	看词根	spise	看；注视	look; observe	specere
-p06_spite	root	看词根	spite	看；轻视	look; despise	specere
-p06_di_day	root	日词根	di	日；天	day	dies
-p06_vulge	root	大众词根	vulge	大众；公开	crowd; make public	vulgus
-p06_end_gerund	suffix	将来被动分词后缀	end	拉丁将来被动分词后缀：应被……的	Latin future passive participle: to be -ed	-endum
-p06_disabl	root	使丧失能力词根	disabl	使丧失能力	disable	disable
-p06_dry	root	干燥词根	dry dri	干燥	dry	dry
-p06_detriment	root	损害词根	detriment	损害；磨损	harm; wear	detrimentum
+p06_at_ate	suffix	-ate	at	动词后缀 -ate 在 -ed 前的缩合形式	-ate before -ed	ate
+p06_hydrat	root	hydrate	hydrat	水合；含水	hydrate; water	hydrate
+p06_deleteri	root	deleterius	deleteri	有害；破坏	harmful; destroy	deleterius
+p06_mobil	root	mobile	mobil	移动；可动	move; mobile	mobile
+p06_deny	root	deny	deny deni	否认；拒绝	deny; refuse	deny
+p06_depend	root	depend	depend	依赖；悬挂	depend; hang	depend
+p06_defer	root	defer	defer	顺从；呈交	defer; yield	defer
+p06_relict	root	relictus	relict	留下；遗弃	leave behind; abandon	relictus
+p06_di_two	prefix	di-	di	二	two	di-
+p06_lemma	root	lemma	lemma	前提；命题	premise; proposition	lemma
+p06_approv	root	approve	approv	赞成；批准	approve	approve
+p06_astr	root	astrum	astr	星；天体	star; celestial body	astrum
+p06_cret_sift	root	cernere	crete creet	区分；筛	separate; sift	cernere
+p06_dis_day	root	dies	dis	日；天（复数）	day(s)	dies
+p06_mal_bad	root	malus	mal	坏；恶	bad; evil	malus
+p06_spers	root	spargere	spers sperse	散播；散开	scatter; disperse	spargere
+p06_sens	root	sentire	sens	感觉；意见	feel; sense	sentire
+p06_sert_serve	root	servir	sert	服务；上菜	serve	servir
+p06_des	prefix	des-	des	去除；分开	away; apart	des-
+p06_stroy	root	struere	stroy	建造；堆起	build; pile up	struere
+p06_scent	root	scandere	scent	爬；下降	climb; descend	scandere
+p06_spise	root	specere	spise	看；注视	look; observe	specere
+p06_spite	root	specere	spite	看；轻视	look; despise	specere
+p06_di_day	root	dies	di	日；天	day	dies
+p06_vulge	root	vulgus	vulge	大众；公开	crowd; make public	vulgus
+p06_end_gerund	suffix	-endum	end	拉丁将来被动分词后缀：应被……的	Latin future passive participle: to be -ed	-endum
+p06_disabl	root	disable	disabl	使丧失能力	disable	disable
+p06_dry	root	dry	dry dri	干燥	dry	dry
+p06_detriment	root	detrimentum	detriment	损害；磨损	harm; wear	detrimentum
 p07_an_suffix	suffix	-an	an	形容词/名词后缀：……的；……人	adjectival/noun suffix: of or pertaining to; person	an
 p07_cape	root	cape	cape	斗篷	cape; cloak	cappa
 p07_crine	root	crine	crine	分泌；分离	secrete; separate	krinein
@@ -3434,7 +3412,6 @@ p07_easy	root	easy	easi	容易的	easy	easy
 p07_ed	root	ed	ed	吃	eat	edere
 p07_ed_d	suffix	-ed	d	形容词后缀：已……的	past participle/adjectival suffix -ed	ed
 p07_educ	root	educ	educ	教育	educate	educare
-p07_eight	root	eight	eigh	八	eight	eight
 p07_embroid	root	embroid	embroid	刺绣	embroider	embroid
 p07_embryo	root	embryo	embryo embryon	胚胎	embryo	embryo
 p07_emphat	root	emphat	emphat	强调；显示	emphasis; show	emphasis
@@ -3476,11 +3453,11 @@ p07_valu	root	valu	valu	价值	value	value
 p09_gar_spear	root	spear	gar	矛	spear	gār
 p09_leek	root	leek	lic	韭葱	leek	lēac
 p09_ghast	root	ghast	ghast gast	恐吓；使惊骇	frighten	gast
-p09_give	root	give	gif	给	give	give
+p09_give	root	give	gif give giv	给	give	give
 p09_gift	root	gift	gift	礼物；天赋	gift; talent	gift
 p09_glim	root	glim	glimm glim	闪光；微光	shine; glimmer	glim
 p09_er_freq	suffix	-er (frequentative)	er	反复动词后缀	frequentative suffix	-er
-p09_god	root	god	god go gos	神	god	god
+p09_god	root	god	god go gos godd	神	god	god
 p09_en_adj	suffix	-en (adjective)	en	形容词后缀：由……制成的	adjective suffix: made of	-en
 p09_spell	root	spell	spel spell	话语；故事	speech; story	spell
 p09_sib	root	sib	sip sib	亲属	relative	sib
@@ -3513,85 +3490,81 @@ p09_hope	root	hope	hope	希望	hope	hope
 p09_or_noun	suffix	-or	or	名词后缀：状态或行为	noun suffix: state or action	-or
 p09_house	root	house	hous house	房屋	house	house
 p09_hove	root	hover; lift	hov hove	悬停；举起	hover; lift	hove
-p09_hydro	root	water	hydro	水	water	hydro-
+p09_hydro	root	hydro-	hydro	水	water	hydro-
 p09_cris	root	judgment	cris	判断；区分	judgment; separation	krisis
 p09_cream	root	cream	cream	奶油	cream	cream
-p09_ice	root	ice	ic ice-	冰	ice	ice
 p09_identify	root	identify	identifi identify	识别	identify	identify
 p09_identity	root	identity	identit identity	身份；同一性	identity	identity
-p09_noble_gn	root	noble	gnoble	高贵	noble	gnōbilis
 p09_gnarus	root	knowing	gnore	知道	knowing	gnārus
 p09_mensus	root	measured	mense	测量	measured	mensus
 p09_merg	root	dip	merse	浸入	dip; immerse	mergō
 p09_mobile	root	movable	mobil	可动的	movable	mobile
 p09_munus	root	service	mune	义务；服务	service; duty	mūnus
 p09_palus	root	stake	pale	桩	stake	palus
-p10_pede	root	脚（ped- 的 -e 变体）	pede	脚	foot	pēs/ped-
-p10_us	suffix	拉丁名词后缀：行为或状态	us	名词后缀：行为或状态	Latin noun suffix	-us
-p10_im_en	prefix	使……（en- 的 im- 变体）	im	使……	make, cause	em-
-p10_ish_verb	suffix	动词后缀：使……（源自古法语 -iss-）	ish	使……	verb-forming suffix	-iss-
-p10_pulse	root	推；驱动（puls- 的 -e 变体）	pulse	推；驱动	drive, push	pulsus
-p10_as	root	如；与……一样	as	如；与……一样	as, like	as
-p10_much	root	多；大量	much	多；大量	much, a lot	much
-p10_cand	root	白；发光	cand	白；发光	white, glow	candēre
-p10_esc	suffix	起始后缀：开始变得……	esc	起始；开始	inchoative suffix	-esc-
-p10_come	root	来（come 去 e）	com	来	come	come
-p10_corpor	root	身体（corp- 的 -or 变体）	corpor	身体	body	corpus/corpor-
-p10_increas	root	增加；增长（increase 去 e）	increas	增加；增长	increase	increase
-p10_cre	root	生长；增加	cre	生长；增加	grow, increase	crēscere
-p10_ept	root	适合；恰当（apt 的变体）	ept	适合；恰当	fit, apt	aptus
-p10_evit	root	避免	evit	避免	avoid	ēvītāre
-p10_fant	root	说话（fāns/fant-）	fant	说话	speaking	fāns/fant-
-p10_fringe	root	打破；违反（frang-/fring-）	fringe	打破；违反	break	frangere
-p10_sipid	root	有味道（sapidus 的变体）	sipid	有味道	savory, tasty	sapidus
-p10_sol_accustom	root	习惯（solēre）	sol	习惯	be accustomed	solēre
-p10_instal	root	安装；就职（install 的英式单 l）	instal	安装；就职	install	install
-p10_in_chem	suffix	化学物质后缀：……素	in	化学物质后缀：……素	chemical suffix	-in
-p10_intel	prefix	在……之间（inter- 在 l 前同化）	intel	在……之间	between	inter-
-p10_cis	root	切；割（cid-/cis- 变体）	cis	切；割	cut	caedere/cīs-
-p10_fer_strike	root	打击（ferire）	fer	打击	strike	ferīre
-p10_mitt	root	送；派（mit- 双写变体）	mitt	送；派	send	mittere
-p10_at	suffix	-ate 在 -ion 前的变体	at	使……；具有……的	-ate variant	-āt-
-p10_trude	root	推；刺（trud-/trus- 变体）	trud trus	推；刺	push, thrust	trūdere
-p10_ure_practice	root	练习；使用	ure	练习；使用	practice, use	opera
-p10_vad	root	走；行进（vad- 变体）	vad	走；行进	go, walk	vādere
-p10_valu	root	价值（val- 的 u 变体）	valu	价值	value	valēre
-p10_volunt	root	意愿（vol- 的 -unt 变体）	volunt	意愿	will	voluntās
-p10_volv	root	滚；转（volv- 变体）	volv	滚；转	roll, turn	volvere
-p10_concil	root	使和解；结合（concili- 去 i）	concil	使和解；结合	reconcile, unite	conciliāre
-p10_respons	root	回应；负责（respond/spons-）	respons	回应；负责	respond, pledge	respondēre
-p10_jaque	root	短上衣	jack	短上衣	short coat	jaque
-p10_joc	root	玩笑	joc	玩笑	joke	iocus
-p10_ose_adj	suffix	形容词后缀：充满……的	ose	充满……的	full of	-ōsus
-p10_kern	root	谷粒；种子	kern	谷粒；种子	grain, seed	cyrnel
-p10_el_dim	suffix	指小后缀	el	指小后缀	diminutive	-el
-p10_keros	root	蜡	keros	蜡	wax	kēros
-p10_ene	suffix	化学后缀：烃类	ene	化学后缀：烃类	hydrocarbon suffix	-ene
-p10_kinder	root	儿童（德语复数）	kinder	儿童	children	Kinder
-p10_garten	root	花园	garten	花园	garden	Garten
-p10_knap	root	咬；吃	knap	咬；吃	bite, eat	knappen
-p10_sack	root	袋	sack	袋	sack	zak
-p10_lever	root	杠杆	lever	杠杆	lever	lever
-p10_li	root	说谎（lie 的变体）	li	说谎	lie (falsehood)	lie
-p10_ar	suffix	人（-er 的变体）	ar	人	agent suffix	-ar
-p10_ense	suffix	名词后缀：状态（-ence 的 -ense 拼写）	ense	名词后缀：状态	state, condition	-ence
-p10_lin_flax	root	亚麻	lin	亚麻	flax	līnum
-p10_en_adj	suffix	形容词后缀：由……制成的	en	由……制成的	made of	-en
-p10_ling_long	root	长；延长	ling	长；延长	long, lengthen	lengan
-p10_er_freq	suffix	反复动词后缀	er	反复动词后缀	frequentative	-er
-p10_lin_line	root	线；加衬里（line 去 e）	lin	线；加衬里	line	line
-p10_lion	root	狮	lion	狮	lion	leō
-p10_lip_fat	root	脂肪	lip	脂肪	fat	lipos
-p10_id_chem	suffix	化学后缀：脂类	id	化学后缀：脂类	chemical suffix	-id
-p10_list_desire	root	愿望；渴望	list	愿望；渴望	desire	list
-p10_liv_live	root	生活；活（live 去 e）	liv	生活；活	live	live
+p10_pede	root	pēs/ped-	pede	脚	foot	pēs/ped-
+p10_im_en	prefix	em-	im	使……	make, cause	em-
+p10_ish_verb	suffix	-iss-	ish	使……	verb-forming suffix	-iss-
+p10_pulse	root	pulsus	pulse	推；驱动	drive, push	pulsus
+p10_as	root	as	as	如；与……一样	as, like	as
+p10_much	root	much	much	多；大量	much, a lot	much
+p10_cand	root	candēre	cand	白；发光	white, glow	candēre
+p10_esc	suffix	-esc-	esc	起始；开始	inchoative suffix	-esc-
+p10_come	root	come	com	来	come	come
+p10_corpor	root	corpus/corpor-	corpor	身体	body	corpus/corpor-
+p10_increas	root	increase	increas	增加；增长	increase	increase
+p10_cre	root	crēscere	cre	生长；增加	grow, increase	crēscere
+p10_ept	root	aptus	ept	适合；恰当	fit, apt	aptus
+p10_evit	root	ēvītāre	evit	避免	avoid	ēvītāre
+p10_fant	root	fāns/fant-	fant	说话	speaking	fāns/fant-
+p10_fringe	root	frangere	fringe	打破；违反	break	frangere
+p10_sipid	root	sapidus	sipid	有味道	savory, tasty	sapidus
+p10_sol_accustom	root	solēre	sol	习惯	be accustomed	solēre
+p10_instal	root	install	instal	安装；就职	install	install
+p10_in_chem	suffix	-in	in	化学物质后缀：……素	chemical suffix	-in
+p10_intel	prefix	inter-	intel	在……之间	between	inter-
+p10_cis	root	caedere/cīs-	cis	切；割	cut	caedere/cīs-
+p10_fer_strike	root	ferīre	fer	打击	strike	ferīre
+p10_mitt	root	mittere	mitt	送；派	send	mittere
+p10_at	suffix	-āt-	at	使……；具有……的	-ate variant	-āt-
+p10_trude	root	trūdere	trud trus	推；刺	push, thrust	trūdere
+p10_ure_practice	root	opera	ure	练习；使用	practice, use	opera
+p10_vad	root	vādere	vad	走；行进	go, walk	vādere
+p10_valu	root	valēre	valu	价值	value	valēre
+p10_volunt	root	voluntās	volunt	意愿	will	voluntās
+p10_volv	root	volvere	volv	滚；转	roll, turn	volvere
+p10_concil	root	conciliāre	concil	使和解；结合	reconcile, unite	conciliāre
+p10_respons	root	respondēre	respons	回应；负责	respond, pledge	respondēre
+p10_jaque	root	jaque	jack	短上衣	short coat	jaque
+p10_joc	root	iocus	joc	玩笑	joke	iocus
+p10_ose_adj	suffix	-ōsus	ose	充满……的	full of	-ōsus
+p10_kern	root	cyrnel	kern	谷粒；种子	grain, seed	cyrnel
+p10_el_dim	suffix	-el	el	指小后缀	diminutive	-el
+p10_keros	root	kēros	keros	蜡	wax	kēros
+p10_ene	suffix	-ene	ene	化学后缀：烃类	hydrocarbon suffix	-ene
+p10_kinder	root	Kinder	kinder	儿童	children	Kinder
+p10_garten	root	Garten	garten	花园	garden	Garten
+p10_knap	root	knappen	knap	咬；吃	bite, eat	knappen
+p10_sack	root	zak	sack	袋	sack	zak
+p10_lever	root	lever	lever	杠杆	lever	lever
+p10_li	root	lie	li	说谎	lie (falsehood)	lie
+p10_ar	suffix	-ar	ar	人	agent suffix	-ar
+p10_ense	suffix	-ence	ense	名词后缀：状态	state, condition	-ence
+p10_lin_flax	root	līnum	lin	亚麻	flax	līnum
+p10_en_adj	suffix	-en	en	由……制成的	made of	-en
+p10_ling_long	root	lengan	ling	长；延长	long, lengthen	lengan
+p10_er_freq	suffix	-er	er	反复动词后缀	frequentative	-er
+p10_lin_line	root	line	lin	线；加衬里	line	line
+p10_lion	root	leō	lion	狮	lion	leō
+p10_lip_fat	root	lipos	lip	脂肪	fat	lipos
+p10_id_chem	suffix	-id	id	化学后缀：脂类	chemical suffix	-id
+p10_list_desire	root	list	list	愿望；渴望	desire	list
+p10_liv_live	root	live	liv	生活；活	live	live
 p11_loco	root	loco	loco	疯；疯狂	mad, insane	loco
 p11_lug	root	lug	lug lugg	拖；拉	to drag, to lug	lug
 p11_mad	root	mad	mad madd	疯；发狂	mad, insane	mad
 p11_en_dim	suffix	-en	en	指小后缀	diminutive suffix	-en
 p11_maid	root	maid	maid	少女；未婚女子	maiden, girl	maid
 p11_main	root	main	main	主要；首要	main, chief	main
-p11_make	root	make	make	制作	to make	make
 p11_mania	root	mania	mania mani	疯狂；躁狂	madness, mania	mania
 p11_ac	suffix	-ac	ac	形容词/名词后缀：……的；……人	adjective/noun suffix	-ac
 p11_malice	root	malice	malice malici	恶意	malice	malice
@@ -3606,13 +3579,11 @@ p11_ure	suffix	-ure	ur	名词后缀：结果（-ure 的省 e 变体）	noun suff
 p11_melt	root	melt	melt molt	熔化	to melt	melt
 p11_en_pp	suffix	-en	en	过去分词后缀	past participle suffix	-en
 p11_mono	prefix	mon-	mon	单一	one, single	mono-
-p11_moon	root	moon	moon mon	月亮	moon	moon
 p11_poly_sell	root	-poly	poly	卖；售卖	to sell	pōlein
 p11_ive	suffix	-ive	iv	形容词后缀：有……性质的	adjective suffix	-ive
 p11_facet	root	facet	facet	面；方面	face, facet	facet
 p11_myri	root	myri-	myri myria	万；无数	ten thousand; countless	myrias
 p11_ad	suffix	-ad	ad	名词后缀：……	noun suffix	-ad
-p11_nine	root	nine	nine nin	九	nine	nine
 p11_or	root	or	or	或者	or	or
 p11_notice	root	notice	notice	注意；通知	notice	notice
 p11_notor	root	notor-	notor	已知；知名	known, famous	notor-
@@ -3650,97 +3621,91 @@ p12_perk	root	perk	perk	额外待遇；使振作	perquisite; perk up	perk
 p12_copy	root	copy	cop	复制；副本（copy 在 -ies 前的词干）	copy	copy
 p12_s_ics	suffix	-ics (surface -s)	s	学科后缀 -ics 加于 -ic 词干后的表面形式	-ics (surface -s)	-ics
 p12_pill	root	pill	pill	药丸	pill	pill
-p13_pp_n	suffix	pp_n	n	过去分词后缀：……的	past participle suffix	spoken
+p13_pp_n	suffix	-spoken	n	过去分词后缀：……的	past participle suffix	spoken
 p13_plaint	root	plaint	plaint	悲叹；抱怨	complain; lament	plaintif
 p13_iff	suffix	iff	iff	名词后缀：……人（-if 的英语变体）	noun suffix: person who	plaintif
 p13_plaus	root	plaus	plaus	鼓掌；赞许	applaud; approve	plausibilis
 p13_pleas	root	pleas	pleas	使高兴；取悦（please 去 e 的词干）	please; gratify	plaisant
 p13_pol	root	pol	pol	波兰人；波兰	Pole; Poland	Polish
-p13_pitch	root	pitch	pitch	投掷；投	throw; pitch	pitch
-p13_plumb	root	plumb	plumm	铅	lead	plumbum
-p13_pot_able	root	pot_able	pos	能；有能力	able; capable	potis
+p13_pot_able	root	potis	pos	能；有能力	able; capable	potis
 p13_pone	root	pone	pone	放置	place; put	ponere
 p13_ture	suffix	ture	ture	名词后缀：结果或状态	noun suffix: result or state	positura
-p13_pound_unit	root	pound_unit	pound	磅；英镑；重击	pound; unit of weight	pound
+p13_pound_unit	root	pound	pound	磅；英镑；重击	pound; unit of weight	pound
 p13_pray	root	pray	pray	祈祷；请求	pray; entreat	pray
 p13_arious	suffix	arious	arious	形容词后缀：与……有关的	adjective suffix: relating to	precarius
 p13_destine	root	destine	destine	注定；指定	destine; ordain	destine
-p13_fa_speak	root	fa_speak	face	说；讲	speak; say	fari
+p13_fa_speak	root	fari	face	说；讲	speak; say	fari
 p13_judice	root	judice	judice	判断；法律	judgment; law	iudicium
 p13_sag	root	sag	sage	感知；预知	perceive; foreknow	sagire
-p13_sent_be	root	sent_be	sent	存在；是	be; exist	esse
-p13_side_sit	root	side_sit	side	坐	sit	sedere
+p13_sent_be	root	esse	sent	存在；是	be; exist	esse
 p13_prett	root	prett	prett	诡计；狡猾	trick; cunning	prættig
 p13_itive	suffix	itive	itive	形容词后缀：……的	adjective suffix	primitivus
 p13_prior	root	prior	prior	优先；先前	prior; earlier	prior
 p13_prize	root	prize	prize	奖赏；珍视	prize; value	prize
 p13_nunci	root	nunci	nunci	宣布；报告	announce; report	nuntiare
-p13_proof_noun	root	proof_noun	proof	校样；证明	proof; test	proof
+p13_proof_noun	root	proof	proof	校样；证明	proof; test	proof
 p13_anda	suffix	anda	anda	拉丁将来被动分词后缀：应被……的	Latin gerundive suffix: to be ...ed	propaganda
 p13_us	suffix	us	us	拉丁名词后缀：……	Latin noun suffix	prospectus
 p13_ein	suffix	ein	ein	化学后缀：蛋白质	chemical suffix: protein	protein
-p13_col_glue	root	col_glue	col	胶；粘	glue; stick	kolla
-p13_trud	root	trud	trud	推；挤	push; thrust	trudere
+p13_col_glue	root	kolla	col	胶；粘	glue; stick	kolla
+p13_trud	root	trud	trud truse	推；挤	push; thrust	trudere
 p13_prud	root	prud	prud	审慎；有远见	prudent; foreseeing	prudentia
 p13_est	suffix	est	est	最高级后缀：最……	superlative suffix: most	purest
 p13_ify	suffix	ify	ify ifi	动词后缀：使……化	verb suffix: make, -ify	-ificare
 p13_naire	suffix	naire	naire	名词后缀：……表/问卷	noun suffix: questionnaire	questionnaire
 p13_bate	root	bate	bate	打；击	beat; strike	batre
 p13_plac	root	plac	plac	板；牌	plaque; board	plaque
-p13_ard_suffix	suffix	ard_suffix	ard	名词后缀：……的人/物	noun suffix: person or thing	-ard
-p14_buke	root	击打	buke	击；砍	strike; hack	buker
-p14_but	root	顶推	but	顶；推	butt; push	boter/buter
-p14_ceipt	root	取拿	ceipt	取；拿	take; receive	receptus
-p14_cluse	root	关闭	cluse	关闭	close	claudō
-p14_cycl	root	循环	cycl	轮；循环	wheel; cycle	cycle
-p14_redd	root	红色	redd	红色	red	red
-p14_deem	root	买取	deem	买；取	buy; take	emō
-p14_friger	root	使冷	friger	冷；使冷	cold; make cold	frīgerō
-p14_fund	root	倒流	fund	倒；流	pour; flow	fundere
-p14_gard	root	看守	gard	看；守护	watch; guard	garder
-p14_ar	suffix	从事者	ar	人；职者	person who	-ārius
-p14_gret	root	哀哭	gret	哭；哀叹	weep; lament	*grētan
-p14_regul	root	规则	regul	规则；直	rule; straight	rēgula
-p14_hearse	root	耙梳	hearse	耙；梳理	harrow; rake	herser
-p14_forc	root	力量	forc	力量；强迫	force; strength	force
-p14_joice	root	喜悦	joice	喜悦	joy; rejoice	esjoir
-p14_late	root	携带	late	携带；讲述	carry; relate	lātus
-p14_lay	root	留下	lay	留下；放置	leave; place	laier
-p14_lease	root	放开	lease	放开；松	let go; loosen	laisser
-p14_lev	root	举轻	lief liev lieve	举；轻	lift; light	levō
-p14_main	root	停留	main	停留；保持	stay; remain	maneō
-p14_member	root	记忆	member	记忆；想起	mindful; remember	memor
-p14_nunci	root	宣告	nunci	宣告；报告	announce; report	nūntiō
-p14_pair	root	准备	pair	准备；修复	prepare; restore	parāre
-p14_peal	root	推逐	peal	推；驱逐	push; drive	pellō
-p14_peat	root	寻求	peat	寻求；攻击	seek; attack	petō
-p14_pent	root	悔罪	pent	悔；惩罚	repent; punish	paenitēre
-p14_pulse	root	推驱	pulse	推；驱动	push; drive	pulsus
-p14_side	root	坐居	side	坐；居住	sit; dwell	sedeō
-p14_sili	root	跳	sili	跳	leap	saliō
-p14_spir	root	呼吸	spir	呼吸	breathe	spīrō
-p14_respons	root	回应	respons	回应；负责	respond; responsible	respondēre
-p14_stor	root	恢复	stor	恢复；建立	restore; establish	staurāre
-p14_triev	root	寻回	triev	找到；寻回	find; retrieve	trieve
-p14_venue	root	到来	venue	来；到来	come; return	venīre
-p14_vile	root	卑贱	vile	卑贱；辱骂	vile; revile	vīlis
-p14_write	root	写	write	写	write	write
-p14_rott	root	腐烂	rott	腐烂	rot	rotinn
-p14_en_pp	suffix	过去分词	en	已……的	past participle/adjective	-en
-p14_rul	root	规则	rul	规则；统治	rule; govern	rule
-p14_runn	root	跑	runn	跑	run	run
-p14_ifice	suffix	制作	ifice	制作；祭献	making; offering	-ficium
-p14_sali	root	跳	sali	跳	leap	saliō
-p14_salti	root	咸的	salti	咸的	salty	salty
-p14_sanit	root	健康	sanit	健康	health	sānitās
-p14_ris	root	上升	ris	上升；起	rise	rise
+p13_ard_suffix	suffix	-ard	ard	名词后缀：……的人/物	noun suffix: person or thing	-ard
+p14_buke	root	buker	buke	击；砍	strike; hack	buker
+p14_but	root	boter/buter	but	顶；推	butt; push	boter/buter
+p14_ceipt	root	receptus	ceipt	取；拿	take; receive	receptus
+p14_cluse	root	claudō	cluse	关闭	close	claudō
+p14_cycl	root	cycle	cycl	轮；循环	wheel; cycle	cycle
+p14_redd	root	red	redd	红色	red	red
+p14_deem	root	emō	deem	买；取	buy; take	emō
+p14_friger	root	frīgerō	friger	冷；使冷	cold; make cold	frīgerō
+p14_fund	root	fundere	fund	倒；流	pour; flow	fundere
+p14_gard	root	garder	gard	看；守护	watch; guard	garder
+p14_ar	suffix	-ārius	ar	人；职者	person who	-ārius
+p14_gret	root	*grētan	gret	哭；哀叹	weep; lament	*grētan
+p14_regul	root	rēgula	regul	规则；直	rule; straight	rēgula
+p14_hearse	root	herser	hearse	耙；梳理	harrow; rake	herser
+p14_forc	root	force	forc	力量；强迫	force; strength	force
+p14_joice	root	esjoir	joice	喜悦	joy; rejoice	esjoir
+p14_late	root	lātus	late	携带；讲述	carry; relate	lātus
+p14_lay	root	laier	lay	留下；放置	leave; place	laier
+p14_lease	root	laisser	lease	放开；松	let go; loosen	laisser
+p14_lev	root	levō	lief liev lieve	举；轻	lift; light	levō
+p14_main	root	maneō	main	停留；保持	stay; remain	maneō
+p14_member	root	memor	member	记忆；想起	mindful; remember	memor
+p14_nunci	root	nūntiō	nunci	宣告；报告	announce; report	nūntiō
+p14_pair	root	parāre	pair	准备；修复	prepare; restore	parāre
+p14_peal	root	pellō	peal	推；驱逐	push; drive	pellō
+p14_peat	root	petō	peat	寻求；攻击	seek; attack	petō
+p14_pent	root	paenitēre	pent	悔；惩罚	repent; punish	paenitēre
+p14_pulse	root	pulsus	pulse	推；驱动	push; drive	pulsus
+p14_side	root	sedeō	side	坐；居住	sit; dwell	sedeō
+p14_spir	root	spīrō	spir	呼吸	breathe	spīrō
+p14_respons	root	respondēre	respons	回应；负责	respond; responsible	respondēre
+p14_stor	root	staurāre	stor	恢复；建立	restore; establish	staurāre
+p14_triev	root	trieve	triev	找到；寻回	find; retrieve	trieve
+p14_venue	root	venīre	venue	来；到来	come; return	venīre
+p14_vile	root	vīlis	vile	卑贱；辱骂	vile; revile	vīlis
+p14_rott	root	rotinn	rott	腐烂	rot	rotinn
+p14_en_pp	suffix	-en	en	已……的	past participle/adjective	-en
+p14_rul	root	rule	rul	规则；统治	rule; govern	rule
+p14_runn	root	run	runn	跑	run	run
+p14_ifice	suffix	-ficium	ifice	制作；祭献	making; offering	-ficium
+p14_sali	root	saliō	sali sili	跳	leap	saliō
+p14_salti	root	salty	salti	咸的	salty	salty
+p14_sanit	root	sānitās	sanit	健康	health	sānitās
+p14_ris	root	rise	ris	上升；起	rise	rise
 p15_sarc	root	sarc-	sarc	肉；肌肉	flesh	sarcastic
 p15_astic	suffix	-astic	astic	形容词后缀：与……有关的	adjective suffix: relating to	sarcastic
 p15_sati	root	sati-	sati	足够	enough	satiate
 p15_ated	suffix	-ated	ated	形容词后缀：已……的（-ate + -ed 的缩合）	adjective suffix: -ate + -ed	saturated
 p15_saturn	root	satur-	satur	土星	Saturn	saturday
 p15_scale_fish	root	scal-	scal	鳞；鳞片	scale (of fish)	scaled
-p15_bag	root	bag	bag	包；袋	bag	schoolbag
 p15_ific	suffix	-ific	ific	形容词后缀：形成……的；产生……的	adjective suffix: making, producing	scientific
 p15_scramb	root	scramb-	scramb	抓；扒	scrape together	scramble
 p15_scribb	root	scribb-	scribb	写	write	scribble
@@ -3815,7 +3780,7 @@ p16_dial	root	dial	dial	日晷；表盘	sundial; dial	dial
 p16_lit	root	lit	lit	被照亮的；点燃的	lit; illuminated	lit
 p16_shine	root	shine	shine	发光；照耀	shine; shine	sunshine
 p16_faci	root	facies	fici	面；外观	face; appearance	facies
-p16_sede	root	sedere	sede	坐	sit	sedēre
+p16_sede	root	sedere	sede side	坐	sit	sedēre
 p16_sup	root	sup	sup supp	吃晚饭；啜饮	sup; eat supper	sup
 p16_supreme	root	supreme	supreme suprem	至高的	supreme	supreme
 p17_surround	root	surround	surround	包围；环绕	surround	surround
@@ -3828,26 +3793,19 @@ p17_ptom	root	ptom	ptom	落下	fall	ptōma
 p17_atize	suffix	atize	atize	使……化	-atize	atize
 p17_tabl	root	tabl	tabl	板；桌子	table	table
 p17_tabul	root	tabul	tabul	板；表	tablet; table	tabula
-p17_taste	root	taste	taste tast	味道；品尝	taste	taste
 p17_techn	root	techn	techn techno	技术；技艺	skill; art	tekhnē
 p17_tecton	root	tecton	tecton	建造者	builder	τέκτων
 p17_tedi	root	tedi	tedi	厌倦	weariness	taedium
-p17_temple	root	temple	temple	神庙；太阳穴	temple	temple
 p17_temporary	root	temporary	temporary temporari	暂时的	temporary	temporary
 p17_tenant	root	tenant	tenant tenan	持有；租户	hold; tenant	tenant
 p17_ten	root	ten	ten	十	ten	ten
 p17_terrestr	root	terrestr	terrestr	土地的	terrestrial	terrestris
 p17_testi	root	testi	testi	见证	witness	testis
 p17_textur	root	textur	textur	质地；纹理	texture	texture
-p17_give	root	give	give giv	给	give	give
 p17_them	root	them	them	他们（宾格）	them	them
-p17_self	root	self	self selve	自己	self	self
 p17_theo	root	theo	theo	神	god	theos
 p17_thermo	root	thermo	thermo	热	heat	thermo-
-p17_thousand_comb	root	thousand	thousand-	千	thousand	thousand
-p17_three_comb	root	three	three-	三	three	three
 p17_throat	root	throat	throat thrott	喉咙	throat	throat
-p17_time_comb	root	time	time-	时间	time	time
 p17_consume	root	consume	consume consum	消耗	consume	consume
 p17_tire_weary	root	tire	tire tir	使疲倦	tire	tire
 p17_toe	root	toe	toe to	脚趾	toe	toe
@@ -3872,7 +3830,6 @@ p18_paid	root	pay (past participle)	paid	支付；已付（pay 的过去分词�
 p18_pleas	root	please (stem)	pleas	取悦；使高兴（please 去 e 形）	please (stem)	please
 p18_tam	root	tame (stem)	tam	驯服（tame 去 e 形）	tame (stem)	tame
 p18_tapped	root	tap (past participle)	tapped	已开塞的；已开发的（tap 的过去分词）	tap (past participle)	tapped
-p18_told	root	tell (past participle)	told	讲述；告诉（tell 的过去分词）	tell (past participle)	told
 p18_us	root	use (stem)	us	使用（use 去 e 形）	use (stem)	use
 p18_an	suffix	-an	an	……的；与……有关的	-an	an
 p18_ite_resident	suffix	-ite (resident)	ite	居民；……地方的人	-ite (resident)	ite
@@ -3913,46 +3870,40 @@ p18_ris	root	rise (stem)	ris	升起（rise 去 e 形）	rise (stem)	rise
 p18_veh	root	vehere	veh	运载；承载	vehere	vehere
 p18_atile	suffix	-atile	atile	形容词后缀：易于……的	-atile	atile
 p18_veterin	root	veterinarius	veterin	兽医	veterinarius	veterinarius
-p18_write	root	write	write	写	write	write
-p19_wear	root	wear（穿戴；磨损）	wear wor	穿戴；磨损	wear	wor
-p19_en_pp	suffix	-en/-n（过去分词）	en n	过去分词后缀：-en/-n	past participle suffix: -en/-n	n
-p19_worth	root	worth（价值；尊敬）	worth wor	价值；尊敬	worth; honor	wor
-p19_will	root	will（将；愿意）	will woul	将；愿意	will	woul
-p19_d_past	suffix	-d（过去式）	d	过去式后缀：-d	past tense suffix: -d	d
-p19_self	root	self（自己）	self selves	自己	self	selves
-p19_young	root	young（年轻）	young you	年轻	young	you
-p19_yum	root	yum（好吃；拟声）	yum yumm	好吃（拟声）	yum	yumm
-p19_zip	root	zip（拉上；拉链）	zip zipp	拉上；拉链	zip	zipp
-p19_lade	root	lade（装载）	lade	装载	lade	lade
-p19_lamp	root	lamp（灯）	lamp	灯	lamp	lamp
-p19_shade	root	shade（遮光物；罩）	shade	遮光物；罩	shade	shade
-p19_scape	suffix	-scape（景象；区域）	scape	景象；区域（构词后缀）	landscape; scenery	scape
-p19_langu_lang	root	langue/langu-（语言；舌头）	langue langu	语言；舌头	language; tongue	langu
-p19_lap_knee	root	lap（膝上；大腿部）	lap	膝上；大腿部	lap (upper legs)	lap
-p19_larva	root	larva（幼虫）	larva larv	幼虫	larva	larv
-p19_ae_plural	suffix	-ae（拉丁复数）	ae	复数后缀：拉丁阴性复数	plural suffix: Latin -ae	ae
-p19_late	root	late（迟的；晚的）	lat latt	迟的；晚的（late 的词干变体）	late	lat
-p19_er_comp	suffix	-er（比较级）	er	比较级后缀：-er	comparative suffix: -er	er
-p19_est_super	suffix	-est（最高级）	est	最高级后缀：-est	superlative suffix: -est	est
-p19_laund	root	laund-（洗）	laund	洗；洗涤	wash	laund
-p19_lav	root	lav-（洗）	lav	洗	wash	lav
-p19_yer	suffix	-yer（从事……的人）	yer	人；从事……的人	person who...	yer
-p19_lay	root	lay（放置；解雇）	lay	放置；解雇	lay; put	lay
-p19_left	root	left（剩余的）	left	剩余的	left; remaining	left
-p19_legisl	root	legisl-（立法）	legisl	立法（取自 legislation）	legisl- (lawmaking)	legisl
-p19_leprous	root	leprous（麻风的）	leprous lepros	麻风的	leprous	lepros
-p19_less	root	less（较少）	less	较少	less	less
-p19_mesmer	root	Mesmer（催眠）	mesmer	催眠（源自 Mesmer 人名）	mesmer (Mesmer)	mesmer
-p19_mess	root	mess-（送；派）	mess	送；派（miss 的变体）	send	mess
-p19_meteorology	root	meteorology（气象学）	meteorology meteorolog	气象学	meteorology	meteorolog
-p19_meth	root	meth-（甲基）	meth	甲基（methyl 的词干）	methyl (stem)	meth
-p19_ane_chem	suffix	-ane（烷烃）	ane	化学后缀：烷烃	chemical suffix: -ane	ane
-p19_mexic	root	Mexic-（墨西哥）	mexic	墨西哥（Mexico 的词干）	Mexico (stem)	mexic
-p19_an_demonym	suffix	-an（……人；……的）	an	名词/形容词后缀：……人；……的	demonym/adjectival suffix: -an	an
-p19_microscope	root	microscope（显微镜）	microscope microscop	显微镜	microscope	microscop
-p19_ion_aug	suffix	-ion（大……）	ion	名词后缀：大……（意大利语增义后缀 -one）	augmentative suffix: -ion	ion
-p19_mine_min	root	mine（矿；挖掘）	min	矿；挖掘（mine 的词干变体）	mine	min
-p19_mini	prefix	mini-（微小）	mini	微小；迷你	mini-	mini
+p19_wear	root	wor	wear wor	穿戴；磨损	wear	wor
+p19_en_pp	suffix	-n	en n	过去分词后缀：-en/-n	past participle suffix: -en/-n	n
+p19_worth	root	wor	worth wor	价值；尊敬	worth; honor	wor
+p19_will	root	woul	will woul	将；愿意	will	woul
+p19_d_past	suffix	-d	d	过去式后缀：-d	past tense suffix: -d	d
+p19_self	root	selves	self selves	自己	self	selves
+p19_young	root	you	young you	年轻	young	you
+p19_yum	root	yumm	yum yumm	好吃（拟声）	yum	yumm
+p19_zip	root	zipp	zip zipp	拉上；拉链	zip	zipp
+p19_lade	root	lade	lade	装载	lade	lade
+p19_lamp	root	lamp	lamp	灯	lamp	lamp
+p19_shade	root	shade	shade	遮光物；罩	shade	shade
+p19_scape	suffix	-scape	scape	景象；区域（构词后缀）	landscape; scenery	scape
+p19_langu_lang	root	langu	langue langu	语言；舌头	language; tongue	langu
+p19_lap_knee	root	lap	lap	膝上；大腿部	lap (upper legs)	lap
+p19_late	root	lat	lat latt	迟的；晚的（late 的词干变体）	late	lat
+p19_er_comp	suffix	-er	er	比较级后缀：-er	comparative suffix: -er	er
+p19_laund	root	laund	laund	洗；洗涤	wash	laund
+p19_lav	root	lav	lav	洗	wash	lav
+p19_yer	suffix	-yer	yer	人；从事……的人	person who...	yer
+p19_lay	root	lay	lay	放置；解雇	lay; put	lay
+p19_left	root	left	left	剩余的	left; remaining	left
+p19_legisl	root	legisl	legisl	立法（取自 legislation）	legisl- (lawmaking)	legisl
+p19_leprous	root	lepros	leprous lepros	麻风的	leprous	lepros
+p19_less	root	less	less	较少	less	less
+p19_mess	root	mess	mess	送；派（miss 的变体）	send	mess
+p19_meth	root	meth	meth	甲基（methyl 的词干）	methyl (stem)	meth
+p19_ane_chem	suffix	-ane	ane	化学后缀：烷烃	chemical suffix: -ane	ane
+p19_mexic	root	mexic	mexic	墨西哥（Mexico 的词干）	Mexico (stem)	mexic
+p19_an_demonym	suffix	-an	an	名词/形容词后缀：……人；……的	demonym/adjectival suffix: -an	an
+p19_microscope	root	microscop	microscope microscop	显微镜	microscope	microscop
+p19_ion_aug	suffix	-ion	ion	名词后缀：大……（意大利语增义后缀 -one）	augmentative suffix: -ion	ion
+p19_mine_min	root	min	min	矿；挖掘（mine 的词干变体）	mine	min
+p19_mini	prefix	mini-	mini	微小；迷你	mini-	mini
 g02a_ant	prefix	anti	ant	相反；反对	opposite; against	anti-
 g02a_pall	root	pale	pal pall	苍白；变白	pale; pallid	pallere
 g02a_appeal	root	appeal	appeal	呼吁；上诉；吸引力	appeal; call	appellare
@@ -3965,21 +3916,16 @@ g02b_ar	root	ar	ar	耕作	plow; till	Latin arāre
 g02b_tect	root	tect	tect	建造；工匠	builder; carpenter	Ancient Greek téktōn
 g02b_ur	suffix	ur	ur	名词后缀：行为、状态或结果	state or result of action	Latin -ūra
 g02b_or	suffix	or	or	名词后缀：状态或性质	state, condition, or activity	Latin -or
-g02b_scend	root	scend	scend scent	攀登；上升	climb	Latin scandere
-g02c_sham	root	shame	sham	羞耻；羞愧	shame	shame
 g02c_author	root	author	author authorit	作者；权威	author; authority	auctor
 g02c_awe	root	awe	awe aw	敬畏	awe	awe
 g02c_babe	root	babe	babe bab	婴儿；幼童	babe; baby	babe
 g02c_y_dim	suffix	-y	y	指小后缀：小……、爱称	diminutive suffix	-y
 g02d_bacteri	root	bacteri	bacteri	杆菌；小棒	rod; bacterium	bacterium
-g02d_balanc	root	balance	balanc	平衡	balance	balance
-g02d_bas	root	base	bas	基础；垒	base	basis
 g02d_bear	root	bear	bear	承受；忍受；生育	bear; carry; endure	beran
 g08b_figure	root	figure	figure	形状；人像	shape; figure	wiktionary
 review_r2_form_br	root	breakfast	br	早餐	breakfast	breakfast
 review_r2_form_unch	root	lunch	unch	午餐	lunch	lunch
 review_r2_form_days	root	day's	dais	白昼的	of the day	day
-review_r2_form_eye	root	eye	y	眼睛	eye	eye
 review_r2_form_cd	root	CD	cd-	光盘	compact disc	compact disc
 review_r2_form_rom	root	ROM	rom	只读存储器	read-only memory	read-only memory
 review_r2_form_tri	root	terere	tri	磨擦；磨损	rub; abrade	terere
@@ -3991,7 +3937,6 @@ review_r2_form_brim	root	brim	brimm	边缘	brim; edge	brim
 review_r2_form_cast	root	cast	cast-	铸造	cast	cast
 review_r2_form_iron	root	iron	iron	铁	iron	iron
 review_r2_form_eyecatch	root	eye	eye-	眼睛；目光	eye	eye
-review_r2_form_father	root	father	father-	父亲	father	father
 review_r2_form_in	root	in	in-	在……中	in	in
 review_r2_form_feel	root	feel	fel	感觉	feel	feel
 review_r2_form_t	suffix	-t	t	过去式词尾	dental past ending	-t
@@ -4003,68 +3948,64 @@ review_r2_extra_fun	root	fun	funn	乐趣	fun	fun
 review_r2_extra_fur	root	fur	furr	皮毛	fur	fur
 review_r2_extra_former	root	forme	form	第一；最先	first; earliest	forme
 review_r2_extra_er	suffix	-er	er	比较级（更……）	comparative	-er
-pr2_01_bide	root	停留	bide	停留；等待	to remain; wait; bide	bide
-pr2_01_cent_sing	root	唱	cent	唱；歌唱	to sing	cent
-pr2_01_complish	root	完成	complish	填满；完成	to fill; complete	complish
-pr2_01_chieve	root	头/终点	chieve	头；终点	head; end	chieve
-pr2_01_quaint	root	知道	quaint	知道；熟悉	to know; acquainted	quaint
-pr2_01_dress_direct	root	引导	dress	引导；使直	to direct; straighten	dress
-pr2_01_journ	root	日	journ	日；天	day	journ
-pr2_01_advant	root	前	advant	前；在前	before; front	advant
-pr2_01_af_forth	prefix	向前	af	向前；加强	forward; forth	af
-pr2_01_ford_forth	root	前进	ford	向前；前进	forth; forward	ford
-pr2_01_afrai	root	惊恐	afrai	使惊恐；害怕	to frighten; afraid	afrai
-pr2_01_africa	root	非洲	africa	非洲	Africa	africa
-pr2_01_jar_turn	root	转	jar	转；开	turn; ajar	jar
-pr2_01_lege	root	派遣	lege	派遣；选择	to send; choose	lege
-pr2_01_allegi	root	臣属	allegi	臣属；效忠	liege; allegiance	allegi
-pr2_01_loof	root	上风	loof	上风；迎风	windward	loof
-pr2_01_maze	root	困惑	maze	使困惑；迷宫	to confuse; maze	maze
-pr2_01_ag_g	root	驱动	g	做；驱动	to do; drive	g
-pr2_01_amen	root	引领	amen	引领；带来	to lead; bring	amen
-pr2_01_a_ex	prefix	出/去除	a	出；去除	out; away	a
-pr2_01_ami	root	朋友	ami	朋友；爱	friend; love	ami
-pr2_01_amic	root	朋友	amic	朋友；爱	friend; love	amic
-pr2_01_t_excrescent	suffix	增音	t	增音后缀	excrescent -t	t
-pr2_01_among	root	在……中	among	在……之中	among	among
-pr2_01_amphi	prefix	两边	amphi	两边；两	both; around	amphi
-pr2_01_bio	root	生命	bi	生命	life	bi
-pr2_01_muse_idle	root	闲逛	muse	凝视；闲逛	to stare; idle	muse
-pr2_01_an_in	prefix	进入	an	进入；朝向	in; into	an
-pr2_01_noy	root	恨	noy	恨；厌恶	hatred; annoy	noy
-pr2_01_an_against	prefix	反对	an	反对；对着	against	an
-pr2_01_swer	root	发誓	swer	发誓；声明	to swear; affirm	swer
-pr2_01_ant	prefix	反对	ant	反对；相反	against; opposite	ant
-pr2_01_arct	root	熊/北极	arct	熊；北极	bear; Arctic	arct
-pr2_01_a_continent	suffix	洲名	a	地名后缀：洲	place/continent suffix	a
-pr2_01_atus	suffix	状态/工具	atus	名词后缀：状态或工具	noun suffix: state/tool	atus
-pr2_01_ix	suffix	名词后缀	ix	名词后缀：……物	noun suffix: thing	ix
-pr2_01_ite_state	suffix	状态	ite	名词后缀：状态/欲望	noun suffix: state/desire	ite
-pr2_01_plause	root	鼓掌	plause	鼓掌；赞许	to applaud; praise	plause
-pr2_01_ar_ad	prefix	朝向	ar	朝向	toward	ar
-pr2_01_rest_stop	root	停止	rest	停留；停止	to stay; stop	rest
-pr2_01_rive_shore	root	岸	rive	岸；河岸	shore; bank	rive
-pr2_01_suage	root	甜	suage	甜；缓和	sweet; soothe	suage
-pr2_01_att_ad	prefix	朝向	att	朝向	toward	att
-pr2_01_aur_ear	root	耳	aur	耳	ear	aur
-pr2_01_mate_auto	root	自动	mate	自动；动	self-moving; automatic	mate
-pr2_01_opsy	suffix	视	psy	视；观察	sight; seeing	psy
-pr2_01_avant	root	前	avant-	前；在前	before; front	avant-
-pr2_01_garde_guard	root	卫队	garde	看守；卫队	guard; guard	garde
-pr2_01_a_ab	prefix	离开	a	离开	away	a
-pr2_01_badge	root	标记	badge	标记；徽章	badge; mark	badge
-pr2_01_r_ard	suffix	人/物	r	人/物后缀（-ard 缩合）	person/thing suffix (-ard reduced)	r
-pr2_01_begg	root	乞讨	begg	乞讨	to beg	begg
-pr2_01_behav	root	行为	behav	行为；举止	behave; conduct	behav
-pr2_01_ior_noun	suffix	名词后缀	ior	名词后缀：状态/行为	noun suffix: state/action	ior
-pr2_01_iour_noun	suffix	名词后缀	iour	名词后缀：状态/行为	noun suffix: state/action	iour
-pr2_01_lie_deceive	root	说谎	lie	说谎；欺骗	to lie; deceive	lie
-pr2_01_lief	root	相信	lief	相信；信念	to believe; belief	lief
-pr2_01_ben	root	好	ben	好；善	well; good	ben
-pr2_01_ign_kind	root	出生	ign	出生；种类	born; kind	ign
-pr2_01_bend_stem	root	弯曲	ben	弯曲	to bend	ben
-pr2_01_quest_saying	root	遗言	quest	遗言；遗嘱	saying; bequest	quest
-pr2_01_birming	root	族称	birming	伯明翰人（Beormingas）	Beormingas; people of Beorma	birming
+pr2_01_bide	root	bide	bide	停留；等待	to remain; wait; bide	bide
+pr2_01_cent_sing	root	cent	cent	唱；歌唱	to sing	cent
+pr2_01_complish	root	complish	complish	填满；完成	to fill; complete	complish
+pr2_01_chieve	root	chieve	chieve	头；终点	head; end	chieve
+pr2_01_quaint	root	quaint	quaint	知道；熟悉	to know; acquainted	quaint
+pr2_01_dress_direct	root	dress	dress	引导；使直	to direct; straighten	dress
+pr2_01_journ	root	journ	journ	日；天	day	journ
+pr2_01_advant	root	advant	advant	前；在前	before; front	advant
+pr2_01_af_forth	prefix	af-	af	向前；加强	forward; forth	af
+pr2_01_ford_forth	root	ford	ford	向前；前进	forth; forward	ford
+pr2_01_afrai	root	afrai	afrai	使惊恐；害怕	to frighten; afraid	afrai
+pr2_01_jar_turn	root	jar	jar	转；开	turn; ajar	jar
+pr2_01_lege	root	lege	lege	派遣；选择	to send; choose	lege
+pr2_01_allegi	root	allegi	allegi	臣属；效忠	liege; allegiance	allegi
+pr2_01_loof	root	loof	loof	上风；迎风	windward	loof
+pr2_01_maze	root	maze	maze	使困惑；迷宫	to confuse; maze	maze
+pr2_01_ag_g	root	g	g	做；驱动	to do; drive	g
+pr2_01_amen	root	amen	amen	引领；带来	to lead; bring	amen
+pr2_01_a_ex	prefix	a-	a	出；去除	out; away	a
+pr2_01_ami	root	ami	ami	朋友；爱	friend; love	ami
+pr2_01_amic	root	amic	amic	朋友；爱	friend; love	amic
+pr2_01_t_excrescent	suffix	-t	t	增音后缀	excrescent -t	t
+pr2_01_among	root	among	among	在……之中	among	among
+pr2_01_amphi	prefix	amphi-	amphi	两边；两	both; around	amphi
+pr2_01_bio	root	bi	bi	生命	life	bi
+pr2_01_muse_idle	root	muse	muse	凝视；闲逛	to stare; idle	muse
+pr2_01_an_in	prefix	an-	an	进入；朝向	in; into	an
+pr2_01_noy	root	noy	noy	恨；厌恶	hatred; annoy	noy
+pr2_01_an_against	prefix	an-	an	反对；对着	against	an
+pr2_01_swer	root	swer	swer	发誓；声明	to swear; affirm	swer
+pr2_01_ant	prefix	ant-	ant	反对；相反	against; opposite	ant
+pr2_01_arct	root	arct	arct	熊；北极	bear; Arctic	arct
+pr2_01_atus	suffix	-atus	atus	名词后缀：状态或工具	noun suffix: state/tool	atus
+pr2_01_ix	suffix	-ix	ix	名词后缀：……物	noun suffix: thing	ix
+pr2_01_plause	root	plause	plause	鼓掌；赞许	to applaud; praise	plause
+pr2_01_ar_ad	prefix	ar-	ar	朝向	toward	ar
+pr2_01_rest_stop	root	rest	rest	停留；停止	to stay; stop	rest
+pr2_01_rive_shore	root	rive	rive	岸；河岸	shore; bank	rive
+pr2_01_suage	root	suage	suage	甜；缓和	sweet; soothe	suage
+pr2_01_att_ad	prefix	att-	att	朝向	toward	att
+pr2_01_aur_ear	root	aur	aur	耳	ear	aur
+pr2_01_mate_auto	root	mate	mate	自动；动	self-moving; automatic	mate
+pr2_01_avant	root	avant-	avant-	前；在前	before; front	avant-
+pr2_01_garde_guard	root	garde	garde	看守；卫队	guard; guard	garde
+pr2_01_a_ab	prefix	a-	a	离开	away	a
+pr2_01_badge	root	badge	badge	标记；徽章	badge; mark	badge
+pr2_01_r_ard	suffix	-r	r	人/物后缀（-ard 缩合）	person/thing suffix (-ard reduced)	r
+pr2_01_begg	root	begg	begg	乞讨	to beg	begg
+pr2_01_behav	root	behav	behav	行为；举止	behave; conduct	behav
+pr2_01_ior_noun	suffix	-ior	ior	名词后缀：状态/行为	noun suffix: state/action	ior
+pr2_01_iour_noun	suffix	-iour	iour	名词后缀：状态/行为	noun suffix: state/action	iour
+pr2_01_lie_deceive	root	lie	lie	说谎；欺骗	to lie; deceive	lie
+pr2_01_lief	root	lief	lief	相信；信念	to believe; belief	lief
+pr2_01_ben	root	ben	ben	好；善	well; good	ben
+pr2_01_ign_kind	root	ign	ign	出生；种类	born; kind	ign
+pr2_01_bend_stem	root	ben	ben	弯曲	to bend	ben
+pr2_01_quest_saying	root	quest	quest	遗言；遗嘱	saying; bequest	quest
+pr2_01_birming	root	birming	birming	伯明翰人（Beormingas）	Beormingas; people of Beorma	birming
 review_r2_ad_ab	prefix	ab- (ad-)	ab	朝向；加强	toward; intensive	ad-
 review_r2_afric	root	Africa	afric	非洲	Africa	Africa
 review_r2_pet	root	petīt-	petite	寻求；渴望	seek; desire	petere
@@ -4072,34 +4013,32 @@ review_r2_a_ad	prefix	a- (ad-)	a	朝向；向	toward	ad-
 review_r2_aut	prefix	aut(o)-	aut	自己；本身	self	autos
 review_r2_ops	root	-opsy	opsy	视；观察	see; sight	opsis
 review_r2_a_fem	suffix	-a	a	拉丁阴性词尾	Latin feminine ending	-a
-review_r2_trude	root	trud	truse	推；挤	push; thrust	trudere
 review_r2_a_state	prefix	a-	a	处于某状态	in a state	a-
 review_r2_light	root	light	light	发光；点燃	light; kindle	light
-pr2_02_bear_birth	root	生育；出生	bor	生育；出生（bear 的过去分词词干）	bear; give birth (past participle stem)	bear
-pr2_02_brand	root	火把；剑	brand	火把；剑	firebrand; sword	brand
-pr2_02_e_verb	suffix	动词后缀	e	动词后缀：加于名词构成动词	verb-forming suffix -e	-e
-pr2_02_bride	root	新娘	bride	新娘	bride	brȳd
-pr2_02_groom	root	新郎；男子	groom	新郎；男子	groom; man	guma/groom
-pr2_02_braid	root	编；缰	braid brid	编；辫；缰绳	braid; plait; rein	braid
-pr2_02_le_suffix	suffix	名词/形容词后缀	le	名词/形容词后缀：指小、工具或性质	noun/adjective suffix: diminutive, tool, or quality	-le
-pr2_02_brine	root	盐水	brine brin	盐水；海水	brine; salt water	brine
-pr2_02_britain	root	不列颠；英国	britain brit	不列颠；英国	Britain; British	Britain/Britannia
-pr2_02_brit_break	root	破碎；易碎	brit britt	破碎；易碎	break; brittle	brit
-pr2_02_bouk_belly	root	腹部；容器	buck	腹部；容器	belly; container	bouk/bucc
-pr2_02_boule_ball	root	球	bull	球	ball	boule
-pr2_02_bury	root	埋葬	bury buri	埋葬	bury	bury
-pr2_02_be_prefix	prefix	在；附近	be b	在；附近（be- 的弱化形式）	by; around (be- reduced)	be-
-pr2_02_cam_river	root	坎河	cam	坎河（河名）	Cam (river name)	Cam
-pr2_02_cardi_heart	root	心	cardi	心	heart	kardía
-pr2_02_caisse_box	root	钱箱；箱	cash	钱箱；箱	box; cashier's box	caisse
-pr2_02_cate_buy	root	购买；食物	cate cat	购买；食物	buy; food	cate/acater
-pr2_02_chat	root	闲聊	chat chatt	闲聊	chat	chat
-pr2_02_cleave	root	劈开	cleave clef	劈开	cleave; split	cleave
-pr2_02_e_pp	suffix	过去分词/形容词词尾	e	形容词/过去分词词尾：已……的	Latin past participle ending -e	-e
-pr2_02_creep	root	爬行	creep crip cripp	爬行	creep; crawl	creep
-pr2_02_criss	prefix	十字；交叉	criss	十字；交叉（cross 的变体）	cross; criss	Christ's cross
-pr2_02_one_noun	suffix	名词后缀	one	名词后缀：……现象（希腊语 -ōn）	noun suffix -one	-ōn
-pr2_02_dey_dairymaid	root	挤奶女工	dey dai	挤奶女工	dairymaid	dey
+pr2_02_bear_birth	root	bear	bor	生育；出生（bear 的过去分词词干）	bear; give birth (past participle stem)	bear
+pr2_02_brand	root	brand	brand	火把；剑	firebrand; sword	brand
+pr2_02_e_verb	suffix	-e	e	动词后缀：加于名词构成动词	verb-forming suffix -e	-e
+pr2_02_bride	root	brȳd	bride	新娘	bride	brȳd
+pr2_02_groom	root	guma/groom	groom	新郎；男子	groom; man	guma/groom
+pr2_02_braid	root	braid	braid brid	编；辫；缰绳	braid; plait; rein	braid
+pr2_02_le_suffix	suffix	-le	le	名词/形容词后缀：指小、工具或性质	noun/adjective suffix: diminutive, tool, or quality	-le
+pr2_02_brine	root	brine	brine brin	盐水；海水	brine; salt water	brine
+pr2_02_britain	root	Britain/Britannia	britain brit	不列颠；英国	Britain; British	Britain/Britannia
+pr2_02_brit_break	root	brit	brit britt	破碎；易碎	break; brittle	brit
+pr2_02_bouk_belly	root	bouk/bucc	buck	腹部；容器	belly; container	bouk/bucc
+pr2_02_boule_ball	root	boule	bull	球	ball	boule
+pr2_02_bury	root	bury	bury buri	埋葬	bury	bury
+pr2_02_be_prefix	prefix	be-	be b	在；附近（be- 的弱化形式）	by; around (be- reduced)	be-
+pr2_02_cam_river	root	Cam	cam	坎河（河名）	Cam (river name)	Cam
+pr2_02_cardi_heart	root	kardía	cardi	心	heart	kardía
+pr2_02_caisse_box	root	caisse	cash	钱箱；箱	box; cashier's box	caisse
+pr2_02_cate_buy	root	cate/acater	cate cat	购买；食物	buy; food	cate/acater
+pr2_02_chat	root	chat	chat chatt	闲聊	chat	chat
+pr2_02_cleave	root	cleave	cleave clef	劈开	cleave; split	cleave
+pr2_02_creep	root	creep	creep crip cripp	爬行	creep; crawl	creep
+pr2_02_criss	prefix	Christ's cross-	criss	十字；交叉（cross 的变体）	cross; criss	Christ's cross
+pr2_02_one_noun	suffix	-ōn	one	名词后缀：……现象（希腊语 -ōn）	noun suffix -one	-ōn
+pr2_02_dey_dairymaid	root	dey	dey dai	挤奶女工	dairymaid	dey
 pr2_03_debilit	root	debilit	debilit	虚弱；使衰弱	weak; weaken	debilis
 pr2_03_doctr	root	doctr	doctr	教；教师	teach; teacher	doctrina
 pr2_03_mor_delay	root	mor	mur	延迟；逗留	delay; linger	morari
@@ -4123,7 +4062,6 @@ pr2_04_fourteen	root	fourteen	fort	十四（fourteen 的缩合形式）	fourteen
 pr2_04_ress	suffix	-ress	ress	名词后缀：状态或场所（源自拉丁 -itia）	noun suffix: state or place (from Latin -itia)	ress
 pr2_04_freeze	root	freeze	freez	冻；结冰	to freeze	freez
 pr2_04_phren	root	phren-	fren	心智；精神	mind; spirit	fren
-pr2_04_frequent	root	frequent	frequent frequen	频繁的	frequent	frequen
 pr2_04_frigg	root	Frigg	fri	女神弗丽格	Frigg (goddess)	fri
 pr2_04_full	root	full	full ful	满；全	full	full
 pr2_04_fill	root	fill	fill fil	填满	to fill	fill
@@ -4134,7 +4072,6 @@ pr2_04_hide	root	hide	hide hud	藏；隐藏	to hide	hud
 pr2_04_incent	root	incent-	incent	起调；激发	to strike up; incite	incent
 pr2_04_indig	root	indig-	indig	需要；匮乏	to need; needy	indig
 pr2_04_inkle	root	inkle	inkle inkl	暗示；低语	to hint; whisper	inkl
-pr2_04_isle	root	isle	is	岛；水岛	island	is
 pr2_04_kid_sack	root	kidde	kid	囊；阴囊	sack; scrotum	kid
 pr2_04_nere	root	nere	nere ney	肾	kidney	ney
 pr2_04_knee	root	knee	knee	膝	knee	knee
@@ -4155,7 +4092,7 @@ pr2_05_opus	root	opus	of	工作；劳作	work	opus
 pr2_05_ovare	root	ovare	ovat	欢呼；庆祝	exult; celebrate	ovare
 pr2_05_pamp	root	pamp	pamp	塞满；膨胀	stuff; swell	*pampen
 pr2_05_akos	root	akos	acea	药；治疗	cure; remedy	akos
-pr2_05_sequ	root	sequi	secute	跟随	follow	sequi
+pr2_05_sequ	root	sequi	secute ecute	跟随	follow	sequi
 pr2_05_present	root	present	pres	在场；存在	be present	present
 pr2_05_privus	root	privus	privi	私人的；个别的	private	privus
 pr2_05_lex	root	lex	lege	法律	law	lex
@@ -4181,13 +4118,11 @@ pr2_06_ting	root	ting	ting	叮；铃响	ting; tinkle	tingle
 pr2_06_tourn	root	tourn	tourn	转；参加比武	turn; joust	tournament
 pr2_06_ody_song	root	ōidē	edy	歌	song	tragedy
 pr2_06_trait	root	trād-	trait	交出；背叛	hand over; betray	traitor
-pr2_06_trapp	root	trap	trapp	陷阱；捕捉	trap; catch	trapper
 pr2_06_nepe	root	nēp	ip	芜菁	turnip; neep	turnip
 pr2_06_un_until	prefix	un-	un	到；朝；向上	up to; toward	until
 pr2_06_till	root	till	til	直到	until; till	until
 pr2_06_up_hyphen	root	up	up-	向上；直到	up; up to	up-to-date/upside-down
 pr2_06_to_hyphen	root	to	to-	到；至	to	up-to-date
-pr2_06_water_hyphen	root	water	water-	水	water	water-clock/water-proof/water-skiing
 pr2_06_wedge	root	wedge	wedge-	楔；楔形	wedge	wedge-shaped
 pr2_06_well	root	well	well-	好；良好	well; good	well-being/well-known
 pr2_06_wher	root	where	wher	哪里	where	wherever
@@ -4239,26 +4174,24 @@ review_r3_wor	root	worse	wor	更糟；更恶劣	worse	worse
 review_r3_st_super	suffix	-st	st	最高级（最……）	superlative	-est
 review_r3_wave	root	wave	wav	挥动；摆动	wave	wave
 review_r3_trade	root	trade	trad	贸易；做生意	trade	trade
-review_r3_water	root	water	water-	水	water	water
 review_r3_ski	root	ski	ski	滑雪；滑水	ski	ski
 review_r3_upside	root	upside	upside-	上部；上面	upside	upside
 review_r3_x	root	X	x-	未知量的代号	unknown quantity	X
 review_r3_ray	root	ray	ray	射线	ray	ray
 review_r3_world	root	world	world-	世界	world	world
-pr3_01_allegor	root	寓言	allegor	寓言；隐喻	allegory; figurative narrative	allegoria
-pr3_01_blund	root	打盹；踉跄	blund	打盹；踉跄	doze; stumble	blundren
-pr3_01_boel	root	爱人；兄弟	bull	爱人；兄弟	lover; brother	boel
-pr3_01_sole_comfort	root	安慰	sole	安慰；慰藉	comfort; console	solari
-pr3_01_lin_smear	root	涂抹	lete	涂抹；擦去	smear; wipe	linere
-pr3_01_mol_mass	root	堆；建造	mol	堆体；建造	mass; build	moles
-pr3_01_patch_fasten	root	系紧	patch	系紧；束缚	fasten; shackle	pedica
-pr3_01_min_less	root	减少	min	小；减少	small; lessen	minuere
-pr3_01_may_power	root	力量	may	力量；能力	power; might	magan
-pr3_01_vert_turn	root	转	vorce	转；转向	turn	vertere
-pr3_01_uere_put	root	穿	due	穿；put on	put on; clothe	uere
-pr3_01_sequ_follow	root	跟随	ecute	跟随	follow	sequi
-pr3_01_gab	root	喋喋	gab gabb	喋喋；嘴	chatter; mouth	gab
-pr3_01_game	root	游戏	game gamb	游戏；玩耍	game; play	game
+pr3_01_allegor	root	allegoria	allegor	寓言；隐喻	allegory; figurative narrative	allegoria
+pr3_01_blund	root	blundren	blund	打盹；踉跄	doze; stumble	blundren
+pr3_01_boel	root	boel	bull	爱人；兄弟	lover; brother	boel
+pr3_01_sole_comfort	root	solari	sole	安慰；慰藉	comfort; console	solari
+pr3_01_lin_smear	root	linere	lete	涂抹；擦去	smear; wipe	linere
+pr3_01_mol_mass	root	moles	mol	堆体；建造	mass; build	moles
+pr3_01_patch_fasten	root	pedica	patch	系紧；束缚	fasten; shackle	pedica
+pr3_01_min_less	root	minuere	min	小；减少	small; lessen	minuere
+pr3_01_may_power	root	magan	may	力量；能力	power; might	magan
+pr3_01_vert_turn	root	vertere	vorce	转；转向	turn	vertere
+pr3_01_uere_put	root	uere	due	穿；put on	put on; clothe	uere
+pr3_01_gab	root	gab	gab gabb	喋喋；嘴	chatter; mouth	gab
+pr3_01_game	root	game	game gamb	游戏；玩耍	game; play	game
 review_r3_ence_esse	root	esse	ence	存在；在场（历史派生词干）	be; be present	esse
 review_r3_ac_old	prefix	a-	ac	加强动作（古英语前缀，现为 ac- 拼写）	intensive Old English prefix	a-
 review_r3_knowledge	root	knowledge	knowledge	认识；知悉	recognize; know	knowlechen
@@ -4270,9 +4203,6 @@ review_r3_ault	suffix	-ault	ail	古法语派生词尾	Old French derivational en
 pr3_02_dict	root	dict	dite	写；说	write; say	dictāre
 pr3_03_sheath	root	sheath	sheath	鞘	a sheath; scabbard	sheath
 pr3_03_pos_drink	root	posis	pos	饮；喝	drink; drinking	posis
-pr3_03_whil	root	while	whil	时间；当……时	while; time	while
-pr3_03_x	root	x	x x-	未知的（X 射线中的符号）	unknown (symbol X)	x
-pr3_03_ray	root	ray	ray	光线；射线	ray; beam	ray
 preaudit_peal	root	pellere	peal	驱动；呼唤	impel; call	pellere
 preaudit_be	prefix	be-	be	在……处；靠近	by; near	bi
 preaudit_heart	root	cor	cour	心；勇气	heart	cor
@@ -4292,7 +4222,7 @@ preaudit_ese	suffix	-ese	ese	某国的；某国人或语言	country, people or l
 preaudit_string	root	stringere	string	拉紧；束紧	draw tight; bind	stringere
 preaudit_em	prefix	em-	em	进入；使处于	into; cause to be in	em-
 preaudit_barrass	root	baraça	barrass	绳套；阻碍	noose; hinder	baraça
-preaudit_dever	root	dever	deavour	义务；职责	duty	dever
+preaudit_dever	root	dever	deavour deavor	义务；职责	duty	dever
 preaudit_over_complete	prefix	over-	over	完全；彻底	completely; thoroughly	over
 preaudit_over_time	prefix	over-	over	持续整段时间	throughout	over
 preaudit_over_add	root	over	over	此外；还	further; in addition	over
@@ -4305,7 +4235,6 @@ resample_krino	root	krínō	crit	审断；评判	judge; discern	krínō
 resample_par	prefix	par-	par	经由；彻底	through; thoroughly	par-
 resample_amont	root	amont	amount	向上；上方	upward; above	amont
 resample_potare	root	pōtāre	pot	饮；喝	drink	pōtāre
-resample_re_intensive	prefix	re-	re	加强词义	intensive	re-
 resample_toxon	root	tóxon	tox	弓；毒箭所用的毒物	bow; arrow poison	tóxon
 resample_un_reverse	prefix	un-	un	撤销动作；去除	reverse an action; remove	un-
 audit3_bedroom	root	bedroom	bed	卧室	bedroom	bedroom
@@ -4338,14 +4267,12 @@ audit4_particella	root	particella	parc	部分；小片	part; piece	particella
 audit4_el_diminutive	suffix	-el	el	历史指小词尾	historical diminutive ending	-el
 audit4_strenu	root	strēnuus	strenu	精力充沛；奋发	vigorous; active	strēnuus
 audit4_cisoria	suffix	-ōrium	or	工具名词词尾	instrumental noun suffix	-ōrium
-audit4_parable	root	parāre	par	准备；安排	prepare; arrange	parāre
 audit4_noisy	root	noisy	noisi	吵闹的	noisy	noisy
 audit4_per_each	prefix	per	per	每；按	per; by each	per
 audit4_homini	root	homin-	homin	人类	human	homō
 audit4_id_member	suffix	-id	id	生物分类群成员	member of a taxonomic group	-id
 audit4_eiron	root	eírōn	iron	装作无知；佯作不知者	dissimulate; dissembler	eírōn
 audit4_dynast	root	dynastēs	dynast	统治者；掌权者	ruler	dynastēs
-audit4_remain	root	remain	remain	留下；剩余	remain	remain
 audit4_wage_pledge	root	wagier	wag	许诺；作为赌注	pledge; wager	wagier
 audit4_aesthet	root	aisthētós	aesthet esthet	感知；能被感知	perceive; perceptible	aisthētós
 audit4_chicken_base	root	cycen	chick	雏鸟；小鸡	chick; young chicken	cycen
@@ -4371,7 +4298,6 @@ audit5_right_straight	root	right	right	笔直；直立	straight; upright	right
 audit5_eure	suffix	-eure	er	法语名词词尾	French noun ending	-eure
 audit5_general	root	general	general	一般；总体	general	general
 audit5_paine	root	pan	pan	一片；一块布	piece; panel	pan
-audit5_artwork_en	root	dever	deavor	义务；职责	duty	dever
 audit5_temple_building	root	temple	temple	神庙；寺院	temple	templum
 audit5_type_possessive	suffix	-s	s	代词属格词尾	possessive pronoun ending	-s
 audit6_factio	root	factiō	fact	派别；派系	faction; party	factiō
@@ -4459,8 +4385,6 @@ audit12_adjust	root	adjust	adjust	调整；校准	adjust	ajuster
 audit12_recommend	root	recommend	recommend	推荐；建议	recommend	recommendare
 audit12_shutt	root	sċytel	shutt	投射；迅速往返	shoot; move back and forth	sċytel
 audit12_le	suffix	-el	le	古英语器具或物体末段	historical object ending	-el
-audit12_warr	root	werra	warr	战争；争斗	war; fighting	werra
-audit12_ior	suffix	-eur	ior	法语施事者词尾	French agent ending	-eur
 audit12_urch	root	ērīcius	urch	刺猬	hedgehog	ērīcius
 audit12_in	suffix	-ōn	in	经法语演变的拉丁名词词尾	nominal ending from Latin via French	-ōn-
 audit12_plumb	root	plumb	plumb	装接管道；做水管工	fit plumbing pipes	plumb

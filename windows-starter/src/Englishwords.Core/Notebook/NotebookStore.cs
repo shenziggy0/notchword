@@ -104,11 +104,10 @@ public sealed class NotebookStore : IDisposable
     public async Task<NotebookStats> GetStatsAsync(DateTimeOffset? now = null, CancellationToken cancellationToken = default)
     {
         var anchor = (now ?? DateTimeOffset.Now).LocalDateTime.Date;
-        var anchorOffset = TimeZoneInfo.Local.GetUtcOffset(anchor);
-        var today = new DateTimeOffset(anchor, anchorOffset);
-
+        // 逐日分别取本地零点偏移，避免跳夏令时的那一周出现 1 小时偏差。
         var days = Enumerable.Range(0, 8)
-            .Select(i => today.AddDays(i - 6))
+            .Select(i => anchor.AddDays(i - 6))
+            .Select(day => new DateTimeOffset(day, TimeZoneInfo.Local.GetUtcOffset(day)))
             .ToArray();
 
         return await PerformAsync(conn =>
@@ -151,7 +150,8 @@ public sealed class NotebookStore : IDisposable
         await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return action(EnsureOpen());
+            // 建库、迁移与 SQLite 读写均放到后台线程，避免阻塞 WPF UI 线程（卡顿过久会被系统摘掉低级钩子）。
+            return await Task.Run(() => action(EnsureOpen()), cancellationToken).ConfigureAwait(false);
         }
         finally
         {
@@ -231,7 +231,17 @@ public sealed class NotebookStore : IDisposable
 
     public void Dispose()
     {
-        _connection?.Dispose();
-        _gate.Dispose();
+        // 等待在途查询结束后再释放连接，然后再释放信号量。
+        _gate.Wait();
+        try
+        {
+            _connection?.Dispose();
+            _connection = null;
+        }
+        finally
+        {
+            _gate.Release();
+            _gate.Dispose();
+        }
     }
 }

@@ -60,7 +60,10 @@ public sealed class GlobalHotKeyManager : IDisposable
     {
         if (spec.VirtualKey == 0) return;
         var id = (int)action + 1;
-        if (NativeMethods.RegisterHotKey(_source.Handle, id, spec.Modifiers, spec.VirtualKey))
+
+        // MOD_NOREPEAT（Win7+）防止长按反复触发；若系统/环境不支持则回退到普通注册。
+        if (NativeMethods.RegisterHotKey(_source.Handle, id, spec.Modifiers | NativeMethods.MOD_NOREPEAT, spec.VirtualKey) ||
+            NativeMethods.RegisterHotKey(_source.Handle, id, spec.Modifiers, spec.VirtualKey))
         {
             _registered[id] = action;
         }
@@ -97,6 +100,9 @@ public sealed class GlobalHotKeyManager : IDisposable
             if (kbd.vkCode == NativeMethods.VK_ESCAPE && (ShouldHandleEscape?.Invoke() ?? false))
             {
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(() => EscapePressed?.Invoke());
+
+                // 面板显示时消费 Esc：不再透传给前台应用，避免同时关闭对方的弹窗/退出全屏。
+                return (IntPtr)1;
             }
         }
         return NativeMethods.CallNextHookEx(_kbdHook, nCode, wParam, lParam);

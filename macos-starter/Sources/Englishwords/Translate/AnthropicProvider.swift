@@ -8,6 +8,9 @@ struct AnthropicProvider: TranslationProviding {
     let apiKey: String
 
     func translate(_ request: TranslationRequest) async throws -> TranslationResult {
+        let text = request.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { throw TranslationError.emptyText }
+
         var urlRequest = URLRequest(url: baseURL.appendingPathComponent("messages"))
         urlRequest.httpMethod = "POST"
         urlRequest.timeoutInterval = 20
@@ -18,7 +21,7 @@ struct AnthropicProvider: TranslationProviding {
             "model": model,
             "max_tokens": 1024,
             "system": OpenAICompatProvider.prompt(target: request.target),
-            "messages": [["role": "user", "content": request.text]]
+            "messages": [["role": "user", "content": text]]
         ])
         let data = try await OpenAICompatProvider.responseData(for: urlRequest)
         let translation = try Self.translationText(from: data)
@@ -29,6 +32,7 @@ struct AnthropicProvider: TranslationProviding {
         struct Response: Decodable {
             struct Block: Decodable { let type: String; let text: String? }
             let content: [Block]
+            let stop_reason: String?
         }
         guard let response = try? JSONDecoder().decode(Response.self, from: data) else {
             throw TranslationError.service("Anthropic 响应格式无法解析")
@@ -37,7 +41,13 @@ struct AnthropicProvider: TranslationProviding {
             .filter { $0.type == "text" }
             .compactMap(\.text)
             .joined(separator: "\n"))
-        guard !translation.isEmpty else { throw TranslationError.service("Anthropic 返回空译文") }
+        guard !translation.isEmpty else {
+            // 截断时也尽量把已有译文交回，不因长度上限报错。
+            if response.stop_reason == "max_tokens" {
+                throw TranslationError.service("Anthropic 译文被截断且为空")
+            }
+            throw TranslationError.service("Anthropic 返回空译文")
+        }
         return translation
     }
 }

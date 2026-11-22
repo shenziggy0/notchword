@@ -16,7 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self?.submitLookup(LookupRequest(text: word, trigger: .notebook, screen: Screens.screen(containing: NSEvent.mouseLocation)))
     }
     private lazy var panels = PanelController(preferences: preferences, notebook: notebookModel)
-    private let hotKeys = HotKeyCenter()
+    private let hotKeys = HotKeyCenter.shared
 
     private lazy var translator = TranslationCoordinator(preferences: preferences)
     private lazy var coordinator = LookupCoordinator(
@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var hover: HoverMonitor?
     private var selection: SelectionMonitor?
     private var settings: SettingsWindowController?
+    private var installationPermissionMessage: String?
     private lazy var onboarding = OnboardingWindow(preferences: preferences)
     private let regionPicker = RegionPicker()
     private let subtitlePicker = RegionPicker()
@@ -68,6 +69,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - 生命周期
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Task {
+            installationPermissionMessage = await Permissions.resetAfterManualInstallation()
+            finishLaunching()
+        }
+    }
+
+    private func finishLaunching() {
         setupStatusItem()
         setupLookup()
         Task { await notebookModel.loadFavorites() }
@@ -75,7 +83,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         preferences.onChange = { [weak self] in self?.applyPreferences() }
 
-        if !preferences.sawOnboarding { onboarding.show() }
+        if !preferences.sawOnboarding {
+            onboarding.show()
+        } else if installationPermissionMessage != nil {
+            openSettings()
+        }
         FileLog.write("辅助功能授权：\(Permissions.isAccessibilityTrusted)")
         applyPreferences()
 
@@ -153,6 +165,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lookupMenuItem?.title = "查询选中的文字（\(preferences.lookupHotKey.display)）"
         translateMenuItem?.title = "翻译选中的文字（\(preferences.translateHotKey.display)）"
         regionMenuItem?.title = "区域取词（\(preferences.regionHotKey.display)）"
+        regionMenuItem?.isEnabled = preferences.regionLookupEnabled
         statusItem?.button?.toolTip = "Englishwords — \(preferences.lookupHotKey.display) 查词"
 
         if preferences.hoverEnabled { hover?.start() } else { hover?.stop() }
@@ -161,6 +174,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !preferences.regionLookupEnabled, regionPicker.isPicking || regionTask != nil {
             cancelRegionLookup()
             panels.hide()
+        }
+        if !preferences.videoSubtitles || !preferences.screenSubtitles {
+            subtitlePicker.cancel()
         }
         subtitles.applyPreferences()
         panels.refreshPreferences()
@@ -364,6 +380,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Permissions.openScreenCaptureSettings()
             return
         }
+        cancelActiveLookup()
+        regionPicker.cancel()
         panels.hide()
         subtitlePicker.begin { [weak self] rect, screen in
             self?.subtitles.configureOCR(rect: rect, screen: screen, browser: browser)
@@ -394,6 +412,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.informativeText = Diagnostics.report(lastLookup: lastLookupSummary)
         alert.addButton(withTitle: "好")
         alert.addButton(withTitle: "打开辅助功能设置")
+        NSApp.activate(ignoringOtherApps: true)
         if alert.runModal() == .alertSecondButtonReturn {
             Permissions.openAccessibilitySettings()
         }
@@ -421,6 +440,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - 取词
 
     private func startRegionLookup() {
+        subtitlePicker.cancel()
         guard preferences.regionLookupEnabled else { return }
         guard !regionPicker.isPicking else { return }
         guard Permissions.isScreenCaptureGranted else {
@@ -441,14 +461,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func recognizeRegion(_ rect: CGRect, on screen: NSScreen, generation: Int) {
         let loading = LookupRequest(text: "", trigger: .region, screen: screen)
-        panels.show(.loading(loading))
         regionTask = Task { [weak self] in
             do {
+                // 先截图识别，完成前不上遮罩，避免面板挡住目标区域
                 let text = try await withTimeout(20) {
                     try await ScreenText.recognize(rect: rect, on: screen)
                 }
                 guard let self, !Task.isCancelled, generation == self.regionGeneration else { return }
                 self.regionTask = nil
+                self.panels.show(.loading(loading))
                 self.submitLookup(LookupRequest(text: text, trigger: .region, screen: screen))
             } catch {
                 guard let self, !Task.isCancelled, generation == self.regionGeneration else { return }
@@ -482,15 +503,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         regionTask?.cancel()
         regionTask = nil
         regionPicker.cancel()
+        subtitlePicker.cancel()
     }
 
     private func triggerLookup(_ trigger: LookupTrigger,
                                preferClipboard: Bool = false,
                                mode: LookupMode = .lookup) {
+        Task { [weak self] in
+            await self?.performLookup(trigger, preferClipboard: preferClipboard, mode: mode)
+        }
+    }
+
+    private func performLookup(_ trigger: LookupTrigger,
+                               preferClipboard: Bool,
+                               mode: LookupMode) async {
         let clipboard = (NSPasteboard.general.string(forType: .string) ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let trusted = Permissions.isAccessibilityTrusted
-        let capture = preferClipboard ? nil : SelectionCapture.read()
+        let capture = preferClipboard ? nil : await SelectionCapture.read()
         let selection = capture?.text
 
         var note: String?
@@ -524,7 +554,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings = SettingsWindowController(preferences: preferences, translator: translator)
             settings?.showOnboarding = { [weak self] in self?.onboarding.show() }
         }
-        settings?.show()
+        settings?.show(installationPermissionMessage: installationPermissionMessage)
     }
 
     // MARK: - 提示
@@ -534,6 +564,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .warning
+        NSApp.activate(ignoringOtherApps: true)
         alert.runModal()
     }
 }

@@ -32,23 +32,21 @@ HEADWORD_ALIASES = {"reservior": "reservoir"}
 
 
 def parse_exchange(exchange, word):
-    """ECDICT exchange 字段 -> (lemma, [forms])。"""
-    lemma = word
+    """ECDICT exchange 字段 -> (lemma, [forms])。
+
+    词头自身的屈折形式（p/d/i/3/r/t/s）只归属于该词头本身，
+    不被 `0:` 指向的上位原形覆写（避免 founded -> find 等错映射）。
+    """
     forms = []
     for piece in (exchange or "").split("/"):
         if ":" not in piece:
             continue
         kind, value = piece.split(":", 1)
         value = value.strip().lower()
-        if not value:
+        if not value or kind in ("0", "1"):
             continue
-        if kind == "0":
-            lemma = value
-        elif kind == "1":
-            continue
-        else:
-            forms.append(value)
-    return lemma, forms
+        forms.append(value)
+    return word, forms
 
 
 def load_rows(path):
@@ -170,9 +168,13 @@ def build(rows, output):
         form_count = connection.execute("SELECT COUNT(*) FROM forms").fetchone()[0]
         if word_count < 10000:
             raise SystemExit(f"词条数量异常：{word_count}")
-    finally:
+    except BaseException:
         connection.close()
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
+        raise
 
+    connection.close()
     os.replace(temp_path, output)
     return word_count, form_count
 

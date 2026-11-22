@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Englishwords.Core.Lookup;
@@ -71,6 +73,18 @@ public static partial class TextFilter
     [GeneratedRegex(@"^[A-Za-z_$][\w$.]*\([^()\n]*\)\s*;?$", RegexOptions.CultureInvariant)]
     private static partial Regex CodeCallRegex();
 
+    /// <summary>
+    /// 英文单复数括号写法：<c>item(s)</c> / <c>box(es)</c> / <c>city(ies)</c>。
+    /// 它们是真实单词，不能当作函数调用代码拦截。
+    /// </summary>
+    [GeneratedRegex(@"^[A-Za-z][\w'’\-]*\((?:s|es|ies)\)$", RegexOptions.CultureInvariant)]
+    private static partial Regex PluralSuffixRegex();
+
+    /// <summary>
+    /// 允许被剥离的首尾包裹标点/引号/括号。
+    /// </summary>
+    private const string EdgePunctuation = "'\"“”‘’()[]{},.!?;:「」『』【】《》";
+
     public static TextClassification Classify(string? raw)
     {
         var text = (raw ?? string.Empty).Trim();
@@ -85,7 +99,7 @@ public static partial class TextFilter
 
         if (text.StartsWith("```", StringComparison.Ordinal) ||
             CodeDeclarationRegex().IsMatch(text) ||
-            CodeCallRegex().IsMatch(text))
+            (!PluralSuffixRegex().IsMatch(text) && CodeCallRegex().IsMatch(text)))
         {
             return new TextClassification.Rejected(RejectReason.Code);
         }
@@ -104,17 +118,30 @@ public static partial class TextFilter
 
     public static bool IsSingleWord(string text)
     {
-        var start = 0;
-        var end = text.Length - 1;
-        while (start <= end && !IsWordChar(text[start])) start++;
-        while (end >= start && !IsWordChar(text[end])) end--;
-        if (start > end) return false;
-
-        for (var i = start; i <= end; i++)
+        // 只剥离首尾常见标点/引号/括号，不再用「非单词字符」扫描裁剪正文，
+        // 否则 "50% off"、"Chapter 3" 会被裁剪成 "off" / "chapter" 误判为单词。
+        var candidate = text.Trim();
+        while (candidate.Length > 0)
         {
-            if (!IsWordChar(text[i])) return false;
+            if (PluralSuffixRegex().IsMatch(candidate)) return true;
+            if (AllWordRunes(candidate)) return true;
+
+            if (EdgePunctuation.Contains(candidate[0]))
+            {
+                candidate = candidate[1..];
+                continue;
+            }
+
+            if (EdgePunctuation.Contains(candidate[^1]))
+            {
+                candidate = candidate[..^1];
+                continue;
+            }
+
+            return false;
         }
-        return true;
+
+        return false;
     }
 
     /// <summary>
@@ -122,24 +149,27 @@ public static partial class TextFilter
     /// </summary>
     public static string NormalizeWord(string raw)
     {
-        var best = string.Empty;
-        var current = new List<char>();
+        var best = new StringBuilder();
+        var current = new StringBuilder();
 
         void Consider()
         {
-            if (current.Count > best.Length)
+            if (current.Length > best.Length)
             {
-                var candidate = new string(current.ToArray());
-                if (ContainsLatinLetter(candidate)) best = candidate;
+                var candidate = current.ToString();
+                if (ContainsLatinLetter(candidate))
+                {
+                    best.Clear().Append(candidate);
+                }
             }
             current.Clear();
         }
 
-        foreach (var ch in raw)
+        foreach (var rune in raw.EnumerateRunes())
         {
-            if (IsWordChar(ch))
+            if (IsWordChar(rune))
             {
-                current.Add(ch);
+                current.Append(rune.ToString());
             }
             else
             {
@@ -148,7 +178,7 @@ public static partial class TextFilter
         }
         Consider();
 
-        var word = best.ToLowerInvariant();
+        var word = best.ToString().ToLowerInvariant();
         if (word.EndsWith("'s", StringComparison.Ordinal) || word.EndsWith("’s", StringComparison.Ordinal))
         {
             word = word[..^2];
@@ -157,7 +187,29 @@ public static partial class TextFilter
         return word.Trim('\'', '’', '-');
     }
 
-    private static bool IsWordChar(char ch) => char.IsLetter(ch) || ch is '-' or '\'' or '’';
+    /// <summary>
+    /// 判断整段文本是否全部由「单词字符」组成（按 <see cref="Rune"/> 逐个判定）。
+    /// </summary>
+    private static bool AllWordRunes(string text)
+    {
+        var hasRune = false;
+        foreach (var rune in text.EnumerateRunes())
+        {
+            hasRune = true;
+            if (!IsWordChar(rune)) return false;
+        }
+        return hasRune;
+    }
+
+    /// <summary>
+    /// 单词字符：字母、连字符、撇号，以及组合用变音符（如 NFD 形式的 <c>nai\u0308ve</c>）。
+    /// </summary>
+    private static bool IsWordChar(Rune rune)
+    {
+        if (Rune.IsLetter(rune)) return true;
+        if (rune.Value is '-' or '\'' or '’') return true;
+        return Rune.GetUnicodeCategory(rune) == UnicodeCategory.NonSpacingMark;
+    }
 
     private static bool ContainsLatinLetter(string text)
     {
@@ -176,8 +228,9 @@ public static partial class TextFilter
         foreach (var rune in text.EnumerateRunes())
         {
             var v = rune.Value;
-            if (v is (>= 0x2E80 and <= 0x9FFF)
-                or (>= 0x3040 and <= 0x30FF)
+            // 跳过 U+3000..U+303F（CJK 标点，如「」『』【】）：全角括号不应把英文单词判为不支持的语言。
+            if (v is (>= 0x2E80 and <= 0x2FFF)
+                or (>= 0x3040 and <= 0x9FFF)
                 or (>= 0x3100 and <= 0x312F)
                 or (>= 0x31A0 and <= 0x31BF)
                 or (>= 0xAC00 and <= 0xD7AF)

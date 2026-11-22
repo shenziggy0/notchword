@@ -80,6 +80,42 @@ func starDictImportAndSourceOrder(compressed: Bool) async throws {
     try await library.remove(imported)
 }
 
+@Test("带 UTF-8 BOM 的 StarDict .ifo 可以导入并查询")
+@MainActor
+func starDictAcceptsBOM() async throws {
+    let folder = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: folder) }
+
+    let word = Array("apple".utf8)
+    let body = Data("苹果".utf8)
+    var index = Data(word)
+    index.append(0)
+    for value in [0, body.count] {
+        var bigEndian = UInt32(value).bigEndian
+        withUnsafeBytes(of: &bigEndian) { index.append(contentsOf: $0) }
+    }
+    try index.write(to: folder.appendingPathComponent("bom.idx"))
+    try body.write(to: folder.appendingPathComponent("bom.dict"))
+
+    let fixture = folder.appendingPathComponent("bom.ifo")
+    var text = """
+    StarDict's dict ifo file
+    version=2.4.2
+    bookname=BOM 测试字典
+    wordcount=1
+    idxfilesize=\(index.count)
+    sametypesequence=m
+    """
+    text = "\u{FEFF}" + text
+    try text.write(to: fixture, atomically: true, encoding: .utf8)
+
+    let library = StarDictLibrary(directory: folder.appendingPathComponent("imports", isDirectory: true))
+    let imported = try await library.importDictionary(from: fixture)
+    #expect(try await library.lookup("apple", source: imported)?.translation == "苹果")
+    try await library.remove(imported)
+}
+
 @MainActor
 private func firstResult(in states: AsyncStream<LookupState>) async throws -> String {
     try await withTimeout(2) {

@@ -132,10 +132,12 @@ struct OpenAICompatProvider: TranslationProviding {
         text = text.trimmingCharacters(in: .whitespacesAndNewlines)
         let wrappers: [(Character, Character)] = [("\"", "\""), ("“", "”"), ("「", "」")]
         for (leading, trailing) in wrappers where text.count >= 2 {
-            if text.first == leading, text.last == trailing {
-                text = String(text.dropFirst().dropLast())
-                break
-            }
+            guard text.first == leading, text.last == trailing else { continue }
+            // 内部还出现同类引号时不能当外包装剥掉，否则会破坏「“苹果”和“橘子”」
+            let inner = text.dropFirst().dropLast()
+            if inner.contains(leading) || inner.contains(trailing) { continue }
+            text = String(inner)
+            break
         }
         return text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -146,8 +148,14 @@ struct OpenAICompatProvider: TranslationProviding {
         if let error = object["error"] as? [String: Any], let message = error["message"] as? String {
             return "：" + String(message.prefix(120))
         }
+        if let error = object["error"] as? String, !error.isEmpty {
+            return "：" + String(error.prefix(120))
+        }
         if let message = object["message"] as? String {
             return "：" + String(message.prefix(120))
+        }
+        if let detail = object["detail"] as? String, !detail.isEmpty {
+            return "：" + String(detail.prefix(120))
         }
         return ""
     }

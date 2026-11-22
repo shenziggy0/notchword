@@ -20,7 +20,12 @@ enum Diagnostics {
 
         let frontmost = AppRules.frontmostBundleID ?? "未知"
         let passiveAllowed = AppRules.allowsPassiveLookup()
-        lines.append("前台应用：\(frontmost)\(passiveAllowed ? "" : "（被动取词已排除）")")
+        let isSelf = frontmost == Bundle.main.bundleIdentifier
+        if isSelf {
+            lines.append("前台应用：\(frontmost)（本应用）")
+        } else {
+            lines.append("前台应用：\(frontmost)\(passiveAllowed ? "" : "（已被排除，不取词）")")
+        }
 
         if let lastLookup {
             lines.append("上次取词：\(lastLookup)")

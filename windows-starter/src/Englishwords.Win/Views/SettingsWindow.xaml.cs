@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
@@ -20,8 +21,10 @@ public partial class SettingsWindow : Window
     private readonly StarDictLibrary _starDictionaries;
     private readonly DpapiSecretStore _secretStore;
     private readonly TranslationCoordinator _translator;
-    private readonly Action _onPreferencesChanged;
+    private readonly Func<IReadOnlyList<string>> _onPreferencesChanged;
     private bool _isInitializing = true;
+    private bool _isRefreshingList;
+    private string _lastConflictSignature = string.Empty;
 
     public SettingsWindow(
         Preferences preferences,
@@ -29,7 +32,7 @@ public partial class SettingsWindow : Window
         StarDictLibrary starDictionaries,
         DpapiSecretStore secretStore,
         TranslationCoordinator translator,
-        Action onPreferencesChanged)
+        Func<IReadOnlyList<string>> onPreferencesChanged)
     {
         _preferences = preferences;
         _settingsPath = settingsPath;
@@ -75,7 +78,25 @@ public partial class SettingsWindow : Window
     private void SaveAndNotify()
     {
         _preferences.Save(_settingsPath);
-        _onPreferencesChanged();
+
+        var conflicts = _onPreferencesChanged?.Invoke() ?? Array.Empty<string>();
+        if (conflicts.Count == 0)
+        {
+            _lastConflictSignature = string.Empty;
+            return;
+        }
+
+        // 只在冲突集合发生变化时弹窗，避免每次改设置都重复提示。
+        var signature = string.Join("|", conflicts);
+        if (signature == _lastConflictSignature) return;
+        _lastConflictSignature = signature;
+
+        System.Windows.MessageBox.Show(
+            this,
+            "以下热键已被其他程序占用，当前无法生效：\n\n" + string.Join("\n", conflicts),
+            "热键冲突",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private void PanelStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -97,48 +118,79 @@ public partial class SettingsWindow : Window
     {
         if (_isInitializing) return;
         var enable = LaunchAtLoginToggle.IsChecked == true;
-        _preferences.LaunchAtLogin = enable;
+
         try
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RunRegPath, writable: true);
-            if (key is not null)
+            using var key = Registry.CurrentUser.OpenSubKey(RunRegPath, writable: true)
+                ?? throw new InvalidOperationException("无法打开注册表启动项目录");
+
+            if (enable)
             {
-                if (enable && Environment.ProcessPath is { } exePath)
-                {
-                    key.SetValue(AppRunName, $"\"{exePath}\"");
-                }
-                else
-                {
-                    key.DeleteValue(AppRunName, throwOnMissingValue: false);
-                }
+                var exePath = Environment.ProcessPath
+                    ?? throw new InvalidOperationException("无法获取当前程序路径");
+                key.SetValue(AppRunName, $"\"{exePath}\"");
+            }
+            else
+            {
+                key.DeleteValue(AppRunName, throwOnMissingValue: false);
             }
         }
         catch (Exception ex)
         {
-            System.Windows.MessageBox.Show(this, $"修改开机启动项失败：{ex.Message}", "Englishwords");
+            // 失败必须把勾选状态和偏好一起回滚，否则界面会骗用户说已开启
+            System.Windows.MessageBox.Show(this, $"修改开机启动项失败：{ex.Message}", "Englishwords",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+
+            _isInitializing = true;
+            try
+            {
+                LaunchAtLoginToggle.IsChecked = !enable;
+            }
+            finally
+            {
+                _isInitializing = false;
+            }
+
+            return;
         }
+
+        _preferences.LaunchAtLogin = enable;
         SaveAndNotify();
     }
 
     private void OpenLogFolder_Click(object sender, RoutedEventArgs e)
     {
         var dir = Path.GetDirectoryName(FileLog.LogPath);
-        if (!string.IsNullOrEmpty(dir))
-        {
-            Directory.CreateDirectory(dir);
-            Process.Start(new ProcessStartInfo("explorer.exe", dir) { UseShellExecute = true });
-        }
+        if (string.IsNullOrEmpty(dir)) return;
+
+        Directory.CreateDirectory(dir);
+        Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true });
     }
 
     private void RefreshDictList()
     {
-        DictSourcesList.ItemsSource = null;
-        DictSourcesList.ItemsSource = _preferences.DictionarySources;
+        // 重建容器会触发 Checked/Unchecked，此时不能写入设置
+        _isRefreshingList = true;
+        try
+        {
+            DictSourcesList.ItemsSource = null;
+            DictSourcesList.ItemsSource = _preferences.DictionarySources;
+        }
+        finally
+        {
+            _isRefreshingList = false;
+        }
     }
 
     private void DictSource_Changed(object sender, RoutedEventArgs e)
     {
-        if (_isInitializing) return;
+        if (_isInitializing || _isRefreshingList) return;
+        if (sender is not System.Windows.Controls.CheckBox checkBox) return;
+        if (checkBox.DataContext is not DictionarySource source) return;
+
+        // Click 只由用户点击触发：列表容器生成、切换 Tab、绑定刷新都不会误写入设置。
+        // 以 CheckBox 的实际状态为准写回数据对象，避免依赖绑定更新顺序。
+        source.Enabled = checkBox.IsChecked == true;
         SaveAndNotify();
     }
 
@@ -232,12 +284,36 @@ public partial class SettingsWindow : Window
 
     private void OnlineConfig_LostFocus(object sender, RoutedEventArgs e)
     {
+        CommitOnlineConfig();
+    }
+
+    /// <summary>
+    /// 把地址/模型输入框里尚未失焦的内容提交到设置，窗口关闭时也会兜底调一次。
+    /// </summary>
+    private void CommitOnlineConfig()
+    {
         if (_isInitializing) return;
-        _preferences.OnlineAddress = AddressBox.Text.Trim();
-        _preferences.OnlineModel = ModelBox.Text.Trim();
+
+        var address = AddressBox.Text.Trim();
+        var model = ModelBox.Text.Trim();
+        if (string.Equals(address, _preferences.OnlineAddress, StringComparison.Ordinal) &&
+            string.Equals(model, _preferences.OnlineModel, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        _preferences.OnlineAddress = address;
+        _preferences.OnlineModel = model;
         _translator.InvalidateCache();
         SaveAndNotify();
         RefreshOnlineStatus();
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        // 用户可能直接在输入框里改完就关窗，不经过 LostKeyboardFocus
+        CommitOnlineConfig();
+        base.OnClosing(e);
     }
 
     private void SaveKey_Click(object sender, RoutedEventArgs e)
@@ -256,9 +332,18 @@ public partial class SettingsWindow : Window
 
     private void ClearKey_Click(object sender, RoutedEventArgs e)
     {
-        _secretStore.Delete(_preferences.TranslationPreset.GetRawValue());
+        var result = _secretStore.Delete(_preferences.TranslationPreset.GetRawValue());
+        if (!result.IsSuccess)
+        {
+            // 删除失败时必须明确提示，并保留原密钥不动
+            System.Windows.MessageBox.Show(this, result.ErrorMessage ?? "清除密钥失败", "Englishwords",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
         _translator.InvalidateCache();
         RefreshOnlineStatus();
+        OnlineStatusText.Text = "密钥已清除";
     }
 
     private async void TestOnline_Click(object sender, RoutedEventArgs e)
