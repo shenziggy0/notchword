@@ -221,9 +221,9 @@ python3 scripts/build_wordparts.py \
 - **换位置运行或换签名可能需要重新授权**：从 `.pkg` 安装后，首次打开会统一清除本应用的旧授权。直接拖拽 `.app` 不走安装器，换了运行位置或签名后如权限失效，请在系统设置重新授权。
 - **被动取词的能力边界**：被动悬停/划词只读 Accessibility，读不到选区的应用（部分 Electron / 画布）需用 `⌥D`/`⌥T` 主动取词。主动热键会在备份并还原剪贴板（带 `TransientType`）的前提下安全模拟复制。
 - **词素数据边界**：11,444 考纲词已 100% 判定（7,757 拆分 + 3,698 单纯词），但覆盖范围之外的长尾词仍可能没有拆分；这些词只显示释义，不猜拆分。
-- **Windows 侧边界**：框架依赖包需目标机器安装 .NET 8 Desktop Runtime；Windows 编译、单测与 `build.ps1` 自检只能靠 GitHub Actions `windows-latest` 或 Windows 实机验证（本机为 macOS，未安装 .NET SDK）。
+- Windows 版需要 .NET 8 Desktop Runtime。可以在 macOS 上交叉编译和运行核心测试，窗口显示、读屏和动画仍需在 Windows 上验收。
 - **字幕与发布验收**：真实视频站点、双版本 Sparkle 升级链及签名身份对系统权限（TCC / Keychain / 登录项）的影响待实机验证。
-- 面板不做毛玻璃，纯黑底以适配任意壁纸。
+- 查词与字幕使用深色阅读底。macOS 26 及以上的导航和操作按钮采用系统 Liquid Glass，macOS 15 使用系统材质。打开「减少透明度」会切换为实色控件。
 
 ---
 

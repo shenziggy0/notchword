@@ -27,6 +27,7 @@
     <Content Include="..\..\..\macos-starter\Sources\Englishwords\Resources\wordparts.sqlite"
              Link="Resources\wordparts.sqlite"
              CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="..\..\..\macos-starter\Sources\Englishwords\Resources\lucide.ttf" Link="Assets\lucide.ttf" />
     <Content Include="..\..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\macos-starter\Sources\Englishwords\Resources\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

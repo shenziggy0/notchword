@@ -15,19 +15,12 @@ final class NotchPanel: NSPanel {
 /// 宿主视图。点击第一下就生效，不需要先激活应用。
 final class PanelHostingView: NSHostingView<AnyView> {
 
-    var onClick: (() -> Void)?
-
     required init(rootView: AnyView) {
         super.init(rootView: rootView)
     }
 
     required dynamic init?(coder: NSCoder) {
         fatalError("init(coder:) 未实现")
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        super.mouseDown(with: event)
-        onClick?()
     }
 
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
@@ -68,6 +61,15 @@ final class PanelController {
     private var mode: Mode = .compact
     private var isVisible = false
     private var pointerInside = false
+    private var accessibilityFocusInside = false
+    private var resultRevision = 0
+    private var targetFrame = NSRect.zero
+    private var layoutRevision = 0
+    private var visibilityRevision = 0
+
+    private var reduceMotion: Bool {
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+    }
 
     init(preferences: Preferences, notebook: NotebookModel? = nil) {
         self.preferences = preferences
@@ -94,6 +96,11 @@ final class PanelController {
         let keepExpanded = isVisible && subtitle == nil
             && (self.mode == .expanded || pointerInside) && mode == .compact
         let previousMode = self.mode
+        let previousRequest = self.state?.request
+        if !isVisible || previousRequest?.text != state.request.text ||
+            previousRequest?.trigger != state.request.trigger || previousRequest?.mode != state.request.mode {
+            resetResultFocus()
+        }
         subtitle = nil
         self.state = state
         self.mode = keepExpanded ? .expanded : mode
@@ -113,6 +120,7 @@ final class PanelController {
 
     func showSubtitle(_ view: SubtitleView, on screen: NSScreen?) {
         guard let screen = screen ?? NSScreen.main else { return }
+        resetResultFocus()
         subtitle = view
         state = nil
         mode = .expanded
@@ -139,13 +147,23 @@ final class PanelController {
 
         guard let panel, isVisible else { return }
         isVisible = false
+        resetResultFocus()
+        panel.ignoresMouseEvents = true
+        visibilityRevision &+= 1
+        let revision = visibilityRevision
         onHide?()
+        guard !reduceMotion else {
+            panel.orderOut(nil)
+            panel.alphaValue = 0
+            return
+        }
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.16
+            context.duration = 0.14
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
             panel.animator().alphaValue = 0
         }, completionHandler: { [weak self] in
             Task { @MainActor in
-                guard self?.isVisible != true else { return }
+                guard self?.visibilityRevision == revision else { return }
                 panel.orderOut(nil)
             }
         })
@@ -160,12 +178,13 @@ final class PanelController {
 
     private func expand() {
         guard mode != .expanded, let screen = targetScreen else { return }
-        hideWorkItem?.cancel()
         mode = .expanded
         if preferences.hapticOnExpand {
             NSHapticFeedbackManager.defaultPerformer.perform(.generic, performanceTime: .now)
         }
         render(on: screen)
+        pointerInside = contains(NSEvent.mouseLocation)
+        restartHideTimer()
     }
 
     private func collapse() {
@@ -205,74 +224,90 @@ final class PanelController {
         pointerInside = inside
 
         if inside {
-            hideWorkItem?.cancel()
-            hideWorkItem = nil
             if preferences.expandsOnHover { expand() }
         } else {
-            if preferences.expandsOnHover { collapse() }
-            restartHideTimer()
+            if preferences.expandsOnHover, !accessibilityFocusInside { collapse() }
         }
+        restartHideTimer()
     }
 
     // MARK: - 渲染
 
-    private func render(on screen: NSScreen) {
+    private func render(on screen: NSScreen, subtitleHeight: CGFloat? = nil) {
         guard state != nil || subtitle != nil else { return }
 
         let geometry = NotchGeometry.measure(screen)
-        let width = mode == .expanded ? geometry.expandedWidth : geometry.compactWidth
-        let maxHeight = max(screen.visibleFrame.height - 60, 260)
-        let subtitleCap: CGFloat? = subtitle == nil ? nil : min(260, maxHeight)
-
-        // 字幕先不设高度上限量一次，真的超过才套 ScrollView
-        var view = content(geometry: geometry, width: width, maxHeight: nil)
-        var hosting = makeHosting(view)
-        hosting.frame = NSRect(x: 0, y: 0, width: width, height: 0)
-        hosting.layoutSubtreeIfNeeded()
-        var height = hosting.fittingSize.height
-
-        if let cap = subtitleCap, height > cap {
-            view = content(geometry: geometry, width: width, maxHeight: cap)
-            hosting = makeHosting(view)
-            height = cap
-        } else if height > maxHeight {
-            view = content(geometry: geometry, width: width, maxHeight: maxHeight)
-            hosting = makeHosting(view)
-            height = maxHeight
+        let width = min(screen.frame.width, mode == .expanded ? geometry.expandedWidth : geometry.compactWidth)
+        let maxHeight = max(geometry.contentTopInset + 46, screen.visibleFrame.height - 40)
+        let cap = subtitle == nil ? maxHeight : min(maxHeight, geometry.contentTopInset + 280)
+        let naturalHeight: CGFloat
+        if let subtitleHeight {
+            naturalHeight = subtitleHeight
+        } else {
+            let natural = content(geometry: geometry, width: width, maxHeight: nil)
+            let measure = NSHostingView(rootView: natural.frame(width: width).fixedSize(horizontal: false, vertical: true))
+            naturalHeight = ceil(measure.fittingSize.height)
         }
-        height = max(height, geometry.contentTopInset + 44)
+        let height = min(cap, max(geometry.contentTopInset + 46, naturalHeight))
+        layoutRevision &+= 1
+        let revision = layoutRevision
+        let view = content(geometry: geometry, width: width,
+                           maxHeight: naturalHeight > cap ? height : nil, observeFocus: true) {
+            [weak self] subtitleContentHeight in
+            // 翻句和译文抵达都会改变实际高度。延后一轮，避开 SwiftUI 正在进行的布局。
+            DispatchQueue.main.async {
+                guard let self, self.isVisible, self.subtitle != nil, self.layoutRevision == revision else { return }
+                let measured = ceil(subtitleContentHeight) + geometry.contentTopInset
+                let proposed = min(cap, max(geometry.contentTopInset + 46, measured))
+                if abs(proposed - self.targetFrame.height) >= 1 {
+                    self.render(on: screen, subtitleHeight: measured)
+                }
+            }
+        }
 
         let panel = panel ?? makePanel()
         self.panel = panel
-        self.hosting = hosting
-        panel.contentView = hosting
+        if let hosting {
+            hosting.rootView = view
+        } else {
+            let host = PanelHostingView(rootView: view)
+            host.sizingOptions = []
+            self.hosting = host
+            panel.contentView = host
+        }
         let frame = geometry.frame(for: screen, width: width, height: height)
-        panel.setFrame(frame, display: true)
-        // 重建 contentView 可能打断淡入动画，把窗口不透明度恢复到最终值
-        if isVisible { panel.alphaValue = 1 }
+        let previous = targetFrame
+        targetFrame = frame
+        if isVisible, !reduceMotion, previous != frame, screen.frame.contains(NSPoint(x: previous.midX, y: previous.midY)) {
+            let opening = frame.height > previous.height || frame.width > previous.width
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = opening ? 0.30 : 0.19
+                context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 0.82, 0.22, 1)
+                panel.animator().setFrame(frame, display: true)
+            }
+        } else if !isVisible || previous != frame {
+            // 使用同一动画代理设置最终值，快速重开时会取代尚未结束的展开动画。
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0
+                panel.animator().setFrame(frame, display: true)
+            }
+        }
 
         if ProcessInfo.processInfo.environment["EW_DEBUG_PANEL"] != nil {
             FileLog.write("panel mode=\(mode) frame=\(frame) alpha=\(panel.alphaValue) opaque=\(panel.isOpaque)")
         }
     }
 
-    private var subtitleShape: UnevenRoundedRectangle {
-        UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: 16,
-                               bottomTrailingRadius: 16, topTrailingRadius: 0)
-    }
-
-    private func content(geometry: NotchGeometry, width: CGFloat, maxHeight: CGFloat?) -> AnyView {
+    private func content(geometry: NotchGeometry, width: CGFloat, maxHeight: CGFloat?,
+                         observeFocus: Bool = false,
+                         onSubtitleHeight: ((CGFloat) -> Void)? = nil) -> AnyView {
         if let subtitle {
-            let view = subtitle
-                .padding(.top, geometry.contentTopInset)
-                .frame(width: width)
-            if let maxHeight {
-                return AnyView(ScrollView { view }.frame(width: width, height: maxHeight)
-                    .background(.black, in: subtitleShape))
-            }
-            return AnyView(view.background(.black, in: subtitleShape))
+            return AnyView(SubtitleViewport(tracker: subtitle.tracker, subtitle: subtitle, width: width,
+                                           topInset: geometry.contentTopInset, maxHeight: maxHeight,
+                                           onHeightChanged: { onSubtitleHeight?($0) }))
         }
         guard let state else { return AnyView(EmptyView()) }
+        let revision = resultRevision
         return AnyView(ResultView(
             state: state,
             mode: mode,
@@ -283,28 +318,33 @@ final class PanelController {
             lookupShortcut: preferences.lookupHotKey.display,
             notebook: notebook,
             onBackToSubtitle: state.request.trigger == .subtitle ? onBackToSubtitle : nil,
+            onExpand: { [weak self] in self?.expand() },
+            onDismiss: { [weak self] in self?.hide() },
+            onAccessibilityFocusChanged: observeFocus ? { [weak self] inside in
+                guard let self, self.isVisible, self.resultRevision == revision else { return }
+                self.accessibilityFocusInside = inside
+                self.restartHideTimer()
+            } : nil,
             speechVoice: preferences.speechVoice,
             speechRate: preferences.speechRate
-        ))
-    }
-
-    private func makeHosting(_ view: AnyView) -> PanelHostingView {
-        let hosting = PanelHostingView(rootView: view)
-        hosting.onClick = { [weak self] in self?.expand() }
-        return hosting
+        ).id(revision))
     }
 
     private func reveal() {
         guard let panel else { return }
         if !isVisible {
-            panel.alphaValue = 0
+            visibilityRevision &+= 1
+            panel.ignoresMouseEvents = false
+            panel.alphaValue = reduceMotion ? 1 : 0
             panel.orderFrontRegardless()
-            NSAnimationContext.runAnimationGroup { context in
-                context.duration = 0.18
-                context.timingFunction = CAMediaTimingFunction(controlPoints: 0.32, 0.72, 0, 1)
-                panel.animator().alphaValue = 1
-            }
             isVisible = true
+            if !reduceMotion {
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.20
+                    context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    panel.animator().alphaValue = 1
+                }
+            }
         } else {
             panel.orderFrontRegardless()
         }
@@ -314,12 +354,19 @@ final class PanelController {
         hideWorkItem?.cancel()
         hideWorkItem = nil
         // 字幕不需要自动隐藏，由用户或 Esc 收起
-        guard subtitle == nil else { return }
-        guard !pointerInside else { return }
+        guard isVisible, subtitle == nil, !pointerInside, !accessibilityFocusInside else { return }
         if case .loading? = state { return }
-        let item = DispatchWorkItem { [weak self] in self?.hide() }
+        let item = DispatchWorkItem { [weak self] in
+            guard let self, !self.accessibilityFocusInside, !self.contains(NSEvent.mouseLocation) else { return }
+            self.hide()
+        }
         hideWorkItem = item
         DispatchQueue.main.asyncAfter(deadline: .now() + preferences.autoHideInterval, execute: item)
+    }
+
+    private func resetResultFocus() {
+        resultRevision &+= 1
+        accessibilityFocusInside = false
     }
 
     // MARK: - Esc

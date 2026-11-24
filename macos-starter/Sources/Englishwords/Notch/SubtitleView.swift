@@ -1,46 +1,91 @@
 import SwiftUI
 
+struct SubtitleViewport: View {
+    @ObservedObject var tracker: SubtitleTracker
+    let subtitle: SubtitleView
+    let width: CGFloat
+    let topInset: CGFloat
+    let maxHeight: CGFloat?
+    let onHeightChanged: (CGFloat) -> Void
+
+    var body: some View {
+        ScrollViewReader { scroll in
+            NotchViewport(width: width, topInset: topInset, maxHeight: maxHeight) {
+                subtitle.fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }, action: onHeightChanged)
+                    .id("subtitle-top")
+            }
+            .onChange(of: tracker.currentCueID) {
+                scroll.scrollTo("subtitle-top", anchor: .top)
+            }
+        }
+    }
+}
+
 struct SubtitleView: View {
     @ObservedObject var tracker: SubtitleTracker
+    var onDismiss: (() -> Void)? = nil
     let lookup: (String) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @ScaledMetric(relativeTo: .title2) private var cueSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .body) private var translationSize: CGFloat = 16
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(tracker.status).font(.system(size: 12, weight: .medium))
+            HStack(spacing: 8) {
+                Image(systemName: "captions.bubble.fill")
+                    .foregroundStyle(Lexicon.onDarkAccent).accessibilityHidden(true)
+                Text("视频字幕").font(.headline).accessibilityAddTraits(.isHeader)
+                if tracker.current != nil {
+                    Text("\(tracker.position + 1) / \(tracker.cues.count)")
+                        .monospacedDigit().font(.callout).foregroundStyle(Lexicon.notchSecondary)
+                }
                 Spacer()
-                Button { tracker.move(by: -1) } label: { Image(systemName: "chevron.left") }
-                    .accessibilityLabel("上一句")
+                Button { tracker.move(by: -1) } label: { LexiconIcon(.previous, size: 16) }
+                    .accessibilityLabel("上一句").help("上一句")
                     .disabled(tracker.position <= 0)
-                Button { tracker.move(by: 1) } label: { Image(systemName: "chevron.right") }
-                    .accessibilityLabel("下一句")
+                Button { tracker.move(by: 1) } label: { LexiconIcon(.next, size: 16) }
+                    .accessibilityLabel("下一句").help("下一句")
                     .disabled(tracker.position + 1 >= tracker.cues.count)
-            }
-            .foregroundStyle(.white.opacity(0.72))
-            if let cue = tracker.current {
-                Text(linkedWords(cue.text))
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(.white)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .environment(\.openURL, OpenURLAction { url in
-                        guard url.scheme == "notchword-subtitle",
-                              let word = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                                  .queryItems?.first(where: { $0.name == "word" })?.value else {
-                            return .discarded
-                        }
-                        lookup(word)
-                        return .handled
-                    })
-                if !tracker.translation.isEmpty {
-                    Text(tracker.translation)
-                        .font(.system(size: 14))
-                        .foregroundStyle(.white.opacity(0.74))
-                        .fixedSize(horizontal: false, vertical: true)
+                if let onDismiss {
+                    Button(action: onDismiss) {
+                        Image(systemName: "xmark").font(.system(size: 13, weight: .semibold))
+                    }
+                    .accessibilityLabel("收起字幕").help("收起字幕（Esc）")
                 }
             }
+            .buttonStyle(LexiconIconButtonStyle())
+            if let cue = tracker.current {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(linkedWords(cue.text))
+                        .font(.system(size: cueSize, weight: .semibold))
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .environment(\.openURL, OpenURLAction { url in
+                            guard url.scheme == "notchword-subtitle",
+                                  let word = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                                      .queryItems?.first(where: { $0.name == "word" })?.value else {
+                                return .discarded
+                            }
+                            lookup(word)
+                            return .handled
+                        })
+                    if !tracker.translation.isEmpty {
+                        Text(tracker.translation).font(.system(size: translationSize))
+                            .lineSpacing(3).foregroundStyle(Lexicon.notchSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .contentTransition(.opacity)
+                .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: tracker.position)
+            }
+            Text(tracker.status)
+                .font(.system(size: 12, weight: .medium)).foregroundStyle(Lexicon.notchMuted)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(16)
-        .buttonStyle(.plain)
+        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 18)
+        .foregroundStyle(Lexicon.notchText)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func linkedWords(_ text: String) -> AttributedString {

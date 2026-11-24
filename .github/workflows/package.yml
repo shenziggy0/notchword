@@ -72,11 +72,34 @@ jobs:
     name: macOS Universal DMG & PKG
     needs: resolve-version
     runs-on: macos-15
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Verify Liquid Glass toolchain
+        shell: bash
+        run: |
+          if [[ ! -d "$DEVELOPER_DIR" ]]; then
+            echo "::error::找不到固定的 Xcode 路径：$DEVELOPER_DIR"
+            exit 1
+          fi
+          xcodebuild -version
+          swift_version="$(xcrun swift --version)"
+          sdk_version="$(xcrun --sdk macosx --show-sdk-version)"
+          printf '%s\nmacOS SDK %s\n' "$swift_version" "$sdk_version"
+          if ! [[ "$swift_version" =~ Swift\ version\ ([0-9]+)\.([0-9]+) ]] ||
+             (( BASH_REMATCH[1] < 6 || (BASH_REMATCH[1] == 6 && BASH_REMATCH[2] < 2) )); then
+            echo "::error::原生 Liquid Glass 需要 Swift 6.2 或更新版本"
+            exit 1
+          fi
+          if (( ${sdk_version%%.*} < 26 )); then
+            echo "::error::原生 Liquid Glass 需要 macOS SDK 26 或更新版本"
+            exit 1
+          fi
 
       - name: Run Tests
         working-directory: macos-starter
@@ -88,6 +111,19 @@ jobs:
           EW_BUILD_VERSION: ${{ needs.resolve-version.outputs.version }}
           EW_BUILD_NUMBER: ${{ github.run_number }}
         run: bash ./build.sh
+
+      - name: Verify Liquid Glass in the Universal app
+        working-directory: macos-starter
+        shell: bash
+        run: |
+          binary=build/Englishwords.app/Contents/MacOS/Englishwords
+          for arch in arm64 x86_64; do
+            symbols="$(xcrun nm -arch "$arch" -u "$binary" | xcrun swift-demangle)"
+            if [[ "$symbols" != *SwiftUI.View.glassEffect* ]]; then
+              echo "::error::${arch} 分片缺少 SwiftUI.View.glassEffect，停止打包"
+              exit 1
+            fi
+          done
 
       - name: Package DMG & PKG
         working-directory: macos-starter

@@ -42,6 +42,10 @@ public partial class SettingsWindow : Window
         _onPreferencesChanged = onPreferencesChanged;
 
         InitializeComponent();
+        Pages.SelectionChanged += DesktopAppearance.PageChanged;
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.CheckedEvent, new RoutedEventHandler(DesktopAppearance.SwitchChanged));
+        AddHandler(System.Windows.Controls.Primitives.ToggleButton.UncheckedEvent, new RoutedEventHandler(DesktopAppearance.SwitchChanged));
+        SourceInitialized += (_, _) => (System.Windows.Application.Current as App)?.Appearance?.ApplyTitleBar(this);
         LoadInitialState();
         _isInitializing = false;
     }
@@ -50,6 +54,7 @@ public partial class SettingsWindow : Window
     {
         PanelStyleCombo.SelectedIndex = _preferences.PanelStyle == PanelStyle.Notch ? 0 : 1;
         SelectionToggle.IsChecked = _preferences.SelectionLookupEnabled;
+        AutoHideToggle.Content = $"展示 {Math.Clamp(_preferences.AutoHideSeconds, 2, 30):0.#} 秒后自动收起";
         AutoHideToggle.IsChecked = _preferences.AutoHideEnabled;
         LaunchAtLoginToggle.IsChecked = _preferences.LaunchAtLogin;
 

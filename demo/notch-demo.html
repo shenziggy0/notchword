@@ -1,589 +1,424 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hans">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Englishwords · 刘海查词交互原型</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Englishwords · 刘海查词</title>
 <style>
-  :root{
-    /* ---- 材质：对齐 macOS 深色 vibrancy ---- */
-    --desk-1:#15161a;
-    --desk-2:#0a0a0c;
-    --desk-glow:#2a2f3a;
-
-    --notch:#000;
-    --panel:rgba(30,30,34,.78);
-    --panel-solid:#1c1c20;
-    --stroke:rgba(255,255,255,.10);
-    --stroke-strong:rgba(255,255,255,.18);
-
-    --label:#f5f5f7;
-    --label-2:rgba(235,235,245,.68);
-    --label-3:rgba(235,235,245,.42);
-
-    --accent:#0a84ff;
-    --prefix:#ff9f0a;   /* 前缀 */
-    --root:#5ac8fa;     /* 词根 */
-    --suffix:#bf5af2;   /* 后缀 */
-    --star:#ffd60a;
-
-    --r-notch:12px;
-    --r-panel:22px;
-
-    --ease:cubic-bezier(.32,.72,0,1);
-    --dur:260ms;
-
-    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",
-           "Helvetica Neue","PingFang SC","Hiragino Sans GB",sans-serif;
+  :root {
+    color-scheme: light dark;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --desk: #dee8f6;
+    --sky: #f0f5fc;
+    --haze: #ccdcf3;
+    --fold: #b1c7e9;
+    --fold-light: #e1ebfa;
+    --fold-deep: #91abd4;
+    --ink: #182331;
+    --secondary: #46566d;
+    --hint: #4c607b;
+    --accent: #235ab3;
+    --sheet: #f9fbff;
+    --chrome: rgba(246, 250, 255, .74);
+    --edge: rgba(255, 255, 255, .83);
+    --rule: rgba(47, 74, 116, .17);
+    --track: rgba(70, 93, 133, .105);
+    --lens: #fbfdff;
+    --selected: #e1edff;
+    --shadow: 0 14px 42px -22px rgba(28, 52, 95, .45);
+    --panel: #141720;
+    --panel-text: #f6f7fb;
+    --panel-sub: #bcc5d6;
+    --panel-accent: #a9ccff;
+    --panel-control: #303542;
+    --panel-line: rgba(205, 220, 252, .17);
+    --focus: #1153af;
+    --spring: cubic-bezier(.22,.84,.2,1);
+    --settle: cubic-bezier(.2,.68,.24,1);
   }
-
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{
-    margin:0;
-    font-family:var(--font);
-    color:var(--label);
-    background:var(--desk-2);
-    overflow:hidden;
-    -webkit-font-smoothing:antialiased;
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --desk: #152138;
+      --sky: #202d48;
+      --haze: #1f3558;
+      --fold: #273f67;
+      --fold-light: #374f78;
+      --fold-deep: #121f37;
+      --ink: #eef3ff;
+      --secondary: #bdcbe1;
+      --hint: #b1c2da;
+      --accent: #a7caff;
+      --sheet: #222c40;
+      --chrome: rgba(30, 42, 63, .83);
+      --edge: rgba(189, 212, 255, .24);
+      --rule: rgba(193, 213, 246, .2);
+      --track: rgba(0, 7, 24, .32);
+      --lens: #3c4d67;
+      --selected: #324e75;
+      --shadow: 0 18px 48px -22px rgba(2, 8, 20, .85);
+      --focus: #afcfff;
+    }
   }
-
-  /* ============ 桌面背景 ============ */
-  .desktop{
-    position:fixed;inset:0;
-    background:
-      radial-gradient(1200px 600px at 50% -10%, var(--desk-glow) 0%, transparent 60%),
-      radial-gradient(900px 500px at 15% 110%, #1b2330 0%, transparent 55%),
-      radial-gradient(700px 400px at 88% 95%, #241d2e 0%, transparent 55%),
-      linear-gradient(160deg, var(--desk-1), var(--desk-2) 70%);
+  *, *::before, *::after { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--desk); }
+  body {
+    margin: 0; color: var(--ink); min-width: 0;
+    min-height: 100vh; min-height: 100svh;
+    display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased;
   }
-  .desktop::after{ /* 极轻噪点，避免大面积色带 */
-    content:"";position:absolute;inset:0;pointer-events:none;opacity:.35;
-    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='120' height='120' filter='url(%23n)' opacity='.045'/></svg>");
+  h1, h2, h3, p { margin: 0; }
+  button {
+    font: inherit; color: inherit; border: 0; padding: 0;
+    background: transparent; cursor: pointer; -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-
-  /* ============ 菜单栏 ============ */
-  .menubar{
-    position:fixed;top:0;left:0;right:0;height:30px;z-index:40;
-    display:flex;align-items:center;gap:18px;
-    padding:0 14px;
-    font-size:12.5px;font-weight:500;
-    color:var(--label);
-    background:rgba(20,20,24,.42);
-    backdrop-filter:saturate(180%) blur(24px);
-    -webkit-backdrop-filter:saturate(180%) blur(24px);
-    border-bottom:.5px solid rgba(255,255,255,.06);
+  button:disabled { cursor: default; }
+  button:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--focus); outline-offset: 2px;
   }
-  .menubar .app-name{font-weight:700}
-  .menubar .spacer{flex:1}
-  .menubar .status{display:flex;align-items:center;gap:14px;color:var(--label-2)}
-  .menubar .status svg{display:block}
-  .menubar .clock{font-variant-numeric:tabular-nums;color:var(--label)}
-
-  .apple{width:13px;height:16px;fill:var(--label);opacity:.92}
-
-  /* ============ 刘海容器 ============ */
-  .notch-layer{
-    position:fixed;top:0;left:50%;transform:translateX(-50%);
-    z-index:50;
-    display:flex;flex-direction:column;align-items:center;
+  [hidden] { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .icon { width: 1.125rem; height: 1.125rem; flex: none; vertical-align: middle; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+  .symbols { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+  .wallpaper {
+    position: fixed; z-index: -1; inset: 0; overflow: hidden; pointer-events: none;
+    background: radial-gradient(ellipse at 12% 5%, var(--sky) 0, transparent 52%),
+                linear-gradient(137deg, var(--desk) 6%, var(--haze) 100%);
   }
-
-  .notch{
-    --w:200px;
-    width:var(--w);
-    background:var(--notch);
-    border-radius:0 0 var(--r-notch) var(--r-notch);
-    box-shadow:0 10px 30px rgba(0,0,0,.55), 0 1px 0 rgba(255,255,255,.04) inset;
-    transition:width var(--dur) var(--ease), border-radius var(--dur) var(--ease);
-    overflow:hidden;
-    /* 顶部贴屏幕边缘，所以只有下方圆角 */
+  .wallpaper::before, .wallpaper::after {
+    content: ""; position: absolute; border-radius: 50%;
+    width: 152%; height: 139%; left: -76%; top: 22%; transform: rotate(-34deg);
+    background: linear-gradient(178deg, var(--fold-light), var(--haze) 13%, var(--fold) 46%, var(--fold-deep) 96%);
+    box-shadow: inset 0 .8px 0 var(--edge), 0 -15px 95px -34px var(--fold-deep);
   }
-  .notch.open{
-    --w:474px;
-    border-radius:0 0 var(--r-panel) var(--r-panel);
+  .wallpaper::after {
+    width: 162%; height: 156%; left: 15%; top: 37%; transform: rotate(-31deg);
+    background: linear-gradient(156deg, var(--fold-light) 5%, var(--fold) 33%, var(--fold-deep) 72%);
   }
-
-  /* 紧凑态内容 */
-  .compact{
-    height:32px;
-    display:flex;align-items:center;justify-content:center;gap:9px;
-    font-size:12.5px;letter-spacing:.01em;
-    color:rgba(255,255,255,.9);
-    transition:opacity 140ms linear, height var(--dur) var(--ease);
-    white-space:nowrap;
+  .workspace-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .workspace-top {
+    display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr);
+    align-items: start; padding-inline: clamp(1rem, 3vw, 2.75rem);
+    position: relative; z-index: 3;
   }
-  .notch.open .compact{height:0;opacity:0;pointer-events:none}
-  .compact .dot{
-    width:5px;height:5px;border-radius:50%;background:#30d158;
-    box-shadow:0 0 8px #30d158;
+  .brand, .help > summary { display: inline-flex; align-items: center; min-height: 44px; }
+  .brand { grid-column: 1; grid-row: 1; gap: .65rem; margin-top: max(14px, env(safe-area-inset-top)); width: max-content; }
+  .app-mark {
+    width: 33px; height: 33px; display: grid; place-items: center; color: #f7fbff;
+    background: linear-gradient(145deg, #628ee8, #294d9b);
+    box-shadow: inset 0 1px 1px #a1bfff, inset 0 -1px 2px #234584, 0 4px 8px -5px #254988;
+    border-radius: 10px;
   }
-  .compact .cw{font-weight:600}
-  .compact .cm{color:rgba(255,255,255,.45)}
-
-  /* 展开态内容：用 grid 0fr→1fr 平滑撑开 */
-  .expand{
-    display:grid;grid-template-rows:0fr;
-    transition:grid-template-rows var(--dur) var(--ease);
+  .app-mark .icon { width: 20px; height: 20px; }
+  .wordmark { font-size: 1.08rem; font-weight: 680; letter-spacing: -.035em; }
+  .help { grid-column: 3; grid-row: 1; margin-top: max(14px, env(safe-area-inset-top)); justify-self: end; position: relative; }
+  .help > summary {
+    gap: 7px; padding: 0 14px; list-style: none; cursor: pointer; border-radius: 30px;
+    color: var(--secondary); font-size: .84rem; font-weight: 550;
   }
-  .notch.open .expand{grid-template-rows:1fr}
-  .expand > .inner{overflow:hidden}
-
-  .panel{
-    padding:14px 18px 12px;
-    background:var(--panel);
-    backdrop-filter:saturate(180%) blur(28px);
-    -webkit-backdrop-filter:saturate(180%) blur(28px);
-    opacity:0;
-    transform:translateY(-6px);
-    transition:opacity 200ms var(--ease) 40ms, transform 240ms var(--ease) 30ms;
+  .help > summary::-webkit-details-marker { display: none; }
+  .help summary .icon { width: 17px; }
+  .help[open] > summary, .help > summary:hover { background: var(--chrome); }
+  .help-body {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 4;
+    width: min(17.5rem, calc(100vw - 2rem)); padding: 1rem 1.15rem; border-radius: 20px;
+    color: var(--secondary); background: var(--sheet); border: 1px solid var(--rule); box-shadow: var(--shadow);
+    font-size: .85rem; line-height: 1.65;
   }
-  .notch.open .panel{opacity:1;transform:none}
-
-  /* ============ 词条头 ============ */
-  .head{display:flex;align-items:baseline;gap:11px}
-  .word{
-    font-size:27px;font-weight:700;letter-spacing:-.02em;line-height:1.1;
-    font-family:"SF Pro Display",var(--font);
+  .help-body p + p { margin-top: .65rem; }
+  kbd {
+    color: var(--ink); font: 600 .78rem ui-monospace, SFMono-Regular, Consolas, monospace;
+    border: 1px solid var(--rule); border-radius: 5px; padding: 1px 4px; white-space: nowrap;
   }
-  .phonetic{
-    font-size:13.5px;color:var(--label-3);
-    font-variant-numeric:tabular-nums;letter-spacing:.01em;
+  .notch-layer { grid-column: 2; grid-row: 1; display: flex; align-items: start; justify-content: center; min-height: 70px; min-width: 0; }
+  .notch {
+    --focus: #b6d3ff;
+    width: min(16rem, calc(100vw - 1.5rem)); color: var(--panel-text); background: #0d1017;
+    border-radius: 0 0 20px 20px; overflow: clip;
+    box-shadow: inset 0 -1px 0 rgba(196,211,241,.22), 0 9px 18px -10px rgba(11,20,39,.63);
+    transition: width 370ms var(--spring), border-radius 320ms var(--spring), box-shadow 270ms ease-out;
   }
-  .head .spacer{flex:1}
-  .icon-btn{
-    width:26px;height:26px;flex:none;
-    display:grid;place-items:center;
-    border:0;border-radius:7px;background:transparent;color:var(--label-2);
-    cursor:pointer;
-    transition:background 150ms var(--ease), color 150ms var(--ease), transform 120ms var(--ease);
+  .notch.open {
+    width: min(31.5rem, calc(100vw - 1.5rem)); border-radius: 0 0 29px 29px;
+    box-shadow: 0 27px 48px -22px rgba(8,17,39,.64), 0 4px 9px -5px rgba(12,18,36,.46);
   }
-  .icon-btn:hover{background:rgba(255,255,255,.09);color:var(--label)}
-  .icon-btn:active{transform:scale(.92)}
-  .icon-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .icon-btn.on{color:var(--star)}
-  .icon-btn svg{width:15px;height:15px;display:block}
-  .icon-btn.small svg{width:13.5px;height:13.5px}
-
-  /* 标签 */
-  .tags{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
-  .tag{
-    font-size:10.5px;font-weight:700;letter-spacing:.04em;
-    padding:2.5px 7px;border-radius:5px;
-    background:rgba(255,255,255,.075);
-    color:var(--label-2);
-    border:.5px solid rgba(255,255,255,.07);
+  .island-toggle {
+    width: 100%; min-height: calc(44px + env(safe-area-inset-top)); padding: env(safe-area-inset-top) 16px 0;
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    letter-spacing: -.01em; font-size: .84rem; line-height: 1.3;
   }
-  .tag.hot{background:rgba(255,159,10,.14);color:#ffb340;border-color:rgba(255,159,10,.22)}
-
-  /* 释义 */
-  .trans{
-    margin-top:11px;
-    font-size:15px;line-height:1.55;color:var(--label);
+  .island-toggle:focus-visible { outline-offset: -4px; border-radius: inherit; }
+  .island-toggle > .icon:first-child { width: 15px; height: 15px; color: var(--panel-accent); }
+  .island-toggle strong { font-weight: 650; }
+  .summary { color: var(--panel-sub); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; }
+  .chevron { width: 14px; height: 14px; color: var(--panel-sub); transition: transform 300ms var(--spring); }
+  .open .island-toggle { justify-content: flex-start; padding-inline: 21px; }
+  .open .island-toggle .summary { margin-left: auto; }
+  .open .chevron { transform: rotate(180deg); }
+  .expand { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 350ms var(--spring); }
+  .open .expand { grid-template-rows: 1fr; }
+  .expand-inner { min-height: 0; overflow: hidden; }
+  .panel {
+    padding: 1.05rem 1.35rem 1rem; background: var(--panel);
+    border: 1px solid var(--panel-line); border-bottom-left-radius: 29px; border-bottom-right-radius: 29px;
+    opacity: 0; transform: translateY(-6px);
+    transition: opacity 115ms ease-out, transform 180ms var(--settle);
   }
-  .pos{
-    font-size:12px;font-weight:600;color:var(--label-3);
-    margin-right:7px;font-style:italic;
+  .open .panel { opacity: 1; transform: none; transition-duration: 200ms, 280ms; }
+  .word-head { display: flex; align-items: start; gap: .8rem; }
+  .name-block { flex: 1; min-width: 0; }
+  .word { font-size: clamp(1.65rem, 5vw, 2.2rem); line-height: 1.12; letter-spacing: -.055em; overflow-wrap: anywhere; }
+  .phon { color: var(--panel-sub); font-size: .88rem; margin-top: .28rem; line-height: 1.45; }
+  .voice-message { color: var(--panel-accent); font-size: .8rem; line-height: 1.5; margin-top: .4rem; }
+  .actions { display: flex; gap: 5px; }
+  .icon-btn {
+    width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%;
+    background: linear-gradient(155deg, rgba(255,255,255,.075), transparent), var(--panel-control);
+    border: 1px solid var(--panel-line); box-shadow: inset 0 .5px 0 rgba(255,255,255,.19);
+    transition: background-color 170ms, color 160ms, transform 135ms var(--settle);
   }
-
-  /* ============ 词根词缀 ============ */
-  .morph{
-    margin-top:14px;
-    padding-top:13px;
-    border-top:.5px solid var(--stroke);
+  .icon-btn[aria-pressed="true"] { background-color: #334a6d; color: var(--panel-accent); }
+  .icon-btn:disabled { color: #a1aabb; opacity: .75; }
+  @media (hover: hover) { .icon-btn:hover:not(:disabled) { background-color: #424a5a; } }
+  .icon-btn:active:not(:disabled), .method:active, .example-word:active { transform: scale(.95); }
+  .definition { display: flex; align-items: baseline; gap: .65rem; margin-top: .85rem; line-height: 1.45; }
+  .pos { color: var(--panel-accent); font: italic .84rem Georgia, serif; flex: none; }
+  .meaning { font-size: 1.08rem; font-weight: 580; }
+  .tags { display: inline-flex; flex-wrap: wrap; gap: 5px; margin-left: auto; align-self: center; }
+  .tag { font-size: .7rem; font-weight: 550; color: var(--panel-sub); background: #292e39; border-radius: 5px; padding: 2px 5px; }
+  .morph { border-top: 1px solid var(--panel-line); margin-top: .95rem; padding-top: .85rem; }
+  .section-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .55rem; }
+  .section-head h3, .section-head h2 { font-size: .84rem; font-weight: 650; }
+  .count { color: var(--panel-sub); font-size: .74rem; }
+  .segments { display: flex; flex-wrap: wrap; gap: 6px; }
+  .segment { flex: 1 1 5.6rem; border-radius: 11px; background: #212632; padding: .55rem .7rem; min-width: 0; }
+  .role { display: block; color: var(--panel-sub); font-size: .69rem; }
+  .part { display: block; color: var(--panel-accent); font-size: 1.13rem; font-weight: 620; line-height: 1.3; letter-spacing: -.025em; overflow-wrap: anywhere; }
+  .segment[data-role="root"] .part { color: var(--panel-text); }
+  .segment[data-role="suffix"] .part { font-style: italic; }
+  .gloss { display: block; font-size: .78rem; color: #d5dae6; line-height: 1.45; }
+  .origin { color: var(--panel-sub); font-size: .78rem; line-height: 1.65; margin-top: .62rem; }
+  .origin b { color: #e3e9f5; font-weight: 550; }
+  .dicts { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-top: .55rem; }
+  .dicts .label { color: var(--panel-sub); font-size: .75rem; margin-right: .2rem; }
+  .dict { min-width: 44px; min-height: 44px; position: relative; z-index: 0; padding: 0 9px; border-radius: 18px; color: var(--panel-sub); font-size: .77rem; }
+  .dict::before { content: ""; position: absolute; z-index: -1; inset: 8px 0; border-radius: inherit; }
+  .dict[aria-pressed="true"] { color: var(--panel-accent); font-weight: 620; }
+  .dict[aria-pressed="true"]::before { background: #293a55; }
+  .dict:hover::before { box-shadow: inset 0 0 0 1px var(--panel-line); }
+  .subs-list { list-style: none; margin: 0; padding: 0; }
+  .sub-row {
+    width: 100%; display: grid; grid-template-columns: 2.85rem 1fr; gap: .35rem;
+    padding: .62rem .65rem; text-align: left; min-height: 44px; border-radius: 12px; line-height: 1.4;
   }
-  .sec-title{
-    display:flex;align-items:center;gap:7px;
-    font-size:11px;font-weight:700;letter-spacing:.06em;
-    color:var(--label-3);text-transform:uppercase;
-    margin-bottom:10px;
+  .sub-row[aria-pressed="true"] { background: #26364e; box-shadow: inset 3px 0 #a9ccff; }
+  .sub-time { color: var(--panel-accent); font: .73rem/1.7 ui-monospace, monospace; }
+  .sub-en { display: block; font-size: .88rem; }
+  .sub-zh { display: block; color: var(--panel-sub); font-size: .78rem; margin-top: 2px; }
+  .reading-stage {
+    flex: 1; width: min(calc(100% - 3rem), 47rem); margin-inline: auto;
+    display: grid; align-content: center; padding-block: clamp(2rem, 8vh, 6.5rem);
   }
-  .sec-title .line{flex:1;height:.5px;background:var(--stroke)}
-  .sec-title .count{
-    font-weight:600;letter-spacing:0;text-transform:none;
-    color:var(--label-3);font-size:10.5px;
+  .reading-sheet {
+    background: var(--sheet); border-radius: 29px; border: 1px solid var(--edge);
+    box-shadow: var(--shadow), 0 2px 8px -6px rgba(31,54,95,.46);
+    padding: clamp(1.4rem, 4vw, 2.65rem) clamp(1.4rem, 4.2vw, 3rem);
   }
-
-  .segs{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
-  .seg{
-    position:relative;
-    padding:7px 12px 8px;
-    border-radius:9px;
-    background:rgba(255,255,255,.045);
-    border:.5px solid rgba(255,255,255,.07);
-    min-width:74px;
-    cursor:default;
-    transition:background 160ms var(--ease), border-color 160ms var(--ease), transform 160ms var(--ease);
+  .reader-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--secondary); }
+  .reader-meta h1 { font-size: .9rem; font-weight: 610; display: flex; align-items: center; gap: .6rem; }
+  .reader-meta h1 .icon { color: var(--accent); }
+  .position { color: var(--hint); font: 520 .76rem/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: .06em; }
+  .sentence {
+    margin-block: clamp(1.05rem, 3vh, 1.65rem) .9rem;
+    font-size: clamp(1.63rem, 3.3vw, 2.5rem); line-height: 1.32; letter-spacing: -.045em; font-weight: 540;
+    text-wrap: pretty; overflow-wrap: anywhere;
   }
-  .seg:hover{background:rgba(255,255,255,.085);border-color:var(--stroke-strong);transform:translateY(-1px)}
-  .seg .lab{
-    display:block;font-size:16.5px;font-weight:700;letter-spacing:-.01em;line-height:1.15;
-    font-family:"SF Pro Display",var(--font);
+  .sample-word {
+    display: inline-block; min-height: 44px; border-radius: 5px; color: var(--accent);
+    background: var(--selected); box-shadow: inset 0 -2px var(--accent);
+    font: inherit; letter-spacing: inherit; padding-inline: .06em;
+    transition: color 130ms, background-color 130ms;
   }
-  .seg .gl{display:block;font-size:11.5px;color:var(--label-2);margin-top:3px;line-height:1.3}
-  .seg .role{
-    display:block;font-size:9px;font-weight:700;letter-spacing:.07em;
-    margin-top:4px;opacity:.85;
+  .sample-word:hover { background: color-mix(in srgb, var(--accent) 19%, var(--sheet)); }
+  .translation { color: var(--secondary); font-size: .98rem; line-height: 1.7; }
+  .reader-time { color: var(--hint); margin-top: 1rem; display: flex; align-items: center; gap: .65rem; font: .77rem ui-monospace, monospace; }
+  .reader-time progress { flex: 1; height: 4px; accent-color: var(--accent); border: 0; }
+  .reader-time progress::-webkit-progress-bar { background: var(--track); border-radius: 8px; }
+  .reader-time progress::-webkit-progress-value { background: var(--accent); border-radius: 8px; }
+  .dock {
+    align-self: center; width: min(calc(100% - 3rem), 47rem);
+    margin-bottom: max(clamp(1.25rem, 5vh, 3.25rem), env(safe-area-inset-bottom));
+    padding: .65rem .85rem .4rem; border-radius: 27px;
+    background: var(--chrome); border: 1px solid var(--edge); box-shadow: var(--shadow), inset 0 -1px 0 var(--rule);
+    -webkit-backdrop-filter: blur(22px) saturate(1.18); backdrop-filter: blur(22px) saturate(1.18);
   }
-  .seg[data-role="prefix"]{border-color:rgba(255,159,10,.28);background:rgba(255,159,10,.09)}
-  .seg[data-role="prefix"] .lab,.seg[data-role="prefix"] .role{color:var(--prefix)}
-  .seg[data-role="root"]{border-color:rgba(90,200,250,.28);background:rgba(90,200,250,.09)}
-  .seg[data-role="root"] .lab,.seg[data-role="root"] .role{color:var(--root)}
-  .seg[data-role="suffix"]{border-color:rgba(191,90,242,.28);background:rgba(191,90,242,.09)}
-  .seg[data-role="suffix"] .lab,.seg[data-role="suffix"] .role{color:var(--suffix)}
-
-  .plus{
-    display:grid;place-items:center;align-self:center;
-    width:22px;flex:none;color:var(--label-3);font-size:13px;font-weight:600;
-    user-select:none;
+  .method-track {
+    position: relative; isolation: isolate; padding: 4px; display: grid;
+    grid-template-columns: repeat(5, minmax(0,1fr)); background: var(--track); border-radius: 22px;
   }
-
-  /* ============ 背景：模拟播放器窗口（仅字幕模式显示） ============ */
-  .app-window{
-    position:fixed;left:50%;top:300px;transform:translateX(-50%) scale(.985);
-    width:min(700px,68vw);z-index:10;
-    border-radius:12px;overflow:hidden;
-    background:#141417;
-    border:.5px solid rgba(255,255,255,.10);
-    box-shadow:0 40px 90px rgba(0,0,0,.62), 0 0 0 .5px rgba(0,0,0,.6);
-    opacity:0;pointer-events:none;
-    transition:opacity 320ms var(--ease), transform 320ms var(--ease);
+  .method-track::before {
+    content: ""; position: absolute; z-index: -1; top: 4px; bottom: 4px; left: 4px;
+    width: calc((100% - 8px)/5); transform: translateX(calc(var(--method-index, 0) * 100%));
+    border-radius: 19px; background: var(--lens); border: 1px solid var(--edge);
+    box-shadow: 0 2px 4px rgba(18,37,72,.14); transition: transform 320ms var(--spring);
   }
-  body.subs-mode .app-window{opacity:.58;transform:translateX(-50%) scale(1)}
-  .titlebar{
-    display:flex;align-items:center;gap:7px;
-    height:30px;padding:0 11px;
-    background:rgba(255,255,255,.045);
-    border-bottom:.5px solid rgba(255,255,255,.07);
+  .method {
+    min-width: 0; min-height: 44px; border-radius: 19px; color: var(--secondary); gap: 7px;
+    display: flex; justify-content: center; align-items: center; font-weight: 550; font-size: .88rem;
+    transition: color 140ms, transform 120ms var(--settle);
   }
-  .tl{width:9px;height:9px;border-radius:50%;background:#4a4a50}
-  .tl.r{background:#ff5f57}.tl.y{background:#febc2e}.tl.g{background:#28c840}
-  .titlebar .t{
-    flex:1;text-align:center;font-size:11.5px;color:var(--label-3);
-    margin-right:36px;
+  .method[aria-pressed="true"] { color: var(--accent); font-weight: 660; }
+  .method:hover { color: var(--ink); }
+  .words-row { display: flex; align-items: center; gap: .45rem; padding-top: .28rem; }
+  .words-label { font-size: .76rem; color: var(--hint); white-space: nowrap; padding-left: .42rem; }
+  .word-list { min-width: 0; flex: 1; display: flex; gap: 2px; overflow-x: auto; padding: 3px 4px; scrollbar-width: thin; scrollbar-color: var(--rule) transparent; }
+  .example-word {
+    flex: 1 0 auto; min-height: 44px; position: relative; isolation: isolate; padding-inline: .42rem;
+    font-size: .77rem; border-radius: 12px; font-weight: 500; color: var(--secondary);
+    transition: color 120ms, transform 120ms var(--settle);
   }
-  .stage{
-    position:relative;aspect-ratio:21/9;
-    background:linear-gradient(150deg,#1d2430,#101318 60%,#1a1620);
-    display:grid;place-items:center;
+  .example-word::before { content: ""; position: absolute; inset: 8px 0; z-index: -1; border: 1px solid transparent; border-radius: 9px; }
+  .example-word[aria-pressed="true"] { color: var(--accent); font-weight: 650; }
+  .example-word[aria-pressed="true"]::before { background: var(--selected); border-color: var(--rule); }
+  .example-word:hover::before { border-color: var(--rule); }
+  .dock:has(.words-row[hidden]) { padding-bottom: .65rem; }
+  @media (min-width: 751px) and (max-height: 850px) {
+    body:has(.notch.open) .reading-stage { padding-block: 1rem; }
+    body:has(.notch.open) .reading-sheet { padding-block: 1.2rem; }
+    body:has(.notch.open) .sentence { margin-block: .65rem .4rem; font-size: 1.7rem; }
+    body:has(.notch.open) .dock { margin-bottom: 1.1rem; }
   }
-  .stage::after{
-    content:"";position:absolute;inset:0;
-    background:radial-gradient(60% 50% at 50% 30%, rgba(90,140,255,.10), transparent 70%);
+  @media (max-width: 56em) {
+    .workspace-top { grid-template-columns: 1fr 1fr; }
+    .notch-layer { grid-row: 1; grid-column: 1 / -1; min-height: 44px; }
+    .brand, .help { grid-row: 2; margin-top: .45rem; }
+    .help { grid-column: 2; }
   }
-  .play{
-    width:56px;height:56px;border-radius:50%;
-    display:grid;place-items:center;
-    background:rgba(255,255,255,.13);
-    border:.5px solid rgba(255,255,255,.18);
-    color:rgba(255,255,255,.9);
-    position:relative;z-index:1;
+  @media (max-width: 750px) {
+    body { height: 100vh; height: 100dvh; min-height: 0; }
+    .workspace-content { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+    .reading-stage, .dock { width: min(calc(100% - 2rem), 40rem); }
+    .reading-stage { flex: 1 0 auto; padding-block: clamp(1rem, 5vh, 3rem); }
+    .dock { flex: none; margin-block: .5rem max(.65rem, env(safe-area-inset-bottom)); }
+    .word-list { overscroll-behavior-inline: contain; }
   }
-  .live-caption{
-    position:absolute;left:0;right:0;bottom:16px;
-    text-align:center;z-index:1;
-    padding:0 40px;
+  @media (max-width: 480px) {
+    .workspace-top { padding-inline: 1rem; }
+    .reading-sheet { border-radius: 23px; }
+    .dock { padding: .45rem .45rem .18rem; border-radius: 21px; }
+    .method { flex-direction: column; gap: 2px; min-height: 47px; font-size: .7rem; }
+    .method .icon { width: 16px; height: 16px; }
+    .words-row { gap: 1px; }
+    .panel { padding: .85rem 1rem .65rem; }
+    .tags { margin-left: 0; }
+    .definition { flex-wrap: wrap; gap: .35rem .5rem; }
+    .segment { flex-basis: 5rem; }
   }
-  .live-caption span{
-    display:inline-block;
-    background:rgba(0,0,0,.72);
-    padding:3px 9px;border-radius:4px;
-    font-size:14.5px;line-height:1.45;color:#fff;
+  @media (prefers-reduced-transparency: reduce) {
+    :root { --chrome: var(--sheet); }
+    .dock { -webkit-backdrop-filter: none; backdrop-filter: none; }
   }
-  .scrub{
-    display:flex;align-items:center;gap:9px;
-    padding:8px 13px;font-size:10.5px;color:var(--label-3);
-    font-variant-numeric:tabular-nums;
-    background:rgba(255,255,255,.03);
-    border-top:.5px solid rgba(255,255,255,.06);
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+    button:active { transform: none !important; }
   }
-  .bar{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.14);overflow:hidden}
-  .bar i{display:block;height:100%;width:38%;background:var(--accent);border-radius:2px}
-
-  .origin{
-    margin-top:11px;
-    font-size:12.5px;color:var(--label-2);line-height:1.5;
-  }
-  .origin b{color:var(--label);font-weight:600}
-
-  /* ============ 字幕模式 ============ */
-  .subs{display:flex;flex-direction:column;gap:9px}
-  .sub-row{
-    display:grid;grid-template-columns:52px 1fr;gap:11px;
-    padding:7px 9px;border-radius:9px;
-    transition:background 160ms var(--ease);
-  }
-  .sub-row:hover{background:rgba(255,255,255,.05)}
-  .sub-row.now{background:rgba(10,132,255,.11);box-shadow:inset 0 0 0 .5px rgba(10,132,255,.28)}
-  .sub-t{
-    font-size:11px;color:var(--label-3);
-    font-variant-numeric:tabular-nums;padding-top:2px;
-  }
-  .sub-en{display:block;font-size:14px;line-height:1.45;color:var(--label)}
-  .sub-zh{display:block;font-size:13px;line-height:1.5;color:var(--label-2);margin-top:3px}
-  .sub-row.now .sub-zh{color:#7cb9ff}
-
-  /* ============ 底部：词典切换 ============ */
-  .foot{
-    display:flex;align-items:center;gap:10px;
-    margin-top:13px;padding-top:11px;
-    border-top:.5px solid var(--stroke);
-  }
-  .dict-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-  .chip{
-    font-size:11.5px;font-weight:550;
-    padding:4px 10px;border-radius:7px;
-    background:rgba(255,255,255,.06);
-    border:.5px solid rgba(255,255,255,.08);
-    color:var(--label-2);
-    cursor:pointer;
-    transition:background 150ms var(--ease), color 150ms var(--ease), border-color 150ms var(--ease);
-  }
-  .chip:hover{background:rgba(255,255,255,.12);color:var(--label)}
-  .chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .chip.active{background:rgba(10,132,255,.18);border-color:rgba(10,132,255,.38);color:#9ecbff}
-  .foot .spacer{flex:1}
-  .hint{font-size:11px;color:var(--label-3)}
-  body.subs-mode #pDicts{display:none}
-
-  /* ============ 底部控制台 ============ */
-  .hud{
-    position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
-    z-index:60;
-    display:flex;flex-direction:column;gap:12px;align-items:center;
-    padding:14px 18px;
-    border-radius:16px;
-    background:rgba(24,24,28,.72);
-    border:.5px solid rgba(255,255,255,.09);
-    backdrop-filter:saturate(180%) blur(28px);
-    -webkit-backdrop-filter:saturate(180%) blur(28px);
-    box-shadow:0 20px 50px rgba(0,0,0,.5);
-    max-width:min(92vw,860px);
-  }
-  .hud-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-  .hud-label{
-    font-size:10.5px;font-weight:700;letter-spacing:.08em;
-    color:var(--label-3);text-transform:uppercase;margin-right:2px;
-  }
-  .seg-ctrl{
-    display:flex;gap:2px;padding:2px;border-radius:9px;
-    background:rgba(255,255,255,.05);
-    border:.5px solid rgba(255,255,255,.06);
-  }
-  .seg-ctrl button{
-    font:inherit;font-size:12px;
-    padding:5px 11px;border:0;border-radius:7px;
-    background:transparent;color:var(--label-2);cursor:pointer;
-    transition:background 150ms var(--ease), color 150ms var(--ease);
-    white-space:nowrap;
-  }
-  .seg-ctrl button:hover{color:var(--label);background:rgba(255,255,255,.06)}
-  .seg-ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .seg-ctrl button.active{background:rgba(255,255,255,.14);color:var(--label);font-weight:600}
-
-  .word-pick{
-    display:flex;gap:5px;flex-wrap:wrap;justify-content:center;
-  }
-  .word-pick button{
-    font:inherit;font-size:12px;font-weight:500;
-    padding:5px 10px;border-radius:7px;
-    background:rgba(255,255,255,.05);
-    border:.5px solid rgba(255,255,255,.07);
-    color:var(--label-2);cursor:pointer;
-    transition:all 150ms var(--ease);
-  }
-  .word-pick button:hover{background:rgba(255,255,255,.11);color:var(--label)}
-  .word-pick button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  .word-pick button.active{background:rgba(10,132,255,.20);border-color:rgba(10,132,255,.4);color:#9ecbff;font-weight:600}
-
-  .badge{
-    position:fixed;left:16px;bottom:16px;z-index:60;
-    font-size:11px;color:var(--label-3);
-    display:flex;flex-direction:column;gap:3px;
-    pointer-events:none;
-  }
-  .badge b{color:var(--label-2);font-weight:600}
-  .badge .note{color:rgba(235,235,245,.3)}
-
-  /* 触发徽标 */
-  .trigger-badge{
-    display:inline-flex;align-items:center;gap:5px;
-    font-size:10.5px;font-weight:650;letter-spacing:.02em;
-    padding:3px 8px;border-radius:6px;
-    background:rgba(48,209,88,.12);color:#5ee07f;
-    border:.5px solid rgba(48,209,88,.2);
-  }
-  .trigger-badge svg{width:11px;height:11px}
-
-  .sr-only{
-    position:absolute;width:1px;height:1px;padding:0;margin:-1px;
-    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0;
-  }
-
-  @media (prefers-reduced-motion: reduce){
-    *{transition-duration:1ms !important;animation-duration:1ms !important}
-  }
-
-  @media (max-width:560px){
-    .notch{--w:180px}
-    .notch.open{--w:min(94vw,420px)}
-    .hud{max-width:96vw;padding:11px 13px}
+  @media (forced-colors: active) {
+    .notch, .dock, .reading-sheet, .help-body, .icon-btn { border: 1px solid CanvasText; }
+    button[aria-pressed="true"], .sample-word { outline: 2px solid Highlight; outline-offset: -3px; }
   }
 </style>
 </head>
 <body>
+<svg class="symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M3 4.5c3.6-1.1 6.7-.4 9 1.55 2.3-1.95 5.4-2.65 9-1.55v13.6c-3.6-.9-6.6-.3-9 1.45-2.4-1.75-5.4-2.35-9-1.45zM12 6v13.5"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-mouse" viewBox="0 0 24 24"><path d="m5 3 15 9-7 1.6-3.7 6.2z"/></symbol>
+  <symbol id="i-keys" viewBox="0 0 24 24"><rect x="2.5" y="5.5" width="19" height="13" rx="3"/><path d="M6 9h.1m3.8 0h.1m3.8 0h.1m3.8 0h.1M6 12h.1m3.8 0h.1m3.8 0h.1m3.8 0h.1M8 15h8"/></symbol>
+  <symbol id="i-select" viewBox="0 0 24 24"><path d="M7 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H7m12-16h-4a2 2 0 0 0-2 2m0 12a2 2 0 0 0 2 2h4M4 9v6"/></symbol>
+  <symbol id="i-region" viewBox="0 0 24 24"><path d="M8 4H5a1 1 0 0 0-1 1v3m12-4h3a1 1 0 0 1 1 1v3M4 16v3a1 1 0 0 0 1 1h3m8 0h3a1 1 0 0 0 1-1v-3"/></symbol>
+  <symbol id="i-sub" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M6.5 13h4m3 0h4m-11 3h8"/></symbol>
+  <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 5-5 4H3v6h3l5 4zM15 8.5a5 5 0 0 1 0 7m3-10a9 9 0 0 1 0 13"/></symbol>
+  <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-mark" viewBox="0 0 24 24"><path d="M6 5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16l-6-4-6 4z"/></symbol>
+  <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.6 2.6 0 1 1 4.4 1.9c-1.2.8-1.9 1.3-1.9 2.6m0 3h.01"/></symbol>
+</svg>
+<div class="wallpaper" aria-hidden="true"></div>
 
-<div class="desktop" aria-hidden="true"></div>
-
-<!-- ============ 背景：模拟播放器（字幕模式才有） ============ -->
-<div class="app-window" aria-hidden="true">
-  <div class="titlebar">
-    <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
-    <span class="t">youtube.com — Safari</span>
-  </div>
-  <div class="stage">
-    <div class="play">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5-11-6.5z"/></svg>
-    </div>
-    <div class="live-caption"><span id="liveCaption">The experiment yielded a result nobody expected.</span></div>
-  </div>
-  <div class="scrub">
-    <span>0:12</span><span class="bar"><i></i></span><span>0:46</span>
-  </div>
-</div>
-
-<!-- ============ 菜单栏 ============ -->
-<div class="menubar">
-  <svg class="apple" viewBox="0 0 14 17" aria-hidden="true"><path d="M11.4 9.1c0-1.9 1.5-2.8 1.6-2.9-.9-1.3-2.2-1.5-2.7-1.5-1.2-.1-2.3.7-2.9.7-.6 0-1.5-.7-2.5-.7-1.3 0-2.5.8-3.1 2-1.3 2.3-.3 5.7.9 7.6.6.9 1.4 1.9 2.4 1.9 1 0 1.3-.6 2.5-.6s1.5.6 2.5.6 1.7-.9 2.3-1.8c.7-1 1-2 1-2.1-.1 0-2-.8-2-3.2zM9.5 3.4c.5-.6.9-1.5.8-2.4-.8 0-1.7.5-2.3 1.2-.5.5-.9 1.4-.8 2.3.9.1 1.8-.5 2.3-1.1z"/></svg>
-  <span class="app-name">Englishwords</span>
-  <span style="color:var(--label-2)">查词</span>
-  <span style="color:var(--label-2)">字幕</span>
-  <span style="color:var(--label-2)">设置</span>
-  <span class="spacer"></span>
-  <div class="status">
-    <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="1"/><rect x="4.3" y="5" width="3" height="7" rx="1"/><rect x="8.6" y="2.5" width="3" height="9.5" rx="1"/><rect x="13" y="0" width="3" height="12" rx="1"/></svg>
-    <svg width="15" height="11" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 10.2 5.6 7.8a3.4 3.4 0 0 1 4.8 0L8 10.2zM8 5.6a5.7 5.7 0 0 0-4 1.6L2.6 5.8a7.6 7.6 0 0 1 10.8 0L12 7.2a5.7 5.7 0 0 0-4-1.6z"/></svg>
-    <svg width="20" height="10" viewBox="0 0 24 12" fill="none" aria-hidden="true"><rect x="1" y="1" width="19" height="10" rx="2.6" stroke="currentColor" stroke-opacity=".45"/><rect x="3" y="3" width="13" height="6" rx="1.4" fill="currentColor"/><path d="M21.6 4.2v3.6c.9-.4 1.4-1 1.4-1.8s-.5-1.4-1.4-1.8z" fill="currentColor" fill-opacity=".5"/></svg>
-    <span class="clock">20:16</span>
-  </div>
-</div>
-
-<!-- ============ 刘海 ============ -->
-<div class="notch-layer">
-  <div class="notch" id="notch" role="region" aria-label="查词面板">
-
-    <!-- 紧凑态 -->
-    <div class="compact" id="compact">
-      <span class="dot" aria-hidden="true"></span>
-      <span class="cw" id="compactWord">abduct</span>
-      <span class="cm">·</span>
-      <span class="cm" id="compactMeaning">诱拐</span>
-    </div>
-
-    <!-- 展开态 -->
-    <div class="expand">
-      <div class="inner">
-        <div class="panel">
-
-          <!-- 查词视图 -->
-          <div id="viewLookup">
-            <div class="head">
-              <span class="word" id="pWord">abduct</span>
-              <span class="phonetic" id="pPhon">/əbˈdʌkt/</span>
-              <span class="spacer"></span>
-              <button class="icon-btn" id="btnSpeak" title="朗读" aria-label="朗读单词">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
-              </button>
-              <button class="icon-btn" id="btnStar" title="收藏" aria-label="收藏单词">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="m12 3.6 2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.8l5.9-.9L12 3.6z"/></svg>
-              </button>
-              <button class="icon-btn small" id="btnClose" title="收起 (Esc)" aria-label="收起面板">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
-            </div>
-
-            <div class="tags" id="pTags"></div>
-
-            <div class="trans">
-              <span class="pos" id="pPos">vt.</span><span id="pTrans">诱拐；绑架</span>
-            </div>
-
-            <div class="morph">
-              <div class="sec-title">
-                <span>词根词缀</span>
-                <span class="count" id="segCount"></span>
-                <span class="line"></span>
-                <span class="trigger-badge" id="pTrigger">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-                  <span id="pTriggerText">悬停取词</span>
-                </span>
+<div class="workspace-content">
+<header class="workspace-top">
+  <div class="brand"><span class="app-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span><span class="wordmark">Englishwords</span></div>
+  <div class="notch-layer">
+    <section class="notch" id="notch" aria-label="刘海面板">
+      <button id="compact" class="island-toggle" aria-expanded="false" aria-controls="expanded">
+        <svg class="icon" aria-hidden="true"><use id="compactIcon" href="#i-book"/></svg>
+        <strong id="compactWord"></strong><span class="summary" id="compactMeaning"></span>
+        <svg class="icon chevron" aria-hidden="true"><use href="#i-down"/></svg>
+      </button>
+      <div class="expand" id="expanded" inert>
+        <div class="expand-inner"><div class="panel">
+          <section id="viewLookup" aria-labelledby="pWord">
+            <div class="word-head">
+              <div class="name-block"><h2 id="pWord" class="word" lang="en"></h2><p id="pPhon" class="phon"></p></div>
+              <div class="actions">
+                <button class="icon-btn" id="btnSpeak" type="button" aria-label="朗读单词" title="朗读单词"><svg class="icon" aria-hidden="true"><use id="speakIcon" href="#i-sound"/></svg></button>
+                <button class="icon-btn" id="btnStar" type="button" aria-label="收藏单词" aria-pressed="false" title="收藏单词"><svg class="icon" aria-hidden="true"><use href="#i-mark"/></svg></button>
               </div>
-              <div class="segs" id="pSegs"></div>
-              <div class="origin" id="pOrigin"></div>
             </div>
-          </div>
-
-          <!-- 字幕视图 -->
-          <div id="viewSubs" hidden>
-            <div class="head" style="margin-bottom:2px">
-              <span class="word" style="font-size:18px">字幕</span>
-              <span class="phonetic" id="subMeta">YouTube · 进行中</span>
-              <span class="spacer"></span>
-              <button class="icon-btn small" id="btnClose2" title="收起" aria-label="收起面板">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-              </button>
+            <p class="voice-message" id="voiceMessage" role="status" hidden></p>
+            <div class="definition"><span class="pos" id="pPos"></span><span class="meaning" id="pTrans"></span><span class="tags" id="pTags"></span></div>
+            <section class="morph" aria-labelledby="morphTitle">
+              <div class="section-head"><h3 id="morphTitle">词根词缀</h3><span class="count" id="segCount"></span></div>
+              <div class="segments" id="pSegs"></div><p class="origin" id="pOrigin"></p>
+            </section>
+            <div class="dicts" id="pDicts" role="group" aria-label="词典">
+              <span class="label" aria-hidden="true">词典</span>
+              <button class="dict" aria-pressed="true">内置</button><button class="dict" aria-pressed="false">系统词典</button><button class="dict" aria-pressed="false">英汉大词典</button>
             </div>
-            <div class="morph" style="margin-top:10px">
-              <div class="subs" id="pSubs"></div>
-            </div>
-          </div>
-
-          <!-- 底部 -->
-          <div class="foot">
-            <div class="dict-chips" id="pDicts">
-              <span class="hud-label" style="margin:0 2px 0 0">词典</span>
-              <button class="chip active">内置</button>
-              <button class="chip">系统词典</button>
-              <button class="chip">英汉大词典</button>
-            </div>
-            <span class="spacer"></span>
-            <span class="hint" id="footHint">按 H 重新展开</span>
-          </div>
-
-        </div>
+          </section>
+          <section id="viewSubs" aria-label="双语字幕" hidden>
+            <ul class="subs-list" id="pSubs"></ul>
+          </section>
+        </div></div>
       </div>
+    </section>
+  </div>
+  <details class="help" id="help">
+    <summary><svg class="icon" aria-hidden="true"><use href="#i-help"/></svg>使用说明</summary>
+    <div class="help-body">
+      <p>将指针移到顶部刘海，或点选例句中的单词查看释义。按 <kbd>H</kbd> 切换面板，按 <kbd>Esc</kbd> 收起。</p>
+      <p>下方可切换取词方式和示例词。字幕来自演示片段，收藏仅在本页有效。朗读使用浏览器语音。</p>
     </div>
+  </details>
+</header>
 
-  </div>
-</div>
-
-<!-- ============ 控制台 ============ -->
-<div class="hud">
-  <div class="hud-row">
-    <span class="hud-label">触发方式</span>
-    <div class="seg-ctrl" id="ctrlTrigger" role="group" aria-label="触发方式">
-      <button data-trigger="悬停取词">悬停取词</button>
-      <button data-trigger="快捷键查询">快捷键</button>
-      <button data-trigger="划词查询">划词</button>
-      <button data-trigger="区域取词">区域</button>
-      <button data-trigger="字幕查询">字幕</button>
+<main class="reading-stage">
+  <article class="reading-sheet" aria-labelledby="readerLabel">
+    <div class="reader-meta">
+      <h1><svg class="icon" aria-hidden="true"><use id="readerIcon" href="#i-book"/></svg><span id="readerLabel">阅读片段</span></h1>
+      <span class="position" id="position"></span>
     </div>
-  </div>
-  <div class="hud-row" id="rowWords">
-    <span class="hud-label">换词</span>
-    <div class="word-pick" id="ctrlWords" role="group" aria-label="选择单词"></div>
-  </div>
+    <p class="sentence" lang="en" id="sentence"></p>
+    <p class="translation" id="translation"></p>
+    <div class="reader-time" id="readerTime" hidden><span id="elapsed"></span><progress max="46" id="progress" aria-label="字幕片段进度"></progress><span>0:46</span></div>
+  </article>
+</main>
 </div>
 
-<div class="badge">
-  <span><b>Englishwords</b> · 交互原型</span>
-  <span class="note">鼠标移到刘海（或按 H）展开 · Esc 收起</span>
-  <span class="note">自编数据 · 取词方式、词典与字幕均为模拟</span>
-  <span class="note">星标仅演示外观 · 朗读使用浏览器语音</span>
-</div>
+<footer class="dock" aria-label="演示控制">
+  <div class="method-track" id="ctrlTrigger" role="group" aria-label="取词方式">
+    <button class="method" data-trigger="悬停取词" aria-pressed="true"><svg class="icon" aria-hidden="true"><use href="#i-mouse"/></svg>悬停取词</button>
+    <button class="method" data-trigger="快捷键查询" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-keys"/></svg>快捷键</button>
+    <button class="method" data-trigger="划词查询" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-select"/></svg>划词</button>
+    <button class="method" data-trigger="区域取词" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-region"/></svg>区域</button>
+    <button class="method" data-trigger="字幕查询" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-sub"/></svg>字幕</button>
+  </div>
+  <div class="words-row" id="rowWords"><span class="words-label">示例词</span><div class="word-list" id="ctrlWords" role="group" aria-label="选择单词"></div></div>
+</footer>
+<p role="status" class="sr-only" id="announce"></p>
 
 <script>
-/* ==================== 演示数据（自编，非原程序数据） ==================== */
 const WORDS = {
   abduct: {
     phon: "/əbˈdʌkt/", pos: "vt.", trans: "诱拐；绑架",
@@ -669,177 +504,276 @@ const SUBS = [
   { t: "26.0", en: "The curve started to bend the other way.",          zh: "曲线开始向相反方向弯折。" }
 ];
 
-/* ==================== 状态 ==================== */
-const notch      = document.getElementById('notch');
-const viewLookup = document.getElementById('viewLookup');
-const viewSubs   = document.getElementById('viewSubs');
-const rowWords   = document.getElementById('rowWords');
 
-let currentWord  = 'abduct';
-let currentMode  = 'lookup';   // lookup | subs
-let currentTrig  = '悬停取词';
-let isOpen       = false;
-let leaveTimer   = null;       // 离开收起的延时句柄，重新打开时主动取消
+const EXAMPLES = {
+  abduct: ["The villagers foiled an attempt to ", " the young prince.", "村民们挫败了一起绑架小王子的阴谋。"],
+  predict: ["You can’t always ", " where a new idea will take you.", "你无法总是预见一个新想法会将你带向何处。"],
+  transport: ["The boats ", " fresh produce across the lake each morning.", "这些船每天早上把新鲜农产品运到湖对岸。"],
+  incredible: ["It’s ", " how much a garden can change in a week.", "一座花园在一周内竟然能有这么大的变化。"],
+  abbreviation: ["The ", " for a musical instrument can vary across scores.", "同一种乐器在不同乐谱上的缩写可能不同。"],
+  consumer: ["Every ", " has the right to know where their food comes from.", "每位消费者都有权知道食物的来源。"],
+  project: ["Our next ", " is a map of the city’s forgotten rivers.", "我们的下一个项目，是为这座城市被遗忘的河流绘制地图。"],
+  manuscript: ["The editor found a handwritten ", " in the library.", "编辑在图书馆里找到了一份手稿。"]
+};
+const ROLE = { prefix: "前缀", root: "词根", suffix: "后缀" };
+const byId = id => document.getElementById(id);
+const notch = byId("notch");
+const toggle = byId("compact");
+const exampleList = byId("ctrlWords");
+const triggerList = byId("ctrlTrigger");
+const triggers = [...triggerList.querySelectorAll("button")];
+const isSubtitles = () => trigger === "字幕查询";
+const marks = new Set();
+const words = Object.keys(WORDS);
+let word = "abduct";
+let trigger = "悬停取词";
+let cue = Math.max(0, SUBS.findIndex(line => line.now));
+let expanded = false;
+let hoverOpen = false;
+let enterTimer;
+let leaveTimer;
+let activeUtterance;
+let keyboardNavigation = false;
 
-/* ==================== 渲染 ==================== */
-const ROLE_CN = { prefix: '前缀', root: '词根', suffix: '后缀' };
-
-function renderWord(key){
-  const w = WORDS[key];
-  if (!w) return;
-  currentWord = key;
-
-  document.getElementById('pWord').textContent  = key;
-  document.getElementById('pPhon').textContent  = w.phon;
-  document.getElementById('pPos').textContent   = w.pos;
-  document.getElementById('pTrans').textContent = w.trans;
-
-  document.getElementById('pTags').innerHTML =
-    w.tags.map(t => `<span class="tag ${/GRE|托福/.test(t) ? 'hot' : ''}">${t}</span>`).join('');
-
-  const segs = document.getElementById('pSegs');
-  segs.innerHTML = w.segs.map((s, i) => {
-    const node = `
-      <div class="seg" data-role="${s.role}" title="${ROLE_CN[s.role]}：${s.gl}">
-        <span class="lab">${s.lab}</span>
-        <span class="gl">${s.gl}</span>
-        <span class="role">${ROLE_CN[s.role]}</span>
-      </div>`;
-    return i === 0 ? node : `<span class="plus" aria-hidden="true">+</span>${node}`;
-  }).join('');
-  document.getElementById('segCount').textContent = `${w.segs.length} 段`;
-
-  document.getElementById('pOrigin').innerHTML = w.origin ? `词源：${w.origin}` : '';
-
-  // 紧凑态
-  document.getElementById('compactWord').textContent    = key;
-  document.getElementById('compactMeaning').textContent = w.trans.split(/[；;]/)[0];
-
-  // 高亮当前词按钮
-  [...document.querySelectorAll('#ctrlWords button')].forEach(b =>
-    b.classList.toggle('active', b.dataset.word === key));
+function setIcon(id, name) {
+  byId(id).setAttribute("href", "#i-" + name);
 }
-
-function renderSubs(){
-  document.getElementById('pSubs').innerHTML = SUBS.map(s => `
-    <div class="sub-row ${s.now ? 'now' : ''}">
-      <span class="sub-t">${s.t}s</span>
-      <span>
-        <span class="sub-en">${s.en}</span>
-        <span class="sub-zh">${s.zh}</span>
-      </span>
-    </div>
-  `).join('');
+function updateHandle() {
+  const subs = isSubtitles();
+  setIcon("compactIcon", subs ? "sub" : "book");
+  byId("compactWord").textContent = expanded ? (subs ? "双语字幕" : "词条释义") : (subs ? "双语字幕" : word);
+  byId("compactMeaning").textContent = expanded
+    ? (subs ? "演示片段" : trigger)
+    : (subs ? SUBS[cue].t + " s" : WORDS[word].trans.split("；")[0]);
+  toggle.setAttribute("aria-expanded", String(expanded));
+  toggle.setAttribute("aria-label", (expanded ? "收起" : "展开") + (subs ? "字幕面板" : "单词释义，" + word));
 }
-
-function setMode(mode){
-  currentMode = mode;
-  const isSub = mode === 'subs';
-  viewLookup.hidden = isSub;
-  viewSubs.hidden   = !isSub;
-  rowWords.style.display = isSub ? 'none' : '';
-  document.body.classList.toggle('subs-mode', isSub);
-  document.getElementById('footHint').textContent = isSub ? '双语字幕布局演示' : '按 H 重新展开';
-  if (isSub) renderSubs();
+function setOpen(next, fromHover = false) {
+  clearTimeout(enterTimer);
+  clearTimeout(leaveTimer);
+  hoverOpen = next && fromHover;
+  if (next === expanded) return;
+  if (!next && byId("expanded").contains(document.activeElement)) toggle.focus({ preventScroll: true });
+  expanded = next;
+  notch.classList.toggle("open", next);
+  byId("expanded").inert = !next;
+  updateHandle();
 }
-
-/* ==================== 展开 / 收起 ==================== */
-function open(){
-  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
-  if (isOpen) return;
-  isOpen = true;
-  notch.classList.add('open');
-  document.getElementById('pTriggerText').textContent = currentTrig;
+function presentPanel() {
+  setOpen(true);
+  // 小屏上从页面底部换词时，把新结果带回可见区域。
+  if (notch.getBoundingClientRect().top < 0) notch.scrollIntoView({ block: "start" });
 }
-function close(){
-  if (!isOpen) return;
-  isOpen = false;
-  notch.classList.remove('open');
+function revealText(element) {
+  for (const animation of element.getAnimations()) animation.cancel();
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  element.animate([{ opacity: .55, transform: "translateY(3px)" }, { opacity: 1, transform: "none" }],
+    { duration: 200, easing: "cubic-bezier(.2,.68,.24,1)" });
 }
-function toggle(){ isOpen ? close() : open(); }
-
-/* 悬停展开（对齐原程序 expandsOnNotchHover） */
-notch.addEventListener('mouseenter', open);
-document.querySelector('.notch-layer').addEventListener('mouseleave', () => {
-  if (currentMode !== 'subs') {
-    leaveTimer = setTimeout(() => { leaveTimer = null; if (!notch.matches(':hover')) close(); }, 900);
+function updateBookmark() {
+  const marked = marks.has(word);
+  const button = byId("btnStar");
+  button.setAttribute("aria-pressed", String(marked));
+  button.title = marked ? "移出收藏" : "收藏单词";
+  button.querySelector("svg").style.fill = marked ? "currentColor" : "none";
+}
+function updateVoice() {
+  const button = byId("btnSpeak");
+  const title = activeUtterance ? "停止朗读" : "朗读单词";
+  button.setAttribute("aria-label", title);
+  button.title = button.disabled ? "当前浏览器没有语音功能" : title;
+  setIcon("speakIcon", activeUtterance ? "stop" : "sound");
+}
+function showVoiceMessage(message = "") {
+  const text = byId("voiceMessage");
+  text.textContent = message;
+  text.hidden = !message;
+}
+function stopVoice() {
+  if (!activeUtterance) return;
+  activeUtterance = null;
+  speechSynthesis.cancel();
+  updateVoice();
+}
+function readAloud() {
+  if (activeUtterance) { stopVoice(); return; }
+  showVoiceMessage();
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = "en-US";
+  utterance.rate = .92;
+  const finish = event => {
+    if (utterance !== activeUtterance) return;
+    activeUtterance = null;
+    updateVoice();
+    if (event.type === "error") showVoiceMessage("朗读失败，可检查浏览器的英语语音后重试。");
+  };
+  utterance.onend = finish;
+  utterance.onerror = finish;
+  activeUtterance = utterance;
+  updateVoice();
+  speechSynthesis.speak(utterance);
+}
+function updateReader() {
+  const subs = isSubtitles();
+  const sentence = byId("sentence");
+  byId("readerLabel").textContent = subs ? "字幕片段" : "阅读片段";
+  setIcon("readerIcon", subs ? "sub" : "book");
+  const position = subs ? cue + 1 : words.indexOf(word) + 1;
+  const count = subs ? SUBS.length : words.length;
+  byId("position").textContent = [position, count].map(n => String(n).padStart(2, "0")).join(" / ");
+  byId("readerTime").hidden = !subs;
+  if (subs) {
+    const line = SUBS[cue];
+    sentence.textContent = line.en;
+    byId("translation").textContent = line.zh;
+    byId("elapsed").textContent = "0:" + Math.floor(Number(line.t)).toString().padStart(2, "0");
+    byId("progress").value = Number(line.t);
+    return;
+  }
+  const [before, after, zh] = EXAMPLES[word];
+  const sample = document.createElement("button");
+  sample.type = "button";
+  sample.className = "sample-word";
+  sample.textContent = word;
+  sample.setAttribute("aria-label", "查看 " + word + " 的释义");
+  sample.setAttribute("aria-controls", "expanded");
+  sample.addEventListener("click", () => {
+    presentPanel();
+    if (keyboardNavigation) toggle.focus({ preventScroll: true });
+  });
+  sentence.replaceChildren(before, sample, after);
+  byId("translation").textContent = zh;
+}
+function renderWord() {
+  const entry = WORDS[word];
+  showVoiceMessage(byId("btnSpeak").disabled ? "当前浏览器没有提供朗读功能。" : "");
+  byId("pWord").textContent = word;
+  byId("pPhon").textContent = entry.phon;
+  byId("pPos").textContent = entry.pos;
+  byId("pTrans").textContent = entry.trans;
+  byId("pTags").innerHTML = entry.tags.map(tag => '<span class="tag">' + tag + '</span>').join("");
+  byId("pSegs").innerHTML = entry.segs.map(part =>
+    '<div class="segment" data-role="' + part.role + '"><span class="role">' + ROLE[part.role]
+      + '</span><span class="part" lang="en">' + part.lab + '</span><span class="gloss">' + part.gl + '</span></div>'
+  ).join("");
+  byId("segCount").textContent = entry.segs.length + " 段";
+  byId("pOrigin").innerHTML = "词源 · " + entry.origin;
+  for (const button of exampleList.children) button.setAttribute("aria-pressed", String(button.dataset.word === word));
+  updateBookmark();
+}
+function updateCues() {
+  for (const button of byId("pSubs").querySelectorAll("button")) {
+    button.setAttribute("aria-pressed", String(Number(button.dataset.cue) === cue));
+  }
+}
+function selectTrigger(button, shouldOpen = true) {
+  const previousMode = isSubtitles();
+  stopVoice();
+  if (!byId("btnSpeak").disabled) showVoiceMessage();
+  trigger = button.dataset.trigger;
+  const subs = isSubtitles();
+  triggers.forEach(control => control.setAttribute("aria-pressed", String(control === button)));
+  triggerList.style.setProperty("--method-index", triggers.indexOf(button));
+  byId("viewLookup").hidden = subs;
+  byId("viewSubs").hidden = !subs;
+  byId("rowWords").hidden = subs;
+  updateReader();
+  updateHandle();
+  if (shouldOpen && subs !== previousMode) revealText(byId("sentence"));
+  if (shouldOpen) presentPanel();
+}
+toggle.addEventListener("click", () => setOpen(!expanded));
+notch.addEventListener("pointerenter", event => {
+  if (event.pointerType !== "mouse") return;
+  keyboardNavigation = false;
+  clearTimeout(leaveTimer);
+  if (!expanded) enterTimer = setTimeout(() => setOpen(true, true), 160);
+});
+notch.addEventListener("pointerleave", event => {
+  clearTimeout(enterTimer);
+  if (event.pointerType !== "mouse" || !hoverOpen || isSubtitles()) return;
+  leaveTimer = setTimeout(() => {
+    if (!notch.matches(":hover") && !(keyboardNavigation && notch.contains(document.activeElement))) setOpen(false);
+  }, 650);
+});
+window.addEventListener("pointerdown", () => { keyboardNavigation = false; }, true);
+window.addEventListener("keydown", event => {
+  keyboardNavigation = true;
+  if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey || event.isComposing) return;
+  if (event.key === "Escape") {
+    if (byId("help").open) {
+      byId("help").open = false;
+      byId("help").querySelector("summary").focus();
+    } else setOpen(false);
+    return;
+  }
+  if (event.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(event.target.tagName) || event.repeat) return;
+  if (event.key.toLowerCase() === "h" || (event.key === " " && event.target === document.body)) {
+    event.preventDefault();
+    setOpen(!expanded);
+    if (expanded) { toggle.focus({ preventScroll: true }); notch.scrollIntoView({ block: "nearest" }); }
   }
 });
-
-/* ==================== 控制台 ==================== */
-document.getElementById('ctrlWords').innerHTML =
-  Object.keys(WORDS).map(k => `<button data-word="${k}">${k}</button>`).join('');
-
-document.getElementById('ctrlWords').addEventListener('click', e => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  setMode('lookup');
-  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
-  renderWord(b.dataset.word);
-  open();
+document.addEventListener("click", event => {
+  if (!byId("help").contains(event.target)) byId("help").open = false;
 });
-
-/* 触发方式：唯一状态源 */
-function setTrigger(name, expand){
-  if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
-  currentTrig = name;
-  [...document.querySelectorAll('#ctrlTrigger button')].forEach(b =>
-    b.classList.toggle('active', b.dataset.trigger === name));
-  document.getElementById('pTriggerText').textContent = name;
-  setMode(name === '字幕查询' ? 'subs' : 'lookup');
-  if (expand) open();
+for (const key of words) {
+  const button = document.createElement("button");
+  button.className = "example-word";
+  button.lang = "en";
+  button.dataset.word = key;
+  button.textContent = key;
+  exampleList.append(button);
 }
-
-document.getElementById('ctrlTrigger').addEventListener('click', e => {
-  const b = e.target.closest('button');
-  if (b) setTrigger(b.dataset.trigger, true);
+exampleList.addEventListener("click", event => {
+  const button = event.target.closest("[data-word]");
+  if (!button) return;
+  stopVoice();
+  const changed = word !== button.dataset.word;
+  word = button.dataset.word;
+  renderWord();
+  updateReader();
+  updateHandle();
+  if (changed) {
+    revealText(byId("sentence"));
+    if (expanded) revealText(byId("viewLookup"));
+  }
+  presentPanel();
+  byId("announce").textContent = word + "，" + WORDS[word].trans;
 });
-
-/* 词典切换 */
-document.getElementById('pDicts').addEventListener('click', e => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  [...document.querySelectorAll('#pDicts .chip')].forEach(c =>
-    c.classList.toggle('active', c === chip));
+triggerList.addEventListener("click", event => {
+  const button = event.target.closest("[data-trigger]");
+  if (button) selectTrigger(button);
 });
-
-/* 星标 */
-const btnStar = document.getElementById('btnStar');
-btnStar.addEventListener('click', () => {
-  btnStar.classList.toggle('on');
-  btnStar.querySelector('svg').setAttribute('fill',
-    btnStar.classList.contains('on') ? 'currentColor' : 'none');
+byId("pSubs").innerHTML = SUBS.map((line, index) =>
+  '<li><button class="sub-row" data-cue="' + index + '"><span class="sub-time">' + line.t
+   + ' s</span><span><span class="sub-en" lang="en">' + line.en + '</span><span class="sub-zh">' + line.zh + '</span></span></button></li>'
+).join("");
+byId("pSubs").addEventListener("click", event => {
+  const button = event.target.closest("[data-cue]");
+  if (!button) return;
+  cue = Number(button.dataset.cue);
+  updateCues();
+  updateReader();
+  updateHandle();
+  revealText(byId("sentence"));
 });
-
-/* 朗读：模拟 */
-document.getElementById('btnSpeak')?.addEventListener('click', () => {
-  if (!('speechSynthesis' in window)) return;
-  const u = new SpeechSynthesisUtterance(currentWord);
-  u.lang = 'en-US'; u.rate = .92;
-  speechSynthesis.cancel(); speechSynthesis.speak(u);
+byId("pDicts").addEventListener("click", event => {
+  const button = event.target.closest(".dict");
+  if (!button) return;
+  for (const choice of byId("pDicts").querySelectorAll("button")) choice.setAttribute("aria-pressed", String(choice === button));
 });
-
-/* 收起 */
-document.getElementById('btnClose').addEventListener('click', close);
-document.getElementById('btnClose2').addEventListener('click', close);
-
-/* ==================== 键盘 ==================== */
-window.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return;
-  if (e.key === 'Escape') { close(); return; }
-  if (e.key === 'h' || e.key === 'H') { toggle(); return; }
-  if (e.key === ' ') { e.preventDefault(); toggle(); }
+byId("btnStar").addEventListener("click", () => {
+  if (marks.has(word)) marks.delete(word); else marks.add(word);
+  updateBookmark();
 });
-
-/* ==================== 启动 ==================== */
-const qs    = new URLSearchParams(location.search);
-const start = qs.get('mode') === 'subs' ? '字幕查询' : '悬停取词';
-
-renderWord('abduct');
-setTrigger(start, false);
-
-/* 截图/演示用：?open=1 自动展开 */
-if (qs.get('open') === '1') open();
+byId("btnSpeak").addEventListener("click", readAloud);
+byId("btnSpeak").disabled = !("speechSynthesis" in window && "SpeechSynthesisUtterance" in window);
+updateVoice();
+updateCues();
+renderWord();
+const query = new URLSearchParams(location.search);
+selectTrigger(query.get("mode") === "subs" ? triggers.at(-1) : triggers[0], query.get("open") === "1");
 </script>
 </body>
 </html>

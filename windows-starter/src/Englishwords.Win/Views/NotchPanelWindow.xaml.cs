@@ -10,12 +10,7 @@ using Englishwords.Win.Interop;
 
 namespace Englishwords.Win.Views;
 
-public sealed record SegmentChipVm(
-    string Label,
-    string GlossText,
-    System.Windows.Media.Brush Background,
-    System.Windows.Media.Brush BorderBrush,
-    System.Windows.Media.Brush Foreground);
+public sealed record SegmentChipVm(string Label, string GlossText, string RoleName, bool IsRoot);
 
 public partial class NotchPanelWindow : Window
 {
@@ -27,9 +22,10 @@ public partial class NotchPanelWindow : Window
     private bool _isExpanded = true;
     private bool _isPointerInside;
     private bool _isFavorite;
+    private readonly HashSet<string> _pendingFavorites = new(StringComparer.OrdinalIgnoreCase);
     private IntPtr _hwnd;
 
-    public event Action<string, bool>? FavoriteToggled;
+    public Func<string, bool, Task>? SaveFavoriteAsync { get; set; }
     public event Action<string>? SpeakRequested;
     public event Action? Dismissed;
 
@@ -87,6 +83,7 @@ public partial class NotchPanelWindow : Window
 
     public void UpdateState(LookupState state, bool isFavorite = false)
     {
+        var previous = _currentState;
         _currentState = state;
         _isFavorite = isFavorite;
         _autoHideTimer.Stop();
@@ -95,6 +92,10 @@ public partial class NotchPanelWindow : Window
         {
             case LookupState.Loading loading:
                 _isExpanded = true;
+                SourceLine.Visibility = Visibility.Visible;
+                PhoneticText.Visibility = Visibility.Collapsed;
+                TagsList.Visibility = Visibility.Collapsed;
+                TitleText.FontSize = 24;
                 TitleText.Text = loading.Request.Text.Length > 28
                     ? loading.Request.Text[..28] + "…"
                     : loading.Request.Text;
@@ -103,6 +104,7 @@ public partial class NotchPanelWindow : Window
                 FavoriteButton.Visibility = Visibility.Collapsed;
                 TagsList.ItemsSource = null;
                 SegmentsList.ItemsSource = null;
+                SegmentsList.Visibility = Visibility.Collapsed;
                 OriginText.Visibility = Visibility.Collapsed;
                 OriginalSentenceText.Visibility = Visibility.Collapsed;
                 BodyText.Text = "正在查询…";
@@ -118,12 +120,17 @@ public partial class NotchPanelWindow : Window
 
             case LookupState.Failure failure:
                 _isExpanded = true;
-                TitleText.Text = "提示";
+                SourceLine.Visibility = Visibility.Visible;
+                PhoneticText.Visibility = Visibility.Collapsed;
+                TagsList.Visibility = Visibility.Collapsed;
+                TitleText.FontSize = 24;
+                TitleText.Text = "查词提示";
                 PhoneticText.Text = string.Empty;
                 SpeakButton.Visibility = Visibility.Collapsed;
                 FavoriteButton.Visibility = Visibility.Collapsed;
                 TagsList.ItemsSource = null;
                 SegmentsList.ItemsSource = null;
+                SegmentsList.Visibility = Visibility.Collapsed;
                 OriginText.Visibility = Visibility.Collapsed;
                 OriginalSentenceText.Visibility = Visibility.Collapsed;
                 BodyText.Text = failure.Message;
@@ -135,7 +142,15 @@ public partial class NotchPanelWindow : Window
         }
 
         ApplyPosition(state.Request);
-        if (!IsVisible) Show();
+        if (!IsVisible)
+        {
+            Show();
+            DesktopAppearance.Reveal(PanelBody);
+        }
+        else if (previous is LookupState.Loading && state is LookupState.Result && _isExpanded)
+        {
+            DesktopAppearance.Reveal(ExpandedContent);
+        }
 
         // Show() 之后才拿到真实的 SizeToContent 尺寸，需重算一次位置与居中。
         UpdateLayout();
@@ -189,7 +204,8 @@ public partial class NotchPanelWindow : Window
         var hasWord = res.NotebookWord is not null;
         SpeakButton.Visibility = hasWord ? Visibility.Visible : Visibility.Collapsed;
         FavoriteButton.Visibility = hasWord ? Visibility.Visible : Visibility.Collapsed;
-        FavoriteButton.Content = _isFavorite ? "★" : "☆";
+        FavoriteButton.IsEnabled = SaveFavoriteAsync is not null && res.NotebookWord is { } word && !_pendingFavorites.Contains(word);
+        UpdateFavoriteButton();
 
         TagsList.ItemsSource = res.Tags.Count > 0 ? res.Tags : null;
         TagsList.Visibility = res.Tags.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
@@ -246,10 +262,16 @@ public partial class NotchPanelWindow : Window
 
     private void ApplyExpansionState()
     {
+        var wasCompact = ExpandedContent.Visibility != Visibility.Visible;
+        TitleText.FontSize = _isExpanded ? 30 : 19;
+        SourceLine.Visibility = _isExpanded ? Visibility.Visible : Visibility.Collapsed;
+        PhoneticText.Visibility = _isExpanded && !string.IsNullOrEmpty(PhoneticText.Text)
+            ? Visibility.Visible : Visibility.Collapsed;
         if (_isExpanded)
         {
             ExpandedContent.Visibility = Visibility.Visible;
             CompactSummaryText.Visibility = Visibility.Collapsed;
+            if (wasCompact && IsVisible) DesktopAppearance.Reveal(ExpandedContent);
         }
         else
         {
@@ -274,7 +296,7 @@ public partial class NotchPanelWindow : Window
         var width = ActualWidth > 0 ? ActualWidth : 320;
 
         Left = workLeft + Math.Max(0, (workRight - workLeft - width) / 2.0);
-        Top = workTop + 4;
+        Top = workTop;
     }
 
     private NativeMethods.POINT PanelCenterPoint()
@@ -298,8 +320,6 @@ public partial class NotchPanelWindow : Window
 
     private void ApplyPosition(LookupRequest request)
     {
-        UpdateLayout();
-
         NativeMethods.POINT pt;
         if (request.HasAnchor)
         {
@@ -317,13 +337,21 @@ public partial class NotchPanelWindow : Window
         var workRight = info.rcWork.Right / scaleX;
         var workBottom = info.rcWork.Bottom / scaleY;
 
+        // 高缩放或长释义时仍可滚动读完，并在测量后按实际尺寸定位。
+        RootBorder.MaxWidth = Math.Clamp(workRight - workLeft - 16, 1, 500);
+        RootBorder.MinWidth = Math.Min(258, RootBorder.MaxWidth);
+        RootBorder.CornerRadius = _preferences.PanelStyle == PanelStyle.Notch
+            ? new CornerRadius(0, 0, 23, 23) : new CornerRadius(22);
+        PanelScroll.MaxHeight = Math.Max(1, workBottom - workTop - 44);
+        UpdateLayout();
+
         var width = ActualWidth > 0 ? ActualWidth : 320;
         var height = ActualHeight > 0 ? ActualHeight : 140;
 
         if (_preferences.PanelStyle == PanelStyle.Notch)
         {
             Left = workLeft + Math.Max(0, (workRight - workLeft - width) / 2.0);
-            Top = workTop + 4;
+            Top = workTop;
         }
         else
         {
@@ -428,23 +456,16 @@ public partial class NotchPanelWindow : Window
         NativeMethods.SetWindowLongPtr(_hwnd, NativeMethods.GWL_EXSTYLE, new IntPtr(exStyle));
     }
 
-    private static SegmentChipVm CreateChip(Segment seg)
-    {
-        var (bg, border, fg) = seg.Role switch
-        {
-            "prefix" => ("#172554", "#1D4ED8", "#93C5FD"),
-            "root" => ("#2E1065", "#7E22CE", "#D8B4FE"),
-            "suffix" => ("#064E3B", "#047857", "#6EE7B7"),
-            _ => ("#18181B", "#3F3F46", "#E4E4E7")
-        };
+    private static SegmentChipVm CreateChip(Segment segment) => new(segment.Label, segment.Gloss,
+        segment.Role switch { "prefix" => "前缀", "suffix" => "后缀", "root" => "词根", _ => "词素" },
+        segment.Role == "root");
 
-        var converter = new BrushConverter();
-        return new SegmentChipVm(
-            seg.Label,
-            string.IsNullOrWhiteSpace(seg.Gloss) ? string.Empty : seg.Gloss,
-            (System.Windows.Media.Brush)converter.ConvertFromString(bg)!,
-            (System.Windows.Media.Brush)converter.ConvertFromString(border)!,
-            (System.Windows.Media.Brush)converter.ConvertFromString(fg)!);
+    private void UpdateFavoriteButton()
+    {
+        FavoriteButton.Content = _isFavorite ? "\uE523" : "\uE064";
+        FavoriteButton.ToolTip = _isFavorite ? "取消收藏" : "收藏单词";
+        FavoriteButton.Tag = _isFavorite ? "saved" : null;
+        System.Windows.Automation.AutomationProperties.SetName(FavoriteButton, (string)FavoriteButton.ToolTip);
     }
 
     private void SpeakButton_Click(object sender, RoutedEventArgs e)
@@ -455,15 +476,46 @@ public partial class NotchPanelWindow : Window
         }
     }
 
-    private void FavoriteButton_Click(object sender, RoutedEventArgs e)
+    private async void FavoriteButton_Click(object sender, RoutedEventArgs e)
     {
-        if (_currentState is LookupState.Result r && r.Value.NotebookWord is { } word)
+        var save = SaveFavoriteAsync;
+        if (save is null || _currentState is not LookupState.Result result ||
+            result.Value.NotebookWord is not { } word || !_pendingFavorites.Add(word)) return;
+
+        var requested = !_isFavorite;
+        FavoriteButton.IsEnabled = false;
+        try
         {
-            _isFavorite = !_isFavorite;
-            FavoriteButton.Content = _isFavorite ? "★" : "☆";
-            FavoriteToggled?.Invoke(word, _isFavorite);
+            await save(word, requested);
+            if (ShowingWord(word))
+            {
+                _isFavorite = requested;
+                UpdateFavoriteButton();
+                NoteText.Text = (_currentState as LookupState.Result)?.Value.Note ?? string.Empty;
+                NoteText.Visibility = string.IsNullOrWhiteSpace(NoteText.Text) ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write($"收藏更新失败: {ex.Message}");
+            if (ShowingWord(word))
+            {
+                NoteText.Text = "收藏更新失败，请重试。";
+                NoteText.Visibility = Visibility.Visible;
+                _isExpanded = true;
+                ApplyExpansionState();
+            }
+        }
+        finally
+        {
+            _pendingFavorites.Remove(word);
+            if (ShowingWord(word)) FavoriteButton.IsEnabled = true;
         }
     }
+
+    private bool ShowingWord(string word) =>
+        _currentState is LookupState.Result current &&
+        string.Equals(current.Value.NotebookWord, word, StringComparison.OrdinalIgnoreCase);
 
     private void CloseButton_Click(object sender, RoutedEventArgs e)
     {

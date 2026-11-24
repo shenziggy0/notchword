@@ -13,6 +13,8 @@ final class RegionPicker {
     func begin(onSelect: @escaping (CGRect, NSScreen) -> Void) {
         cancel()
         self.onSelect = onSelect
+        let pointer = NSEvent.mouseLocation
+        var keyboardWindow: RegionWindow?
         for screen in NSScreen.screens {
             let window = RegionWindow(screen: screen)
             window.onSelect = { [weak self] rect, pickedScreen in
@@ -20,8 +22,10 @@ final class RegionPicker {
             }
             window.onCancel = { [weak self] in self?.cancel() }
             windows.append(window)
-            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            if screen.frame.contains(pointer) { keyboardWindow = window }
         }
+        (keyboardWindow ?? windows.first)?.makeKeyAndOrderFront(nil)
         installEscapeMonitors()
     }
 
@@ -89,12 +93,12 @@ private final class RegionWindow: NSPanel {
 
     init(screen: NSScreen) {
         screenFrame = screen
+        // 直接用全局屏幕矩形调用指定初始化器，避免 AppKit 便利初始化再次进入子类。
         super.init(
-            contentRect: CGRect(origin: .zero, size: screen.frame.size),
+            contentRect: screen.frame,
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
-            defer: false,
-            screen: screen
+            defer: false
         )
         isFloatingPanel = true
         becomesKeyOnlyIfNeeded = true
@@ -106,6 +110,10 @@ private final class RegionWindow: NSPanel {
         ignoresMouseEvents = false
         isReleasedWhenClosed = false
         let overlay = RegionOverlay()
+        overlay.setAccessibilityElement(true)
+        overlay.setAccessibilityRole(.group)
+        overlay.setAccessibilityLabel("框选屏幕区域")
+        overlay.setAccessibilityHelp("方向键移动，按住 Shift 加方向键调整大小。回车确认，Esc 取消。")
         contentView = overlay
         overlay.onMouseDown = { [weak self] point in self?.beginDrag(at: point) }
         overlay.onMouseDrag = { [weak self] point in self?.updateDrag(to: point) }
@@ -140,11 +148,22 @@ private final class RegionWindow: NSPanel {
     override var canBecomeMain: Bool { true }
 
     override func keyDown(with event: NSEvent) {
-        if event.keyCode == 53 { // Esc
-            onCancel?()
+        guard let overlay = contentView as? RegionOverlay else {
+            super.keyDown(with: event)
             return
         }
-        super.keyDown(with: event)
+        let distance: CGFloat = event.modifierFlags.contains(.option) ? 1 : 8
+        let resizing = event.modifierFlags.contains(.shift)
+        switch event.keyCode {
+        case 53: onCancel?()
+        case 36, 76:
+            if overlay.selection != nil { endDrag() }
+        case 123: overlay.adjust(dx: -distance, dy: 0, resize: resizing)
+        case 124: overlay.adjust(dx: distance, dy: 0, resize: resizing)
+        case 125: overlay.adjust(dx: 0, dy: -distance, resize: resizing)
+        case 126: overlay.adjust(dx: 0, dy: distance, resize: resizing)
+        default: super.keyDown(with: event)
+        }
     }
 
     override func cancelOperation(_ sender: Any?) {
@@ -161,6 +180,7 @@ private final class RegionOverlay: NSView {
 
     private var anchor: CGPoint?
     private(set) var selection: CGRect?
+    private var usesKeyboard = false
 
     override var isFlipped: Bool { false }
 
@@ -189,6 +209,7 @@ private final class RegionOverlay: NSView {
     }
 
     func begin(at point: CGPoint) {
+        usesKeyboard = false
         anchor = point
         selection = CGRect(origin: point, size: .zero)
         needsDisplay = true
@@ -210,19 +231,78 @@ private final class RegionOverlay: NSView {
         needsDisplay = true
     }
 
+    /// 方向键从屏幕中心开始选择；Shift 调整上边和右边，Option 单点微调。
+    func adjust(dx: CGFloat, dy: CGFloat, resize: Bool) {
+        usesKeyboard = true
+        let initial = CGSize(width: min(180, bounds.width), height: min(64, bounds.height))
+        var rect = selection ?? CGRect(x: bounds.midX - initial.width / 2,
+                                       y: bounds.midY - initial.height / 2,
+                                       width: initial.width, height: initial.height)
+        if resize {
+            rect.size.width = min(bounds.maxX - rect.minX, max(8, rect.width + dx))
+            rect.size.height = min(bounds.maxY - rect.minY, max(8, rect.height + dy))
+        } else {
+            rect.origin.x = min(bounds.maxX - rect.width, max(bounds.minX, rect.minX + dx))
+            rect.origin.y = min(bounds.maxY - rect.height, max(bounds.minY, rect.minY + dy))
+        }
+        selection = rect
+        setAccessibilityValue("横向 \(Int(rect.minX))，纵向 \(Int(rect.minY))，宽 \(Int(rect.width))，高 \(Int(rect.height)) 点")
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         let path = NSBezierPath(rect: bounds)
         if let selection, selection.width > 0, selection.height > 0 {
             path.append(NSBezierPath(rect: selection))
         }
         path.windingRule = .evenOdd
-        NSColor.black.withAlphaComponent(0.35).setFill()
+        let contrast = NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+        NSColor(srgbRed: 0.03, green: 0.05, blue: 0.09, alpha: contrast ? 0.58 : 0.40).setFill()
         path.fill()
-
-        guard let selection, selection.width > 1, selection.height > 1 else { return }
-        NSColor.white.setStroke()
+        guard let selection, selection.width > 1, selection.height > 1 else {
+            badge("拖动框选或用方向键定位  ·  Esc 取消", center: CGPoint(x: bounds.midX, y: 46))
+            return
+        }
         let border = NSBezierPath(rect: selection.insetBy(dx: 0.5, dy: 0.5))
-        border.lineWidth = 1
+        NSColor.black.withAlphaComponent(0.75).setStroke()
+        border.lineWidth = 3
         border.stroke()
+        NSColor.white.setStroke()
+        border.lineWidth = contrast ? 2 : 1
+        border.stroke()
+        let radius: CGFloat = contrast ? 4 : 3
+        for x in [selection.minX, selection.maxX] {
+            for y in [selection.minY, selection.maxY] {
+                let handle = NSBezierPath(ovalIn: CGRect(x: x - radius, y: y - radius,
+                                                         width: radius * 2, height: radius * 2))
+                NSColor.white.setFill()
+                handle.fill()
+                NSColor(calibratedWhite: 0.18, alpha: 1).setStroke()
+                handle.stroke()
+            }
+        }
+        let size = "\(Int(selection.width.rounded())) × \(Int(selection.height.rounded())) 点"
+        let caption = usesKeyboard ? "\(size)  ·  ⇧ 方向键调整大小  ·  回车确认" : size
+        let preferredY = selection.minY > 44 ? selection.minY - 20 : selection.maxY + 20
+        badge(caption, center: CGPoint(x: selection.midX, y: preferredY))
+    }
+
+    private func badge(_ text: String, center: CGPoint) {
+        let label = NSAttributedString(string: text, attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 13, weight: .medium),
+            .foregroundColor: NSColor.white
+        ])
+        let labelSize = label.size()
+        let size = CGSize(width: ceil(labelSize.width) + 26, height: ceil(labelSize.height) + 14)
+        let origin = CGPoint(x: max(6, min(bounds.maxX - size.width - 6, center.x - size.width / 2)),
+                             y: max(6, min(bounds.maxY - size.height - 6, center.y - size.height / 2)))
+        let pill = NSBezierPath(roundedRect: CGRect(origin: origin, size: size),
+                                xRadius: size.height / 2, yRadius: size.height / 2)
+        let opaque = NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency
+        NSColor(calibratedWhite: 0.10, alpha: opaque ? 1 : 0.92).setFill()
+        pill.fill()
+        NSColor.white.withAlphaComponent(0.44).setStroke()
+        pill.stroke()
+        label.draw(at: CGPoint(x: origin.x + 13, y: origin.y + 7))
     }
 }

@@ -28,13 +28,13 @@ enum PreviewRenderer {
             lookupShortcut: HotKeySpec.lookup.display,
             isStaticPreview: true
         )
+        .environment(\.lexiconSnapshot, true)
         .padding(.top, 18)
         .padding(.bottom, 26)
         .padding(.horizontal, 26)
         .background(
             LinearGradient(
-                colors: [Color(red: 0.10, green: 0.10, blue: 0.12),
-                         Color(red: 0.04, green: 0.04, blue: 0.05)],
+                colors: [Lexicon.indigo, Lexicon.ink],
                 startPoint: .top, endPoint: .bottom
             )
         )

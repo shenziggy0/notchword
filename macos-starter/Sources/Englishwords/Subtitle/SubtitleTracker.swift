@@ -15,6 +15,13 @@ final class SubtitleTracker: ObservableObject {
         let video: String
     }
 
+    struct CueID: Equatable {
+        fileprivate let source: String?
+        fileprivate let video: String?
+        fileprivate let ocrGeneration: Int
+        fileprivate let start: Double
+    }
+
     private struct ScreenArea {
         let bundle: String
         let rect: CGRect
@@ -52,6 +59,13 @@ final class SubtitleTracker: ObservableObject {
     }
 
     var current: SubtitleCue? { cues.indices.contains(position) ? cues[position] : nil }
+
+    var currentCueID: CueID? {
+        current.map { cue in
+            CueID(source: target?.bundle, video: target?.video,
+                  ocrGeneration: target == nil ? ocrGeneration : 0, start: cue.start)
+        }
+    }
 
     func applyPreferences() {
         if preferences.videoSubtitles {

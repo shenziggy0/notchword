@@ -5,7 +5,7 @@ using Englishwords.Core.Notebook;
 namespace Englishwords.Win.Views;
 
 public sealed record HistoryRowVm(string Word, string Source, string DateText);
-public sealed record DailyBarVm(string Label, int Count, double BarWidth);
+public sealed record DailyBarVm(string Label, int Count, double Fraction);
 
 public partial class NotebookWindow : Window
 {
@@ -17,6 +17,8 @@ public partial class NotebookWindow : Window
     {
         _store = store;
         InitializeComponent();
+        Pages.SelectionChanged += DesktopAppearance.PageChanged;
+        SourceInitialized += (_, _) => (System.Windows.Application.Current as App)?.Appearance?.ApplyTitleBar(this);
         Loaded += async (_, _) => await RefreshAsync();
     }
 
@@ -33,14 +35,14 @@ public partial class NotebookWindow : Window
                 .ToArray();
 
             var stats = await _store.GetStatsAsync();
-            TotalCountText.Text = $"累计查词：{stats.Total} 次";
+            TotalCountText.Text = $"{stats.Total:N0} 次";
 
             var maxDaily = Math.Max(1, stats.Daily.Max(d => d.Count));
             DailyList.ItemsSource = stats.Daily
                 .Select(d => new DailyBarVm(
                     d.Date.ToLocalTime().ToString("MM-dd"),
                     d.Count,
-                    Math.Max(4, (double)d.Count / maxDaily * 320)))
+                    (double)d.Count / maxDaily))
                 .ToArray();
 
             FrequentList.ItemsSource = stats.Frequent
@@ -52,6 +54,20 @@ public partial class NotebookWindow : Window
             System.Windows.MessageBox.Show(this, $"读取笔记本失败：{ex.Message}", "Englishwords",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+    }
+
+    private void LookupList_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        var word = (sender as System.Windows.Controls.ListBox)?.SelectedItem switch
+        {
+            string favorite => favorite,
+            HistoryRowVm row => row.Word,
+            _ => null
+        };
+        if (string.IsNullOrWhiteSpace(word)) return;
+        e.Handled = true;
+        WordSelected?.Invoke(word);
     }
 
     private void WordList_MouseDoubleClick(object sender, MouseButtonEventArgs e)

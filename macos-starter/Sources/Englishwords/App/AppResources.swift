@@ -29,8 +29,12 @@ enum AppResources {
         locate(noticesName, override: "EW_NOTICES")
     }
 
-    private static func locate(_ name: String, override: String) -> URL? {
-        if let raw = ProcessInfo.processInfo.environment[override], !raw.isEmpty {
+    static func lucideFontURL() -> URL? {
+        locate("lucide.ttf")
+    }
+
+    private static func locate(_ name: String, override: String? = nil) -> URL? {
+        if let override, let raw = ProcessInfo.processInfo.environment[override], !raw.isEmpty {
             let url = URL(fileURLWithPath: raw)
             if FileManager.default.fileExists(atPath: url.path) { return url }
             FileLog.write("资源覆盖路径不存在：\(override)")

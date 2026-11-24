@@ -13,6 +13,8 @@ namespace Englishwords.Win;
 
 public partial class App : System.Windows.Application
 {
+    internal DesktopAppearance? Appearance { get; private set; }
+
     private Mutex? _singleInstanceMutex;
     private System.Windows.Forms.NotifyIcon? _trayIcon;
 
@@ -89,6 +91,7 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        Appearance = new DesktopAppearance(this);
         InitializeCoreServices();
         InitializeUiAndHooks();
         FileLog.Write("Englishwords Windows 客户端启动完成");
@@ -177,14 +180,8 @@ public partial class App : System.Windows.Application
             CancelAllRegionTasks();
             _coordinator?.Cancel();
         };
-        _panel.FavoriteToggled += async (word, on) =>
-        {
-            if (_notebookStore is not null)
-            {
-                try { await _notebookStore.SetFavoriteAsync(word, on); }
-                catch (Exception ex) { FileLog.Write($"收藏更新失败: {ex.Message}"); }
-            }
-        };
+        if (_notebookStore is { } notebook)
+            _panel.SaveFavoriteAsync = (word, on) => notebook.SetFavoriteAsync(word, on);
 
         _coordinator!.StateChanged += state =>
         {
@@ -486,6 +483,7 @@ public partial class App : System.Windows.Application
         _notebookStore?.Dispose();
         _dictionaryStore?.Dispose();
         _singleInstanceMutex?.Dispose();
+        Appearance?.Dispose();
         base.OnExit(e);
     }
 }

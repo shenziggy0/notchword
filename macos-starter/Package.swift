@@ -26,6 +26,7 @@ let package = Package(
                 .copy("Resources/dictionary.sqlite"),
                 .copy("Resources/wordparts.sqlite"),
                 .copy("Resources/subtitle.js"),
+                .copy("Resources/lucide.ttf"),
                 .copy("Resources/THIRD-PARTY-NOTICES.md")
             ],
             linkerSettings: [

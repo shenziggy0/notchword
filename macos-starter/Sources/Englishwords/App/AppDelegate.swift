@@ -159,7 +159,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func applyPreferences() {
         permissionItem?.title = Permissions.isAccessibilityTrusted
             ? "辅助功能已授权"
-            : "⚠️ 需要授权辅助功能…"
+            : "需要授权辅助功能…"
         hoverMenuItem?.state = preferences.hoverEnabled ? .on : .off
         selectionMenuItem?.state = preferences.selectionEnabled ? .on : .off
         lookupMenuItem?.title = "查询选中的文字（\(preferences.lookupHotKey.display)）"
@@ -356,6 +356,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         quit.target = NSApp
         menu.addItem(quit)
 
+        let symbols: [(NSMenuItem, String)] = [
+            (lookupMenuItem, "text.magnifyingglass"), (translateMenuItem, "translate"),
+            (regionMenuItem, "viewfinder"), (subtitle, "captions.bubble"), (subtitleArea, "rectangle.dashed"),
+            (clipboard, "clipboard"), (autoItem, "cursorarrow"), (notebook, "book.closed"),
+            (settings, "gearshape"), (permissionItem, "hand.raised"), (diagnose, "stethoscope")
+        ]
+        for (item, symbol) in symbols {
+            item.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        }
+
         menu.delegate = self
         statusItem.menu = menu
     }
@@ -398,7 +408,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let offset { subtitles.move(by: offset) }
         else if peek { subtitles.peek() }
         let screen = Screens.screen(containing: NSEvent.mouseLocation)
-        panels.showSubtitle(SubtitleView(tracker: subtitles) { [weak self] word in
+        panels.showSubtitle(SubtitleView(tracker: subtitles, onDismiss: { [weak self] in self?.panels.hide() }) { [weak self] word in
             self?.submitLookup(LookupRequest(text: word, trigger: .subtitle, screen: screen))
         }, on: screen)
     }
@@ -576,6 +586,6 @@ extension AppDelegate: NSMenuDelegate {
     func menuWillOpen(_ menu: NSMenu) {
         permissionItem?.title = Permissions.isAccessibilityTrusted
             ? "辅助功能已授权"
-            : "⚠️ 需要授权辅助功能…"
+            : "需要授权辅助功能…"
     }
 }

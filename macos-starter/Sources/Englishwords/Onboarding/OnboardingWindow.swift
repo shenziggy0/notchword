@@ -14,10 +14,11 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
     func show() {
         if window == nil {
             let view = OnboardingView(controller: self, preferences: preferences)
-            let window = NSWindow(contentViewController: NSHostingController(rootView: view))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: view.lexiconPage()))
             window.title = "开始使用 Englishwords"
             window.styleMask = [.titled, .closable]
-            window.setContentSize(NSSize(width: 440, height: 238))
+            window.tabbingMode = .disallowed
+            window.setContentSize(NSSize(width: 474, height: 376))
             window.isReleasedWhenClosed = false
             window.delegate = self
             window.center()
@@ -32,6 +33,10 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
     func next() {
         if step < 2 { step += 1 }
         else { finish() }
+    }
+
+    func previous() {
+        if step > 0 { step -= 1 }
     }
 
     func finish() {
@@ -55,34 +60,91 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
 private struct OnboardingView: View {
     @ObservedObject var controller: OnboardingWindow
     @ObservedObject var preferences: Preferences
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(["从选中文字开始", "允许辅助功能", "识别图片与字幕"][controller.step])
-                .font(.title2.bold())
-            Group {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                HStack(spacing: 5) {
+                    ForEach(0..<3) { index in
+                        Capsule()
+                            .fill(index <= controller.step ? Lexicon.accent : Lexicon.hairline)
+                            .frame(width: index == controller.step ? 25 : 10, height: 5)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("使用引导")
+                .accessibilityValue("第 \(controller.step + 1) 步，共 3 步")
+                Spacer()
+                Button("稍后") { controller.finish() }
+                    .buttonStyle(.borderless).keyboardShortcut(.cancelAction)
+            }
+            VStack(alignment: .leading, spacing: 12) {
+                Image(systemName: ["text.cursor", "hand.raised", "viewfinder"][controller.step])
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(Lexicon.accent)
+                    .frame(width: 50, height: 50)
+                    .background(Lexicon.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 15))
+                    .accessibilityHidden(true)
+                Text(["从选中文字开始", "允许辅助功能", "识别图片与字幕"][controller.step])
+                    .font(.largeTitle.bold())
+                    .accessibilityAddTraits(.isHeader)
                 switch controller.step {
                 case 0:
-                    Text("选中英文后，按 \(preferences.lookupHotKey.display) 查词，或按 \(preferences.translateHotKey.display) 翻译。你也可以从菜单栏查剪贴板。")
+                    Text("选中英文，再按快捷键。也可以从菜单栏查询剪贴板内容。")
+                        .foregroundStyle(Lexicon.secondary)
+                    HStack(spacing: 10) {
+                        shortcut("查词", keys: preferences.lookupHotKey.display)
+                        shortcut("翻译", keys: preferences.translateHotKey.display)
+                    }
                 case 1:
-                    Text("辅助功能权限用于悬停、划词和读取选区。你也可以稍后从设置授予。")
+                    Text("授权后，鼠标停在单词上或划选英文即可取词。也可以稍后从设置授予。")
+                        .foregroundStyle(Lexicon.secondary)
                     Button("打开辅助功能设置") {
                         _ = Permissions.ensureAccessibility(prompt: true)
                         Permissions.openAccessibilitySettings()
                     }
+                    .controlSize(.large)
                 default:
-                    Text("按 \(preferences.regionHotKey.display) 可以框选屏幕。要从浏览器查字幕，请在设置中启用字幕并允许浏览器接收 Apple 事件。")
-                    Text("屏幕录制和浏览器自动化将在使用时申请。").foregroundStyle(.secondary)
+                    Text("按 \(preferences.regionHotKey.display) 框选屏幕取词。查看浏览器字幕前，请在设置中启用字幕并允许浏览器自动化。")
+                        .foregroundStyle(Lexicon.secondary)
+                    Text("首次使用时，系统会申请屏幕录制或自动化权限。")
+                        .font(.callout).foregroundStyle(Lexicon.secondary)
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .id(controller.step)
+            .transition(reduceMotion ? .identity : .opacity)
+            Spacer(minLength: 0)
             HStack {
-                Button("稍后") { controller.finish() }
+                if controller.step > 0 {
+                    Button { advance(controller.previous) } label: {
+                        Label("上一步", systemImage: "chevron.backward")
+                    }
+                    .buttonStyle(.borderless)
+                }
                 Spacer()
-                Button(controller.step == 2 ? "完成" : "继续") { controller.next() }
+                Button(controller.step == 2 ? "完成" : "继续") { advance(controller.next) }
+                    .buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+                    .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
+        .padding(26)
+    }
+
+    private func advance(_ action: () -> Void) {
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.24)) { action() }
+    }
+
+    private func shortcut(_ label: String, keys: String) -> some View {
+        HStack {
+            Text(label).font(.callout)
+            Spacer()
+            Text(keys).font(.system(.body, design: .monospaced, weight: .semibold))
+        }
+        .padding(.horizontal, 13).frame(minHeight: 38)
+        .background(Lexicon.surface, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
     }
 }

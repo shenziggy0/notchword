@@ -1,92 +1,103 @@
 <Window x:Class="Englishwords.Win.Views.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Englishwords 设置"
-        Width="660"
-        Height="520"
-        WindowStartupLocation="CenterScreen"
-        Background="#18181B"
-        Foreground="#F4F4F5">
-    <TabControl Margin="12" Background="#18181B" BorderBrush="#27272A">
-        <!-- 通用设置 -->
-        <TabItem Header="通用">
-            <StackPanel Margin="16">
-                <TextBlock Text="主面板形态" Foreground="#A1A1AA" Margin="0,0,0,6" />
-                <ComboBox x:Name="PanelStyleCombo" Width="260" HorizontalAlignment="Left" Margin="0,0,0,16"
-                          SelectionChanged="PanelStyleCombo_SelectionChanged">
-                    <ComboBoxItem Content="顶部可避让模拟刘海" Tag="Notch" />
-                    <ComboBoxItem Content="鼠标旁轻量悬浮窗" Tag="Floating" />
-                </ComboBox>
-
-                <CheckBox x:Name="SelectionToggle" Content="启用鼠标拖选自动划词" Foreground="#F4F4F5" Margin="0,0,0,10"
-                          Checked="GeneralOption_Changed" Unchecked="GeneralOption_Changed" />
-                <CheckBox x:Name="AutoHideToggle" Content="结果展示 5 秒后自动收起" Foreground="#F4F4F5" Margin="0,0,0,10"
-                          Checked="GeneralOption_Changed" Unchecked="GeneralOption_Changed" />
-                <CheckBox x:Name="LaunchAtLoginToggle" Content="开机自动启动" Foreground="#F4F4F5" Margin="0,0,0,20"
-                          Checked="LaunchAtLoginToggle_Changed" Unchecked="LaunchAtLoginToggle_Changed" />
-
-                <TextBlock Text="全局快捷键" Foreground="#A1A1AA" Margin="0,0,0,8" />
-                <TextBlock x:Name="HotKeySummaryText" Foreground="#D4D4D8" Margin="0,0,0,12" />
-                <TextBlock x:Name="OcrStatusText" Foreground="#A1A1AA" FontSize="12" Margin="0,0,0,12" />
-                <Button Content="打开运行日志目录" Width="160" HorizontalAlignment="Left" Click="OpenLogFolder_Click" Padding="8,4" />
-            </StackPanel>
-        </TabItem>
-
-        <!-- 词典设置 -->
-        <TabItem Header="词典">
-            <Grid Margin="16">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
-                <ListBox x:Name="DictSourcesList" Background="#09090B" Foreground="#F4F4F5" BorderBrush="#27272A">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" Margin="4">
-                                <CheckBox IsChecked="{Binding Enabled}" Click="DictSource_Changed" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                <TextBlock Text="{Binding Name}" Foreground="#F4F4F5" VerticalAlignment="Center" />
+        Style="{StaticResource PageWindow}" Title="Englishwords 设置"
+        Width="702" MinWidth="440" Height="640" MinHeight="360" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <Style x:Key="FieldLabel" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+        </Style>
+    </Window.Resources>
+    <DockPanel Margin="24,16,24,22">
+        <TextBlock DockPanel.Dock="Top" Style="{StaticResource PageTitle}" Text="设置"/>
+        <TabControl x:Name="Pages" AutomationProperties.Name="设置栏目">
+            <TabItem Header="通用">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,4,0">
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="取词与显示"/>
+                        <Border Style="{StaticResource ContentCard}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="面板位置" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <ComboBox x:Name="PanelStyleCombo" HorizontalAlignment="Right" AutomationProperties.Name="面板位置" SelectionChanged="PanelStyleCombo_SelectionChanged">
+                                        <ComboBoxItem Content="屏幕顶部刘海" Tag="Notch"/>
+                                        <ComboBoxItem Content="鼠标旁悬浮窗" Tag="Floating"/>
+                                    </ComboBox>
+                                </DockPanel>
+                                <Border Style="{StaticResource RowRule}"/>
+                                <CheckBox Style="{StaticResource SwitchRow}" x:Name="SelectionToggle" Content="拖选文字时自动查词" Checked="GeneralOption_Changed" Unchecked="GeneralOption_Changed"/>
+                                <Border Style="{StaticResource RowRule}"/>
+                                <CheckBox Style="{StaticResource SwitchRow}" x:Name="AutoHideToggle" Content="自动收起查词面板" Checked="GeneralOption_Changed" Unchecked="GeneralOption_Changed"/>
+                                <Border Style="{StaticResource RowRule}"/>
+                                <CheckBox Style="{StaticResource SwitchRow}" x:Name="LaunchAtLoginToggle" Content="开机自动启动" Checked="LaunchAtLoginToggle_Changed" Unchecked="LaunchAtLoginToggle_Changed"/>
                             </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,12,0,0">
-                    <Button Content="导入 StarDict (.ifo)" Click="ImportStarDict_Click" Padding="10,5" Margin="0,0,8,0" />
-                    <Button Content="上移" Click="MoveUpDict_Click" Padding="10,5" Margin="0,0,8,0" />
-                    <Button Content="下移" Click="MoveDownDict_Click" Padding="10,5" Margin="0,0,8,0" />
-                    <Button Content="移除选中" Click="RemoveDict_Click" Padding="10,5" />
-                </StackPanel>
-            </Grid>
-        </TabItem>
-
-        <!-- 翻译服务 -->
-        <TabItem Header="翻译服务">
-            <StackPanel Margin="16">
-                <CheckBox x:Name="OnlineEnabledToggle" Content="启用联网翻译（内置词库未命中或短句时使用）"
-                          Foreground="#F4F4F5" Margin="0,0,0,12"
-                          Checked="OnlineEnabled_Changed" Unchecked="OnlineEnabled_Changed" />
-
-                <TextBlock Text="服务预设" Foreground="#A1A1AA" Margin="0,0,0,4" />
-                <ComboBox x:Name="PresetCombo" Width="260" HorizontalAlignment="Left" Margin="0,0,0,10"
-                          SelectionChanged="PresetCombo_SelectionChanged" />
-
-                <TextBlock Text="接口地址 (Base URL)" Foreground="#A1A1AA" Margin="0,0,0,4" />
-                <TextBox x:Name="AddressBox" Margin="0,0,0,10" Padding="6,4" LostKeyboardFocus="OnlineConfig_LostFocus" />
-
-                <TextBlock Text="模型名称" Foreground="#A1A1AA" Margin="0,0,0,4" />
-                <TextBox x:Name="ModelBox" Margin="0,0,0,10" Padding="6,4" LostKeyboardFocus="OnlineConfig_LostFocus" />
-
-                <TextBlock Text="API 密钥（DPAPI 加密保存，不落明文）" Foreground="#A1A1AA" Margin="0,0,0,4" />
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <PasswordBox x:Name="ApiKeyBox" Width="320" Padding="6,4" />
-                    <Button Content="保存密钥" Click="SaveKey_Click" Padding="10,4" Margin="8,0,0,0" />
-                    <Button Content="清除密钥" Click="ClearKey_Click" Padding="10,4" Margin="8,0,0,0" />
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-                    <Button Content="测试连接" Click="TestOnline_Click" Padding="12,5" Margin="0,0,12,0" />
-                    <TextBlock x:Name="OnlineStatusText" VerticalAlignment="Center" Foreground="#F59E0B" />
-                </StackPanel>
-            </StackPanel>
-        </TabItem>
-    </TabControl>
+                        </Border>
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="快捷键与系统" Margin="6,16,0,7"/>
+                        <Border Style="{StaticResource ContentCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="HotKeySummaryText" TextWrapping="Wrap" LineHeight="24"/>
+                                <Border Style="{StaticResource RowRule}" Margin="0,10"/>
+                                <TextBlock x:Name="OcrStatusText" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryBrush}" Margin="0,0,0,10"/>
+                                <Button Content="打开运行日志目录" Click="OpenLogFolder_Click" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="词典">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Style="{StaticResource GroupTitle}" Text="查词顺序"/>
+                    <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0">
+                        <Button Content="导入 StarDict (.ifo)" Click="ImportStarDict_Click" Margin="0,0,6,4"/>
+                        <Button Content="上移" Click="MoveUpDict_Click" Margin="0,0,6,4"/>
+                        <Button Content="下移" Click="MoveDownDict_Click" Margin="0,0,6,4"/>
+                        <Button Content="移除选中" Click="RemoveDict_Click" Margin="0,0,0,4"/>
+                    </WrapPanel>
+                    <Border Style="{StaticResource ContentCard}" Padding="6">
+                        <ListBox x:Name="DictSourcesList" AutomationProperties.Name="按顺序查词的词典">
+                            <ListBox.ItemTemplate><DataTemplate>
+                                <DockPanel>
+                                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding Enabled}" Click="DictSource_Changed" AutomationProperties.Name="{Binding Name, StringFormat='启用词典 {0}'}" VerticalAlignment="Center" Margin="12,0,3,0"/>
+                                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap" VerticalAlignment="Center" MinHeight="25"/>
+                                </DockPanel>
+                            </DataTemplate></ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </DockPanel>
+            </TabItem>
+            <TabItem Header="翻译服务">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel Margin="0,0,4,0">
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="联网翻译"/>
+                        <Border Style="{StaticResource ContentCard}" Padding="16,4">
+                            <CheckBox Style="{StaticResource SwitchRow}" x:Name="OnlineEnabledToggle" Content="启用联网翻译" Checked="OnlineEnabled_Changed" Unchecked="OnlineEnabled_Changed"/>
+                        </Border>
+                        <TextBlock Style="{StaticResource GroupTitle}" Text="服务配置" Margin="6,16,0,7"/>
+                        <Border Style="{StaticResource ContentCard}">
+                            <StackPanel>
+                                <TextBlock x:Name="PresetLabel" Style="{StaticResource FieldLabel}" Text="服务预设" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="PresetCombo" AutomationProperties.LabeledBy="{Binding ElementName=PresetLabel}" SelectionChanged="PresetCombo_SelectionChanged"/>
+                                <TextBlock x:Name="AddressLabel" Style="{StaticResource FieldLabel}" Text="接口地址 (Base URL)"/>
+                                <TextBox x:Name="AddressBox" AutomationProperties.LabeledBy="{Binding ElementName=AddressLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
+                                <TextBlock x:Name="ModelLabel" Style="{StaticResource FieldLabel}" Text="模型名称"/>
+                                <TextBox x:Name="ModelBox" AutomationProperties.LabeledBy="{Binding ElementName=ModelLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
+                                <TextBlock x:Name="KeyLabel" Style="{StaticResource FieldLabel}" Text="API 密钥"/>
+                                <PasswordBox x:Name="ApiKeyBox" AutomationProperties.LabeledBy="{Binding ElementName=KeyLabel}"/>
+                                <WrapPanel Margin="0,8,0,0">
+                                    <Button Content="保存密钥" Click="SaveKey_Click" Margin="0,0,6,0"/>
+                                    <Button Content="清除密钥" Click="ClearKey_Click"/>
+                                </WrapPanel>
+                                <TextBlock Text="密钥由 Windows 加密保存在此设备。" Margin="0,7,0,0" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
+                            </StackPanel>
+                        </Border>
+                        <DockPanel Margin="4,12,0,0">
+                            <Button Content="测试连接" Click="TestOnline_Click" DockPanel.Dock="Left" Margin="0,0,12,0"/>
+                            <TextBlock x:Name="OnlineStatusText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+                        </DockPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </DockPanel>
 </Window>
