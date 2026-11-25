@@ -149,22 +149,23 @@ jobs:
 
           mkdir -p build/dist
 
+          PKG_NAME="Englishwords-${VERSION}-universal.pkg"
+          bash scripts/build-installer.sh build/Englishwords.app "build/dist/$PKG_NAME"
+          (cd build/dist && shasum -a 256 "$PKG_NAME" > "$PKG_NAME.sha256")
+
           DMG_NAME="Englishwords-${VERSION}-universal.dmg"
           STAGING="$(mktemp -d -t englishwords-dmg)"
           trap 'rm -rf "$STAGING"' EXIT
           ROOT="$STAGING/volume"
           mkdir -p "$ROOT"
-          ditto build/Englishwords.app "$ROOT/Englishwords.app"
-          ln -s /Applications "$ROOT/Applications"
+          # DMG 和直接下载的 PKG 使用同一个安装器，确保执行 postinstall。
+          cp "build/dist/$PKG_NAME" "$ROOT/$PKG_NAME"
           cp Resources/安装说明.txt "$ROOT/安装说明.txt"
           hdiutil create -srcfolder "$ROOT" -volname "Englishwords" -format UDZO "$STAGING/$DMG_NAME" >/dev/null
           hdiutil verify "$STAGING/$DMG_NAME" >/dev/null
           mv "$STAGING/$DMG_NAME" "build/dist/$DMG_NAME"
           (cd build/dist && shasum -a 256 "$DMG_NAME" > "$DMG_NAME.sha256")
 
-          PKG_NAME="Englishwords-${VERSION}-universal.pkg"
-          bash scripts/build-installer.sh build/Englishwords.app "build/dist/$PKG_NAME"
-          (cd build/dist && shasum -a 256 "$PKG_NAME" > "$PKG_NAME.sha256")
           cp Resources/安装说明.txt build/dist/
           ls -lh build/dist
 

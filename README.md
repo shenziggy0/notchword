@@ -165,7 +165,7 @@ cd macos-starter
 测试还覆盖查询取消与超时、字幕断句和中文轨对齐、笔记本持久化、StarDict 来源排序及翻译协议解析。
 在同一目录可运行 `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s scripts/tests -v`，验证词素构建和抽取。
 
-手动安装请用 `.pkg`：先退出 Englishwords，再按安装器提示操作。每次安装后首次打开时，应用会重置自己的系统隐私授权；同一份包覆盖重装也一样。普通重启和 Sparkle 自动更新不会触发重置。
+手动安装前先退出 Englishwords。直接下载 PKG 时打开它，下载新版 DMG 时双击里面的 PKG，再按安装器提示操作。每次安装后首次打开时，应用会重置自己的系统隐私授权，同一份包覆盖重装也一样。普通重启和 Sparkle 自动更新不会触发重置。
 
 Sparkle 构建可以用 `EW_ENABLE_SPARKLE=1 ./build.sh` 在本机验证。`release.sh` 分别生成手动安装用的 PKG 和 Sparkle 更新用的 DMG、appcast 条目。发布前需先配置稳定签名身份和 EdDSA 更新密钥。见 [发布签名准备](macos-starter/scripts/make_signing_cert.md)。
 
@@ -236,7 +236,7 @@ python3 scripts/build_wordparts.py \
 - **多屏 / 无刘海 / Intel 未实机覆盖**：只在当前内置刘海屏（1470×956，刘海 179×32）验证；
   多屏框选、外接屏模拟刘海与 Intel 架构已按屏修复并仅保证构建通过，仍需实机补验。
 - **Esc 关闭依赖辅助功能**：全局键盘监听沿用同一授权；未授权时 Esc 不生效。
-- **换位置运行或换签名可能需要重新授权**：从 `.pkg` 安装后，首次打开会统一清除本应用的旧授权。直接拖拽 `.app` 不走安装器，换了运行位置或签名后如权限失效，请在系统设置重新授权。
+- **旧版 DMG 安装**　`v0.5.5` 及更早的发布 DMG 里是可拖拽的应用。要在安装后首次启动时重置权限，请使用同一 Release 的 PKG 安装器。
 - **被动取词的能力边界**：被动悬停/划词只读 Accessibility，读不到选区的应用（部分 Electron / 画布）需用 `⌥D`/`⌥T` 主动取词。主动热键会在备份并还原剪贴板（带 `TransientType`）的前提下安全模拟复制。
 - **词素数据边界**：11,444 考纲词已 100% 判定（7,757 拆分 + 3,698 单纯词），但覆盖范围之外的长尾词仍可能没有拆分；这些词只显示释义，不猜拆分。
 - Windows 版需要 .NET 8 Desktop Runtime。可以在 macOS 上交叉编译和运行核心测试，窗口显示、读屏和动画仍需在 Windows 上验收。
