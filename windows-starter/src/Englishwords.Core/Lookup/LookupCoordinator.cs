@@ -155,6 +155,14 @@ public sealed class LookupCoordinator
             return await TranslateAsync(word, request, TextKind.Word, request.Note, morphology, ct).ConfigureAwait(false);
         }
 
+        if (request.Trigger == LookupTrigger.Example)
+        {
+            var outcome = await _store.LookupAsync(word, ct).ConfigureAwait(false);
+            return outcome.Entry is { } example
+                ? new LookupState.Result(request, LookupResult.FromWord(word, example, morphology, null))
+                : new LookupState.Failure(request, outcome.Error?.Message ?? "随包词库未收录示例词");
+        }
+
         var notes = new List<string>();
         if (!string.IsNullOrWhiteSpace(request.Note)) notes.Add(request.Note);
 
@@ -183,7 +191,10 @@ public sealed class LookupCoordinator
                 if (entry is not null)
                 {
                     var note = notes.Count == 0 ? null : string.Join("\n", notes);
-                    return new LookupState.Result(request, LookupResult.FromWord(word, entry, morphology, note));
+                    var result = LookupResult.FromWord(word, entry, morphology, note);
+                    result.Readings = _store.ReadingHints(word, entry.Word);
+                    if (request.Context is { } context) result.Phrase = _store.FindPhrase(context);
+                    return new LookupState.Result(request, result);
                 }
             }
             catch (OperationCanceledException)

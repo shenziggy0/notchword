@@ -31,22 +31,21 @@ FORM_PATTERN = re.compile(r"^[a-z][a-z'\-]*$")
 HEADWORD_ALIASES = {"reservior": "reservoir"}
 
 
+def exchange_forms(exchange):
+    for piece in (exchange or "").split("/"):
+        kind, separator, value = piece.partition(":")
+        value = value.strip().lower()
+        if separator and value and kind not in {"0", "1"}:
+            yield kind, value
+
+
 def parse_exchange(exchange, word):
     """ECDICT exchange 字段 -> (lemma, [forms])。
 
     词头自身的屈折形式（p/d/i/3/r/t/s）只归属于该词头本身，
     不被 `0:` 指向的上位原形覆写（避免 founded -> find 等错映射）。
     """
-    forms = []
-    for piece in (exchange or "").split("/"):
-        if ":" not in piece:
-            continue
-        kind, value = piece.split(":", 1)
-        value = value.strip().lower()
-        if not value or kind in ("0", "1"):
-            continue
-        forms.append(value)
-    return word, forms
+    return word, [value for _, value in exchange_forms(exchange)]
 
 
 def load_rows(path):
@@ -109,14 +108,18 @@ def dedupe(rows):
 def build(rows, output):
     words = {row["word"] for row in rows}
     form_map = {}
+    readings = set()
     for row in rows:
-        lemma, forms = parse_exchange(row["exchange"], row["word"])
+        lemma = row["word"]
         if lemma not in words:
             continue
-        for form in forms:
-            if form == lemma or not FORM_PATTERN.match(form) or form in words:
+        for kind, form in exchange_forms(row["exchange"]):
+            if form == lemma or not FORM_PATTERN.match(form):
                 continue
-            form_map.setdefault(form, lemma)
+            if kind in {"p", "d", "i", "3", "r", "t", "s"}:
+                readings.add((form, lemma, kind))
+            if form not in words:
+                form_map.setdefault(form, lemma)
     form_map.update({alias: canonical for alias, canonical in HEADWORD_ALIASES.items()
                      if canonical in words and alias not in words})
 
@@ -152,6 +155,28 @@ def build(rows, output):
             "INSERT INTO forms (form, lemma) VALUES (?, ?)",
             sorted(form_map.items()),
         )
+        connection.executescript("""
+            CREATE TABLE form_readings (
+                form TEXT NOT NULL,
+                lemma TEXT NOT NULL REFERENCES words(word),
+                kind TEXT NOT NULL,
+                short_gloss TEXT,
+                PRIMARY KEY (form, lemma, kind)
+            ) WITHOUT ROWID;
+            CREATE TABLE phrases (pattern TEXT PRIMARY KEY, gloss TEXT NOT NULL) WITHOUT ROWID;
+        """)
+        glosses = {("foiled", "foil"): "挫败、阻止"}
+        connection.executemany(
+            "INSERT INTO form_readings VALUES (?, ?, ?, ?)",
+            [(form, lemma, kind, glosses.get((form, lemma)))
+             for form, lemma, kind in sorted(readings)
+             if form in words or form_map.get(form) != lemma],
+        )
+        phrase_path = os.path.join(os.path.dirname(__file__), "../data/phrases.tsv")
+        with open(phrase_path, encoding="utf-8", newline="") as source:
+            phrases = csv.DictReader(source, delimiter="\t")
+            connection.executemany("INSERT INTO phrases VALUES (?, ?)",
+                                   [(row["pattern"], row["gloss"]) for row in phrases])
         connection.commit()
 
         integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]

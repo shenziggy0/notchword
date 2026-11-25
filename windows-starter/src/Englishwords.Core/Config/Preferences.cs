@@ -62,6 +62,30 @@ public sealed class Preferences
     public string OnlineAddress { get; set; } = ProviderPreset.OpenAI.GetDefaultAddress();
     public string OnlineModel { get; set; } = ProviderPreset.OpenAI.GetDefaultModel();
 
+    public bool SawWelcome { get; set; }
+    public Dictionary<string, long> PausedProcesses { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool IsPaused(string process)
+    {
+        lock (PausedProcesses)
+        {
+            return PausedProcesses.TryGetValue(process, out var until) &&
+                until > DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        }
+    }
+
+    public void TogglePause(string process)
+    {
+        lock (PausedProcesses)
+        {
+            var now = DateTimeOffset.UtcNow;
+            foreach (var expired in PausedProcesses.Where(pair => pair.Value <= now.ToUnixTimeSeconds())
+                         .Select(pair => pair.Key).ToArray())
+                PausedProcesses.Remove(expired);
+            if (!PausedProcesses.Remove(process)) PausedProcesses[process] = now.AddMinutes(30).ToUnixTimeSeconds();
+        }
+    }
+
     public List<string> ExcludedProcesses { get; set; } =
     [
         "WindowsTerminal", "cmd", "powershell", "pwsh", "mintty", "wt",
@@ -83,6 +107,8 @@ public sealed class Preferences
             loaded.RegionOcrHotKey ??= HotKeySpec.DefaultRegionOcr();
             loaded.DictionarySources ??= DictionarySource.CreateDefaults();
             loaded.ExcludedProcesses ??= [];
+            loaded.PausedProcesses = new Dictionary<string, long>(loaded.PausedProcesses ?? [],
+                                                                  StringComparer.OrdinalIgnoreCase);
 
             if (loaded.DictionarySources.Count == 0)
             {

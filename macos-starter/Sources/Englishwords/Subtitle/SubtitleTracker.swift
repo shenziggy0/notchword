@@ -8,6 +8,10 @@ final class SubtitleTracker: ObservableObject {
         let videoID: String?
         let cues: [SubtitleCue]?
         let chinese: [SubtitleCue]?
+        let seekable: [[Double]]?
+        let videoRef: String?
+        let replaying: Bool?
+        let replayError: Bool?
     }
 
     private struct Target: Equatable {
@@ -40,6 +44,10 @@ final class SubtitleTracker: ObservableObject {
     private var tracking: Task<Void, Never>?
     private var translationTask: Task<Void, Never>?
     private var target: Target?
+    @Published private var seekable: [[Double]] = []
+    private var videoReference: String?
+    @Published private(set) var replayActive = false
+    private var sendingReplay = false
     private var pausedByApp: Target?
     private var chinese: [SubtitleCue] = []
     private var area: ScreenArea?
@@ -59,6 +67,49 @@ final class SubtitleTracker: ObservableObject {
     }
 
     var current: SubtitleCue? { cues.indices.contains(position) ? cues[position] : nil }
+
+    var canReplay: Bool {
+        guard let cue = current, target != nil, cue.end > cue.start else { return false }
+        return seekable.contains { range in
+            range.count == 2 && cue.start >= range[0] && cue.end <= range[1]
+        }
+    }
+
+    var videoBookmark: VideoBookmark? {
+        guard canReplay, let videoReference, let current else { return nil }
+        return VideoBookmark(reference: videoReference, seconds: current.start)
+    }
+
+    func replayCurrent() {
+        guard !sendingReplay, !replayActive, canReplay, let cue = current, let target,
+              AppRules.frontmostBundleID == target.bundle else { return }
+        sendingReplay = true
+        Task {
+            defer { sendingReplay = false }
+            do {
+                let response = try await execute("replay", browser: target.bundle, videoID: target.video, cue: cue)
+                guard self.target == target else { return }
+                if response == "true" || response == "busy" { replayActive = true }
+                else { status = "当前字幕无法重听" }
+            } catch {
+                if self.target == target { status = "无法控制当前视频" }
+            }
+        }
+    }
+
+    func open(_ bookmark: VideoBookmark) {
+        let parts = bookmark.reference.split(separator: ":", maxSplits: 1)
+        guard parts.count == 2, parts[0] == "youtube",
+              parts[1].range(of: #"^[A-Za-z0-9_-]{11}$"#, options: .regularExpression) != nil,
+              bookmark.seconds.isFinite, (0...1_000_000_000).contains(bookmark.seconds) else { return }
+        var url = URLComponents()
+        url.scheme = "https"
+        url.host = "www.youtube.com"
+        url.path = "/watch"
+        url.queryItems = [URLQueryItem(name: "v", value: String(parts[1])),
+                          URLQueryItem(name: "t", value: String(Int(bookmark.seconds)) + "s")]
+        if let address = url.url { NSWorkspace.shared.open(address) }
+    }
 
     var currentCueID: CueID? {
         current.map { cue in
@@ -164,11 +215,16 @@ final class SubtitleTracker: ObservableObject {
                 reset()
                 target = active
             }
+            let ranges = snapshot.mode == "dom" ? snapshot.seekable ?? [] : []
+            if seekable != ranges { seekable = ranges }
+            videoReference = snapshot.mode == "dom" ? snapshot.videoRef : nil
+            let activeReplay = snapshot.replaying == true
+            if replayActive != activeReplay { replayActive = activeReplay }
             switch snapshot.mode {
             case "dom":
                 chinese = snapshot.chinese ?? []
                 update(SentenceMerger.merge(snapshot.cues ?? []))
-                status = "网页字幕"
+                status = snapshot.replayError == true ? "浏览器未能开始重听" : "网页字幕"
                 failures = 0
             case "screen":
                 try await screenSubtitles(browser)
@@ -239,6 +295,9 @@ final class SubtitleTracker: ObservableObject {
     }
 
     private func reset() {
+        replayActive = false
+        seekable = []
+        videoReference = nil
         target = nil
         pausedByApp = nil
         chinese = []
@@ -284,11 +343,13 @@ final class SubtitleTracker: ObservableObject {
         try await execute(command, browser: target.bundle, videoID: target.video)
     }
 
-    private func execute(_ command: String, browser: String, videoID: String? = nil) async throws -> String {
+    private func execute(_ command: String, browser: String, videoID: String? = nil, cue: SubtitleCue? = nil) async throws -> String {
         // JSON string encoding prevents data from becoming script commands.
-        let values = try JSONEncoder().encode([command, videoID ?? ""])
+        var fields: [Any] = [command, videoID ?? ""]
+        if let cue { fields.append(contentsOf: [cue.start, cue.end]) }
+        let values = try JSONSerialization.data(withJSONObject: fields)
         let arguments = String(decoding: values, as: UTF8.self)
-        let javascript = "\(script ?? "")\nJSON.stringify(globalThis.__notchwordSubtitlesV1(...\(arguments)));"
+        let javascript = "\(script ?? "")\nJSON.stringify(globalThis.__notchwordSubtitlesV2(...\(arguments)));"
         // The injected function returns a string because AppleScript expects a primitive.
         // Parse only the enclosing JSON string, then decode the command's payload separately.
         let response = try await bridge.run(javascript, in: browser)

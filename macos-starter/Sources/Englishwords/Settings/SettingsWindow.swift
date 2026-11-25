@@ -106,6 +106,10 @@ final class SettingsModel: ObservableObject {
 
     @Published var apiKeyInput = ""
     @Published var keyMessage = ""
+    @Published var localInstalled = false
+    @Published var localCanPrepare = false
+    @Published var localExample = ""
+    @Published var localBusy = false
     @Published var localStatus = "检测中…"
     @Published var onlineStatus = ""
     @Published var dictionaryMessage = ""
@@ -286,9 +290,18 @@ final class SettingsModel: ObservableObject {
         let source = Locale.Language(identifier: "en")
         let target = Locale.Language(identifier: "zh-Hans")
         switch await LanguageAvailability().status(from: source, to: target) {
-        case .installed: localStatus = "语言包已安装，可离线翻译"
-        case .supported: localStatus = "需要准备语言包"
-        default:         localStatus = "当前系统不支持英译中"
+        case .installed:
+            localInstalled = true
+            localCanPrepare = false
+            localStatus = "语言包已安装，可离线翻译"
+        case .supported:
+            localInstalled = false
+            localCanPrepare = true
+            localStatus = "需要准备语言包"
+        default:
+            localInstalled = false
+            localCanPrepare = false
+            localStatus = "当前系统不支持英译中"
         }
     }
 }
@@ -679,80 +692,101 @@ struct SettingsView: View {
         Section("Apple 本地翻译") {
             HStack(spacing: 10) {
                 Text(model.localStatus).frame(maxWidth: .infinity, alignment: .leading)
-                Button("准备语言包", action: onPrepareLanguage)
+                if model.localInstalled {
+                    Button("试译一句") {
+                        model.localBusy = true
+                        model.localExample = ""
+                        let language = preferences.targetLanguage
+                        Task {
+                            defer { model.localBusy = false }
+                            do {
+                                let request = TranslationRequest(text: "Let me show you how it works.",
+                                                                 source: "en", target: language)
+                                model.localExample = try await AppleTranslate().translate(request).text
+                            } catch { model.localExample = error.localizedDescription }
+                        }
+                    }.disabled(model.localBusy)
+                } else if model.localCanPrepare {
+                    Button("准备语言包", action: onPrepareLanguage)
+                }
             }
+            if !model.localExample.isEmpty { Text(model.localExample) }
         }
         Section {
             Toggle("本地不可用时允许联网翻译", isOn: binding(\.onlineEnabled))
                 .onChange(of: preferences.onlineEnabled) { _, _ in refreshOnlineStatus() }
-            Picker("翻译服务", selection: binding(\.translationPreset)) {
-                ForEach(ProviderPreset.allCases) { preset in
-                    Text(preset.name).tag(preset)
+            if preferences.onlineEnabled {
+                Picker("翻译服务", selection: binding(\.translationPreset)) {
+                    ForEach(ProviderPreset.allCases) { preset in
+                        Text(preset.name).tag(preset)
+                    }
                 }
-            }
-            .onChange(of: preferences.translationPreset) { _, preset in
-                model.apiKeyInput = ""
-                model.modelChoices = []
-                model.onlineMessage = ""
-                model.refreshKey(preset: preset)
-                refreshOnlineStatus()
-            }
-            if preferences.translationPreset == .custom {
-                TextField("服务地址", text: binding(\.baseURL), prompt: Text("https://api.openai.com/v1"))
-                    .focused($translationField, equals: .address)
+                .onChange(of: preferences.translationPreset) { _, preset in
+                    model.apiKeyInput = ""
+                    model.modelChoices = []
+                    model.onlineMessage = ""
+                    model.refreshKey(preset: preset)
+                    refreshOnlineStatus()
+                }
+                if preferences.translationPreset == .custom {
+                    TextField("服务地址", text: binding(\.baseURL), prompt: Text("https://api.openai.com/v1"))
+                        .focused($translationField, equals: .address)
+                        .onSubmit(refreshOnlineStatus)
+                } else {
+                    LabeledContent("服务地址", value: preferences.onlineAddress)
+                }
+                TextField("模型", text: binding(\.onlineModel), prompt: Text(preferences.translationPreset.defaultModel))
+                    .focused($translationField, equals: .model)
                     .onSubmit(refreshOnlineStatus)
-            } else {
-                LabeledContent("服务地址", value: preferences.onlineAddress)
-            }
-            TextField("模型", text: binding(\.onlineModel), prompt: Text(preferences.translationPreset.defaultModel))
-                .focused($translationField, equals: .model)
-                .onSubmit(refreshOnlineStatus)
-            SecureField("API 密钥", text: $model.apiKeyInput, prompt: Text("只保存到钥匙串"))
-            HStack {
-                Text("密钥" + model.keyMessage).font(.callout).foregroundStyle(Lexicon.secondary)
-                Spacer()
-                Button("保存") {
-                    model.saveKey(preset: preferences.translationPreset)
-                    translator.invalidateCache()
-                    refreshOnlineStatus()
+                SecureField("API 密钥", text: $model.apiKeyInput, prompt: Text("只保存到钥匙串"))
+                HStack {
+                    Text("密钥" + model.keyMessage).font(.callout).foregroundStyle(Lexicon.secondary)
+                    Spacer()
+                    Button("保存") {
+                        model.saveKey(preset: preferences.translationPreset)
+                        translator.invalidateCache()
+                        refreshOnlineStatus()
+                    }
+                    .disabled(model.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityLabel("保存 API 密钥")
+                    Button("清除") {
+                        model.clearKey(preset: preferences.translationPreset)
+                        translator.invalidateCache()
+                        refreshOnlineStatus()
+                    }
+                    .accessibilityLabel("清除 API 密钥")
                 }
-                .disabled(model.apiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityLabel("保存 API 密钥")
-                Button("清除") {
-                    model.clearKey(preset: preferences.translationPreset)
-                    translator.invalidateCache()
-                    refreshOnlineStatus()
-                }
-                .accessibilityLabel("清除 API 密钥")
             }
         } header: {
             Text("联网翻译")
         } footer: {
             Text(model.onlineStatus)
         }
-        Section("连接测试") {
-            if preferences.translationPreset.supportsOpenAIModelList {
-                Button("刷新模型列表") {
-                    model.checkOnline(translator: translator, preferences: preferences, listModels: true)
-                }
-                .disabled(model.serviceBusy)
-                if !model.modelChoices.isEmpty {
-                    Menu("选择模型") {
-                        ForEach(model.modelChoices, id: \.self) { choice in
-                            Button(choice) {
-                                preferences.onlineModel = choice
-                                refreshOnlineStatus()
+        if preferences.onlineEnabled {
+            Section("连接测试") {
+                if preferences.translationPreset.supportsOpenAIModelList {
+                    Button("刷新模型列表") {
+                        model.checkOnline(translator: translator, preferences: preferences, listModels: true)
+                    }
+                    .disabled(model.serviceBusy)
+                    if !model.modelChoices.isEmpty {
+                        Menu("选择模型") {
+                            ForEach(model.modelChoices, id: \.self) { choice in
+                                Button(choice) {
+                                    preferences.onlineModel = choice
+                                    refreshOnlineStatus()
+                                }
                             }
                         }
                     }
                 }
-            }
-            Button("测试当前服务") {
-                model.checkOnline(translator: translator, preferences: preferences, listModels: false)
-            }
-            .disabled(model.serviceBusy || !preferences.onlineEnabled)
-            if !model.onlineMessage.isEmpty {
-                Text(model.onlineMessage).font(.callout).foregroundStyle(Lexicon.secondary)
+                Button("测试当前服务") {
+                    model.checkOnline(translator: translator, preferences: preferences, listModels: false)
+                }
+                .disabled(model.serviceBusy || !preferences.onlineEnabled)
+                if !model.onlineMessage.isEmpty {
+                    Text(model.onlineMessage).font(.callout).foregroundStyle(Lexicon.secondary)
+                }
             }
         }
     }

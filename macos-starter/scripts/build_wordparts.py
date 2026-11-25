@@ -201,6 +201,7 @@ def build(morphemes, wordparts, output, coverage=None, *, manual_bindings=None, 
             raise SystemExit(f"人工绑定 {form}@{key} 不属于语素表")
 
     rows = []
+    part_words = set()
     seen = set()
     used_keys = set()
     for entry in wordparts:
@@ -225,6 +226,7 @@ def build(morphemes, wordparts, output, coverage=None, *, manual_bindings=None, 
             raise SystemExit(f"{word}: 拆分拼回为 {joined}")
         encoded = " ".join(f"{spelling}:{ids[key]}" for spelling, key in resolved)
         rows.append((word, encoded, entry["origin"].strip()))
+        part_words.update((ids[key], word) for _, key in resolved)
 
     if coverage is not None:
         orphans = sorted(set(ids) - used_keys)
@@ -256,6 +258,11 @@ def build(morphemes, wordparts, output, coverage=None, *, manual_bindings=None, 
                 en    TEXT NOT NULL,
                 lemma TEXT
             );
+            CREATE TABLE part_words (
+                part_id INTEGER NOT NULL,
+                word TEXT NOT NULL,
+                PRIMARY KEY (part_id, word)
+            ) WITHOUT ROWID;
             CREATE TABLE words (
                 word     TEXT PRIMARY KEY,
                 segments TEXT NOT NULL,
@@ -275,6 +282,7 @@ def build(morphemes, wordparts, output, coverage=None, *, manual_bindings=None, 
             "INSERT INTO words (word, segments, origin) VALUES (?, ?, ?)",
             [(word, segments, origin or None) for word, segments, origin in rows],
         )
+        connection.executemany("INSERT INTO part_words VALUES (?, ?)", sorted(part_words))
         meta = [
             ("schema_version", "1"),
             ("version", version or datetime.date.today().isoformat()),

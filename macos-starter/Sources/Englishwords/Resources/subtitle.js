@@ -1,7 +1,8 @@
 (() => {
-  const key = "__notchwordSubtitlesV1";
+  const key = "__notchwordSubtitlesV2";
   if (globalThis[key]) return;
   const states = new WeakMap();
+  const observed = new WeakSet();
   const documentID = Date.now().toString(36) + Math.random().toString(36).slice(2);
   let sequence = 0;
 
@@ -26,8 +27,8 @@
     if (!state || state.source !== video.currentSrc) {
       state = { id: documentID + "-" + ++sequence, source: video.currentSrc, cues: [], owned: false };
       states.set(video, state);
-      if (!video.__notchwordPlaybackObserver) {
-        video.__notchwordPlaybackObserver = true;
+      if (!observed.has(video)) {
+        observed.add(video);
         const clearOwnership = () => { states.get(video).owned = false; };
         video.addEventListener("play", clearOwnership);
         video.addEventListener("seeking", clearOwnership);
@@ -60,7 +61,57 @@
       .map(node => node.textContent).join(" "));
   }
 
-  globalThis[key] = (command, expected) => {
+  function canSeek(video, start, end) {
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start) return false;
+    for (let i = 0; i < video.seekable.length; i++) {
+      if (start >= video.seekable.start(i) && end <= video.seekable.end(i)) return true;
+    }
+    return false;
+  }
+
+  function replay(video, state, start, end) {
+    if (!canSeek(video, start, end)) return "false";
+    if (state.cancelReplay) return "busy";
+    state.replayError = false;
+    const wasPaused = video.paused;
+    const wasOwned = state.owned;
+    state.owned = false;
+    const cancel = () => {
+      video.removeEventListener("timeupdate", check);
+      video.removeEventListener("seeking", seeking);
+      video.removeEventListener("pause", paused);
+      video.removeEventListener("emptied", cancel);
+      if (state.cancelReplay === cancel) state.cancelReplay = null;
+    };
+    const paused = () => { if (video.paused) cancel(); };
+    const seeking = () => {
+      if (Math.abs(video.currentTime - start) > 0.2) cancel();
+    };
+    const source = video.currentSrc;
+    const check = () => {
+      if (currentVideo() !== video || video.currentSrc !== source) return cancel();
+      if (video.currentTime < end) return;
+      cancel();
+      if (wasPaused) {
+        video.pause();
+        state.owned = wasOwned;
+      }
+    };
+    state.cancelReplay = cancel;
+    video.currentTime = start;
+    video.addEventListener("timeupdate", check);
+    video.addEventListener("seeking", seeking);
+    video.addEventListener("pause", paused);
+    video.addEventListener("emptied", cancel);
+    void video.play().catch(() => {
+      if (state.cancelReplay !== cancel) return;
+      state.replayError = true;
+      cancel();
+    });
+    return "true";
+  }
+
+  globalThis[key] = (command, expected, start, end) => {
     const video = currentVideo();
     if (!video) return JSON.stringify({ mode: "nosub" });
     const state = stateOf(video);
@@ -69,10 +120,15 @@
     const advertisement = !!video.closest(".ad-showing") || !!document.querySelector(".html5-video-player.ad-showing");
     if (command !== "state") {
       if (expected !== state.id || protectedVideo || advertisement) return "false";
+      if (command === "replay") return replay(video, state, start, end);
       if (command === "pause" && !video.paused) {
         video.pause();
         state.owned = true;
         return "true";
+      }
+      if (command === "play" && state.cancelReplay) {
+        state.cancelReplay();
+        if (!video.paused) return "true";
       }
       if (command === "play" && state.owned && video.paused) {
         state.owned = false;
@@ -90,6 +146,7 @@
 
     // 先滤已播条目，再取最近 80 条，避免已播内容被空白片段挤掉
     let primary = cues(english, current).filter(cue => cue.start <= current).slice(-80);
+    const timed = primary.length > 0;
     if (!primary.length) {
       const text = captionText();
       const last = state.cues.at(-1);
@@ -106,7 +163,13 @@
 
     return JSON.stringify({
       mode: primary.length ? "dom" : "screen",
-      videoID: state.id, cues: primary, chinese: cues(chinese, current), paused: video.paused
+      videoID: state.id, cues: primary, chinese: cues(chinese, current), paused: video.paused,
+      replaying: !!state.cancelReplay, replayError: !!state.replayError,
+      seekable: timed ? Array.from({ length: video.seekable.length }, (_, i) =>
+        [video.seekable.start(i), video.seekable.end(i)]).filter(pair => pair.every(Number.isFinite)) : [],
+      videoRef: timed && ["youtube.com", "www.youtube.com"].includes(location.hostname) &&
+        location.pathname === "/watch" && /^[A-Za-z0-9_-]{11}$/.test(new URLSearchParams(location.search).get("v") || "")
+        ? "youtube:" + new URLSearchParams(location.search).get("v") : null
     });
   };
 })();

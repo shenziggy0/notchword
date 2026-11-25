@@ -40,11 +40,16 @@ final class PanelController {
         case expanded
     }
 
+    var isShowingPassiveResult: Bool { isVisible && state?.request.trigger.isPassive == true }
+
     var isShowingSubtitle: Bool { isVisible && subtitle != nil }
 
     /// 面板被收起（Esc / 超时 / 新入口）时通知外层，用于丢弃在途查询。
     var onHide: (() -> Void)?
     var onBackToSubtitle: (() -> Void)?
+    var relatedWords: ((Int32, String) async -> [Entry])?
+    var lookupRelated: ((String, LookupRequest) -> Void)?
+    var lookupPrevious: ((String, NSScreen?) -> Void)?
     private var subtitle: SubtitleView?
 
     private let preferences: Preferences
@@ -317,6 +322,9 @@ final class PanelController {
             showWordParts: preferences.showWordParts,
             lookupShortcut: preferences.lookupHotKey.display,
             notebook: notebook,
+            relatedWords: relatedWords,
+            lookupRelated: lookupRelated,
+            lookupPrevious: lookupPrevious,
             onBackToSubtitle: state.request.trigger == .subtitle ? onBackToSubtitle : nil,
             onExpand: { [weak self] in self?.expand() },
             onDismiss: { [weak self] in self?.hide() },

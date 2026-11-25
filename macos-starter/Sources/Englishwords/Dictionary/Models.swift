@@ -7,6 +7,7 @@ import Foundation
 struct Segment: Hashable {
     let role: String      // prefix / root / suffix
     let label: String     // un / believ / able
+    var partID: Int32? = nil
     let gloss: String     // 不 / 相信 / 能……的
 }
 

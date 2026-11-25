@@ -87,6 +87,16 @@ struct ResultView: View {
     var showWordParts = true
     let lookupShortcut: String
     var notebook: NotebookModel? = nil
+    var relatedWords: ((Int32, String) async -> [Entry])? = nil
+    var lookupRelated: ((String, LookupRequest) -> Void)? = nil
+    var lookupPrevious: ((String, NSScreen?) -> Void)? = nil
+    @ResultViewState private var family: [Entry] = []
+    @ResultViewState private var familyRoot: String?
+    @ResultViewState private var loadingFamily = false
+    @ResultViewState private var familyRevision = 0
+    @ResultViewState private var savingExample = false
+    @ResultViewState private var exampleStatus = ""
+    @ResultViewState private var savingInProgress = false
     var onBackToSubtitle: (() -> Void)? = nil
     var onExpand: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
@@ -122,6 +132,10 @@ struct ResultView: View {
                         .lexiconGlass(in: Capsule(), interactive: true)
                         .accessibilityFocused($accessibilityFocus, equals: .back)
                         .padding(.bottom, 10)
+                    }
+                    if let previous = state.request.previous, let lookupPrevious {
+                        Button("返回 \(previous)") { lookupPrevious(previous, state.request.screen) }
+                            .padding(.bottom, 8)
                     }
                     expandedContent
                 }
@@ -217,7 +231,7 @@ struct ResultView: View {
     private var compactSubtitle: String {
         switch state {
         case .loading(let request), .miss(let request): return request.text
-        case .result(_, let result): return firstLine(result.body)
+        case .result(_, let result): return result.phrase ?? result.readings.first.map(firstLine) ?? firstLine(result.body)
         case .failure(_, let message): return firstLine(message)
         }
     }
@@ -240,11 +254,21 @@ struct ResultView: View {
                     .accessibilityFocused($accessibilityFocus, equals: .definition)
             } else {
                 header(result)
+                if let phrase = result.phrase {
+                    Text(phrase).foregroundStyle(Lexicon.onDarkAccent).padding(.top, 8)
+                }
+                ForEach(result.readings, id: \.self) { reading in
+                    Text(reading).foregroundStyle(Lexicon.notchText).padding(.top, 8)
+                }
                 Text(result.body)
                     .font(.system(size: definitionSize)).foregroundStyle(Lexicon.notchText)
                     .lineSpacing(4).fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 14)
                     .accessibilityFocused($accessibilityFocus, equals: .definition)
+                if let notebook, let word = result.notebookWord, let context = state.request.context,
+                   context.selected.map({ TextFilter.normalizeWord($0) == result.input }) == true {
+                    exampleControls(notebook, word: word, context: context, result: result)
+                }
                 if showWordParts, !result.segments.isEmpty { morphology(result) }
             }
             if let note = result.note {
@@ -258,6 +282,31 @@ struct ResultView: View {
         case .failure(_, let message):
             status(title: "没能完成查询", message: message)
         }
+    }
+
+    private func exampleControls(_ notebook: NotebookModel, word: String, context: LookupContext,
+                                 result: LookupResult) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if savingExample {
+                Text(context.sentence).fixedSize(horizontal: false, vertical: true)
+                ForEach(Array(([result.phrase].compactMap { $0 } + result.readings + [firstLine(result.body)]).enumerated()),
+                        id: \.offset) { _, meaning in
+                    Button("保存 · \(firstLine(meaning))") {
+                        savingInProgress = true
+                        Task {
+                            let saved = await notebook.saveExample(word: word, context: context, meaning: meaning)
+                            exampleStatus = saved ? "已收藏原句" : (notebook.error ?? "保存失败")
+                            savingInProgress = false
+                            if saved { savingExample = false }
+                        }
+                    }.disabled(savingInProgress)
+                }
+                Button("取消") { savingExample = false }.disabled(savingInProgress)
+            } else {
+                Button("连同原句收藏") { savingExample = true }
+            }
+            if !exampleStatus.isEmpty { Text(exampleStatus).font(.callout) }
+        }.padding(.top, 10)
     }
 
     private func sourceLine(_ name: String, isSentence: Bool) -> some View {
@@ -293,7 +342,7 @@ struct ResultView: View {
                 .help(speaker.speaking ? "停止朗读" : "朗读单词")
                 .accessibilityLabel(speaker.speaking ? "停止朗读" : "朗读单词")
                 .accessibilityFocused($accessibilityFocus, equals: .speech)
-                if let notebook, let word = result.notebookWord {
+                if state.request.trigger != .example, let notebook, let word = result.notebookWord {
                     NotebookStar(model: notebook, word: word)
                         .accessibilityFocused($accessibilityFocus, equals: .favorite)
                 }
@@ -332,8 +381,37 @@ struct ResultView: View {
             .accessibilityFocused($accessibilityFocus, equals: .morphology)
             FlowLayout(spacing: 7, lineSpacing: 7) {
                 ForEach(Array(result.segments.enumerated()), id: \.offset) { index, segment in
-                    SegmentChip(seg: segment)
+                    if segment.role == "root", let id = segment.partID, let relatedWords {
+                        Button {
+                            familyRevision += 1
+                            let revision = familyRevision
+                            familyRoot = segment.label
+                            family = []
+                            loadingFamily = true
+                            Task {
+                                let entries = await relatedWords(id, result.title)
+                                if familyRevision == revision {
+                                    family = entries
+                                    loadingFamily = false
+                                }
+                            }
+                        } label: { SegmentChip(seg: segment) }
+                        .buttonStyle(.plain)
+                        .accessibilityHint("查看同族词")
                         .accessibilityFocused($accessibilityFocus, equals: .segment(index))
+                    } else {
+                        SegmentChip(seg: segment)
+                            .accessibilityFocused($accessibilityFocus, equals: .segment(index))
+                    }
+                }
+            }
+            if let familyRoot {
+                let heading = loadingFamily ? "正在查找同族词…" :
+                    family.isEmpty ? "暂无 \(familyRoot) 同族词" : "\(familyRoot) 的同族词"
+                Text(heading).font(.callout.weight(.semibold))
+                ForEach(family, id: \.word) { item in
+                    Button("\(item.word) · \(firstLine(item.translation))") { lookupRelated?(item.word, state.request) }
+                        .buttonStyle(.plain).foregroundStyle(Lexicon.onDarkAccent)
                 }
             }
             if !result.origin.isEmpty {

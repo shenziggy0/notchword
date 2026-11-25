@@ -6,7 +6,7 @@ namespace Englishwords.Core.Dictionary;
 /// <see cref="Label"/> 是该词中的实际拼写（如 <c>believ</c>），而非语素词典形态（<c>believe</c>）。
 /// </para>
 /// </summary>
-public sealed record Segment(string Role, string Label, string Gloss);
+public sealed record Segment(string Role, string Label, string Gloss, int? PartId = null);
 
 /// <summary>
 /// 词素元数据（对应 <c>wordparts.sqlite</c> 中 <c>parts</c> 表的一行）。

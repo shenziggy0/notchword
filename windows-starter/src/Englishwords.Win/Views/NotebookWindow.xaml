@@ -27,6 +27,7 @@
     </Window.Resources>
     <DockPanel Margin="24,16,24,22">
         <TextBlock DockPanel.Dock="Top" Style="{StaticResource PageTitle}" Text="笔记本"/>
+        <Button DockPanel.Dock="Top" Content="复习 3 个词" HorizontalAlignment="Left" Margin="0,0,0,8" Click="Review_Click"/>
         <TabControl x:Name="Pages" AutomationProperties.Name="笔记本栏目">
             <TabItem Header="收藏">
                 <DockPanel>
@@ -39,7 +40,10 @@
                                 <ListBox.ItemTemplate><DataTemplate>
                                     <DockPanel>
                                         <Path DockPanel.Dock="Right" Data="M 1,1 L 6,6 1,11" Stroke="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" StrokeThickness="1.5" VerticalAlignment="Center" Margin="10,0,0,0"/>
-                                        <TextBlock Text="{Binding}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel Loaded="FavoriteDetails_Loaded">
+                                        <TextBlock Text="{Binding Word}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                        <StackPanel/>
+                                    </StackPanel>
                                     </DockPanel>
                                 </DataTemplate></ListBox.ItemTemplate>
                             </ListBox>

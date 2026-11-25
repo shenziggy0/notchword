@@ -52,7 +52,7 @@ final class HoverMonitor {
 
         guard preferences.hoverEnabled,
               Permissions.isAccessibilityTrusted,
-              AppRules.allowsPassiveLookup() else { return }
+              AppRules.allowsPassiveLookup(checkPause: false) else { return }
         if isInsidePanel?(point) == true { return }
 
         let work = DispatchWorkItem { [weak self] in
@@ -64,10 +64,11 @@ final class HoverMonitor {
 
     private func fire(at point: NSPoint) {
         // 指针已经移开或按键仍按下：取消本次查询
-        guard preferences.hoverEnabled, AppRules.allowsPassiveLookup(),
+        guard preferences.hoverEnabled, AppRules.allowsPassiveLookup(checkPause: false),
               NSEvent.pressedMouseButtons == 0,
               distance(NSEvent.mouseLocation, point) <= movementThreshold else { return }
-        guard let candidate = AXPicker.word(at: Screens.accessibilityPoint(from: point)) else { return }
+        guard let picked = AXPicker.pick(at: Screens.accessibilityPoint(from: point), passive: true) else { return }
+        let candidate = picked.word
 
         let word = TextFilter.normalizeWord(candidate)
         guard !word.isEmpty, TextFilter.isSingleWord(candidate) else { return }
@@ -79,7 +80,8 @@ final class HoverMonitor {
         onSubmit?(LookupRequest(
             text: candidate,
             trigger: .hover,
-            screen: Screens.screen(containing: point)
+            screen: Screens.screen(containing: point),
+            context: picked.context
         ))
     }
 

@@ -25,6 +25,18 @@ public partial class NotchPanelWindow : Window
     private readonly HashSet<string> _pendingFavorites = new(StringComparer.OrdinalIgnoreCase);
     private IntPtr _hwnd;
 
+    public Func<string, LookupContext, string, Task>? SaveExampleAsync { get; set; }
+    public Func<string, Task<bool>>? HasExamplesAsync { get; set; }
+    public Func<int, string, IReadOnlyList<Entry>>? RelatedWords { get; set; }
+    public Action<string>? LookupRelated { get; set; }
+    private LookupState.Result? _familyOrigin;
+
+    public void ExpandForExample()
+    {
+        _isExpanded = true;
+        ApplyExpansionState();
+    }
+
     public Func<string, bool, Task>? SaveFavoriteAsync { get; set; }
     public event Action<string>? SpeakRequested;
     public event Action? Dismissed;
@@ -85,6 +97,9 @@ public partial class NotchPanelWindow : Window
     {
         var previous = _currentState;
         _currentState = state;
+        SaveExampleButton.Visibility = Visibility.Collapsed;
+        RootActions.Children.Clear();
+        FamilyList.Children.Clear();
         _isFavorite = isFavorite;
         _autoHideTimer.Stop();
 
@@ -202,6 +217,11 @@ public partial class NotchPanelWindow : Window
         PhoneticText.Text = phonetic.Length == 0 ? string.Empty : $"/{phonetic}/";
 
         var hasWord = res.NotebookWord is not null;
+        if (_currentState is LookupState.Result result && result.Request.Trigger == LookupTrigger.Example)
+            hasWord = false;
+        if (_currentState?.Request.Context?.Selected is { } picked &&
+            TextFilter.NormalizeWord(picked) == res.Input && hasWord && SaveExampleAsync is not null)
+            SaveExampleButton.Visibility = Visibility.Visible;
         SpeakButton.Visibility = hasWord ? Visibility.Visible : Visibility.Collapsed;
         FavoriteButton.Visibility = hasWord ? Visibility.Visible : Visibility.Collapsed;
         FavoriteButton.IsEnabled = SaveFavoriteAsync is not null && res.NotebookWord is { } word && !_pendingFavorites.Contains(word);
@@ -241,7 +261,28 @@ public partial class NotchPanelWindow : Window
             OriginalSentenceText.Visibility = Visibility.Collapsed;
         }
 
-        BodyText.Text = res.Body;
+        var supplements = new[] { res.Phrase }.OfType<string>().Concat(res.Readings);
+        BodyText.Text = string.Join("\n", supplements.Append(res.Body));
+        foreach (var segment in res.Segments.Where(segment => segment.Role == "root" && segment.PartId.HasValue)
+                     .DistinctBy(segment => segment.PartId))
+        {
+            var button = ActionButton($"查看 {segment.Label} 同族词");
+            button.Click += (_, _) => ShowFamily(segment.PartId!.Value, res.Title);
+            RootActions.Children.Add(button);
+        }
+        if (_familyOrigin is { } previous && _currentState?.Request.Trigger == LookupTrigger.Notebook &&
+            previous.Value.Title != res.Title)
+        {
+            var back = ActionButton($"返回 {previous.Value.Title}");
+            back.Click += (_, _) =>
+            {
+                _familyOrigin = null;
+                _isExpanded = true;
+                LookupRelated?.Invoke(previous.Value.Title);
+            };
+            RootActions.Children.Add(back);
+        }
+        else if (_currentState?.Request.Trigger != LookupTrigger.Notebook) _familyOrigin = null;
 
         if (!string.IsNullOrWhiteSpace(res.Note))
         {
@@ -256,8 +297,80 @@ public partial class NotchPanelWindow : Window
         SourceText.Text = $"{res.Source} · {_preferences.LookupHotKey.Display}";
 
         var firstLine = res.Body.Split('\n', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
-        CompactSummaryText.Text = firstLine;
+        CompactSummaryText.Text = res.Phrase ?? res.Readings.FirstOrDefault()?.Split('\n')[0] ?? firstLine;
         ApplyExpansionState();
+    }
+
+    private static System.Windows.Controls.Button ActionButton(string text) => new()
+    {
+        Content = text, HorizontalAlignment = System.Windows.HorizontalAlignment.Left, Margin = new Thickness(0, 4, 6, 4)
+    };
+
+    private void ShowFamily(int partId, string word)
+    {
+        if (_currentState is not LookupState.Result current) return;
+        FamilyList.Children.Clear();
+        try
+        {
+            var entries = RelatedWords?.Invoke(partId, word) ?? [];
+            if (entries.Count == 0)
+                FamilyList.Children.Add(new System.Windows.Controls.TextBlock { Text = "暂无同族词" });
+            foreach (var entry in entries)
+            {
+                var button = ActionButton($"{entry.Word} · {entry.Translation.Split('\n')[0]}");
+                button.Click += (_, _) =>
+                {
+                    _familyOrigin = current;
+                    LookupRelated?.Invoke(entry.Word);
+                };
+                FamilyList.Children.Add(button);
+            }
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write($"同族词读取失败：{ex.Message}");
+        }
+    }
+
+    private async void SaveExampleButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_currentState is not LookupState.Result result || result.Request.Context is not { } context ||
+            result.Value.NotebookWord is not { } word || SaveExampleAsync is not { } save) return;
+        var content = new System.Windows.Controls.StackPanel { Margin = new Thickness(20) };
+        content.Children.Add(new System.Windows.Controls.TextBlock { Text = context.Sentence, TextWrapping = TextWrapping.Wrap });
+        var choice = new System.Windows.Controls.ComboBox
+        {
+            ItemsSource = new[] { result.Value.Phrase }.OfType<string>().Concat(result.Value.Readings)
+                .Append(result.Value.Body.Split('\n')[0]).Select(value => value.Split('\n')[0]).Distinct().ToArray(),
+            SelectedIndex = 0,
+            Margin = new Thickness(0, 10, 0, 10)
+        };
+        content.Children.Add(choice);
+        var saveButton = ActionButton("收藏原句");
+        content.Children.Add(saveButton);
+        var dialog = new Window
+        {
+            Owner = this, Title = "连同原句收藏", Width = 440, SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = content, ShowInTaskbar = false
+        };
+        saveButton.Click += (_, _) => dialog.DialogResult = true;
+        if (dialog.ShowDialog() != true || choice.SelectedItem is not string meaning || !_pendingFavorites.Add(word)) return;
+        SaveExampleButton.IsEnabled = false;
+        try
+        {
+            await save(word, context, meaning);
+            if (ShowingWord(word)) { _isFavorite = true; UpdateFavoriteButton(); }
+        }
+        catch (Exception ex)
+        {
+            FileLog.Write($"原句收藏失败：{ex.Message}");
+            System.Windows.MessageBox.Show("原句收藏失败，请重试。", "Englishwords");
+        }
+        finally
+        {
+            _pendingFavorites.Remove(word);
+            SaveExampleButton.IsEnabled = true;
+        }
     }
 
     private void ApplyExpansionState()
@@ -486,6 +599,9 @@ public partial class NotchPanelWindow : Window
         FavoriteButton.IsEnabled = false;
         try
         {
+            if (!requested && HasExamplesAsync is { } hasExamples && await hasExamples(word) &&
+                System.Windows.MessageBox.Show("移除收藏及该词的例句？", "Englishwords",
+                    MessageBoxButton.OKCancel) != MessageBoxResult.OK) return;
             await save(word, requested);
             if (ShowingWord(word))
             {

@@ -57,6 +57,30 @@ class MorphologyPipelineTests(unittest.TestCase):
         self.assertIn("founded", forms)
         self.assertIn("founds", forms)
 
+    def test_shared_resources_keep_ambiguous_readings_and_word_families(self):
+        resources = ROOT / "Sources/Englishwords/Resources"
+        with closing(sqlite3.connect(resources / "dictionary.sqlite")) as db:
+            self.assertEqual(db.execute(
+                "SELECT lemma, kind, short_gloss FROM form_readings WHERE form = 'foiled' ORDER BY kind"
+            ).fetchall(), [("foil", "d", "挫败、阻止"), ("foil", "p", "挫败、阻止")])
+            self.assertIn("有叶形装饰", db.execute(
+                "SELECT translation FROM words WHERE word = 'foiled'"
+            ).fetchone()[0])
+            self.assertEqual(db.execute(
+                "SELECT lemma FROM forms WHERE form = 'founded'"
+            ).fetchone(), ("found",))
+            self.assertTrue(db.execute(
+                "SELECT gloss FROM phrases WHERE pattern = 'walk {person} through'"
+            ).fetchone())
+        with closing(sqlite3.connect(resources / "wordparts.sqlite")) as db:
+            family = db.execute(
+                """SELECT relatives.word FROM part_words mine
+                   JOIN part_words relatives USING (part_id)
+                   JOIN parts ON parts.id = mine.part_id
+                   WHERE mine.word = 'abduct' AND parts.label = 'duct'"""
+            ).fetchall()
+            self.assertTrue({("conduct",), ("deduct",)} <= set(family))
+
     def test_evidenced_recursive_split(self):
         entries = [
             {"word": "unbelievable", "lang_code": "en",

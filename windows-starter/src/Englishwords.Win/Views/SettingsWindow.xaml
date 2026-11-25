@@ -73,28 +73,31 @@
                         <Border Style="{StaticResource ContentCard}" Padding="16,4">
                             <CheckBox Style="{StaticResource SwitchRow}" x:Name="OnlineEnabledToggle" Content="启用联网翻译" Checked="OnlineEnabled_Changed" Unchecked="OnlineEnabled_Changed"/>
                         </Border>
-                        <TextBlock Style="{StaticResource GroupTitle}" Text="服务配置" Margin="6,16,0,7"/>
-                        <Border Style="{StaticResource ContentCard}">
-                            <StackPanel>
-                                <TextBlock x:Name="PresetLabel" Style="{StaticResource FieldLabel}" Text="服务预设" Margin="0,0,0,5"/>
-                                <ComboBox x:Name="PresetCombo" AutomationProperties.LabeledBy="{Binding ElementName=PresetLabel}" SelectionChanged="PresetCombo_SelectionChanged"/>
-                                <TextBlock x:Name="AddressLabel" Style="{StaticResource FieldLabel}" Text="接口地址 (Base URL)"/>
-                                <TextBox x:Name="AddressBox" AutomationProperties.LabeledBy="{Binding ElementName=AddressLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
-                                <TextBlock x:Name="ModelLabel" Style="{StaticResource FieldLabel}" Text="模型名称"/>
-                                <TextBox x:Name="ModelBox" AutomationProperties.LabeledBy="{Binding ElementName=ModelLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
-                                <TextBlock x:Name="KeyLabel" Style="{StaticResource FieldLabel}" Text="API 密钥"/>
-                                <PasswordBox x:Name="ApiKeyBox" AutomationProperties.LabeledBy="{Binding ElementName=KeyLabel}"/>
-                                <WrapPanel Margin="0,8,0,0">
-                                    <Button Content="保存密钥" Click="SaveKey_Click" Margin="0,0,6,0"/>
-                                    <Button Content="清除密钥" Click="ClearKey_Click"/>
-                                </WrapPanel>
-                                <TextBlock Text="密钥由 Windows 加密保存在此设备。" Margin="0,7,0,0" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
-                            </StackPanel>
-                        </Border>
-                        <DockPanel Margin="4,12,0,0">
-                            <Button Content="测试连接" Click="TestOnline_Click" DockPanel.Dock="Left" Margin="0,0,12,0"/>
-                            <TextBlock x:Name="OnlineStatusText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
-                        </DockPanel>
+                        <TextBlock Text="单词可离线查，整句翻译需配置联网服务。" TextWrapping="Wrap" Margin="6,10,0,0"/>
+                        <StackPanel x:Name="OnlineDetails">
+                            <TextBlock Style="{StaticResource GroupTitle}" Text="服务配置" Margin="6,16,0,7"/>
+                            <Border Style="{StaticResource ContentCard}">
+                                <StackPanel>
+                                    <TextBlock x:Name="PresetLabel" Style="{StaticResource FieldLabel}" Text="服务预设" Margin="0,0,0,5"/>
+                                    <ComboBox x:Name="PresetCombo" AutomationProperties.LabeledBy="{Binding ElementName=PresetLabel}" SelectionChanged="PresetCombo_SelectionChanged"/>
+                                    <TextBlock x:Name="AddressLabel" Style="{StaticResource FieldLabel}" Text="接口地址 (Base URL)"/>
+                                    <TextBox x:Name="AddressBox" AutomationProperties.LabeledBy="{Binding ElementName=AddressLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
+                                    <TextBlock x:Name="ModelLabel" Style="{StaticResource FieldLabel}" Text="模型名称"/>
+                                    <TextBox x:Name="ModelBox" AutomationProperties.LabeledBy="{Binding ElementName=ModelLabel}" LostKeyboardFocus="OnlineConfig_LostFocus"/>
+                                    <TextBlock x:Name="KeyLabel" Style="{StaticResource FieldLabel}" Text="API 密钥"/>
+                                    <PasswordBox x:Name="ApiKeyBox" AutomationProperties.LabeledBy="{Binding ElementName=KeyLabel}"/>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <Button Content="保存密钥" Click="SaveKey_Click" Margin="0,0,6,0"/>
+                                        <Button Content="清除密钥" Click="ClearKey_Click"/>
+                                    </WrapPanel>
+                                    <TextBlock Text="密钥由 Windows 加密保存在此设备。" Margin="0,7,0,0" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" FontSize="12"/>
+                                </StackPanel>
+                            </Border>
+                            <DockPanel Margin="4,12,0,0">
+                                <Button Content="测试连接" Click="TestOnline_Click" DockPanel.Dock="Left" Margin="0,0,12,0"/>
+                                <TextBlock x:Name="OnlineStatusText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryBrush}" AutomationProperties.LiveSetting="Polite"/>
+                            </DockPanel>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>

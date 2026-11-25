@@ -5,6 +5,7 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <RootNamespace>Englishwords.Win</RootNamespace>
     <AssemblyName>Englishwords.Win</AssemblyName>
   </PropertyGroup>
@@ -28,6 +29,7 @@
              Link="Resources\wordparts.sqlite"
              CopyToOutputDirectory="PreserveNewest" />
     <Resource Include="..\..\..\macos-starter\Sources\Englishwords\Resources\lucide.ttf" Link="Assets\lucide.ttf" />
+    <EmbeddedResource Include="$(ApplicationIcon)" LogicalName="Englishwords.Win.Assets.AppIcon.ico" />
     <Content Include="..\..\..\LICENSE" Link="LICENSE" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\macos-starter\Sources\Englishwords\Resources\THIRD-PARTY-NOTICES.md" Link="THIRD-PARTY-NOTICES.md" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

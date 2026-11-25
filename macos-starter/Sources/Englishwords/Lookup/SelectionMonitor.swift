@@ -148,7 +148,8 @@ final class SelectionMonitor {
         onSubmit?(LookupRequest(
             text: trimmed,
             trigger: .selection,
-            screen: Screens.screen(containing: NSEvent.mouseLocation)
+            screen: Screens.screen(containing: NSEvent.mouseLocation),
+            context: AXPicker.selectedContext(matching: trimmed)
         ))
     }
 }

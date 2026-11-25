@@ -33,6 +33,34 @@ enum AXPicker {
         return nil
     }
 
+    static func selectedContext(matching word: String) -> LookupContext? {
+        guard Permissions.isAccessibilityTrusted, !AppRules.isFrontmostExcluded,
+              TextFilter.isSingleWord(word), let focused = focusedElement(),
+              stringAttribute(focused, "AXSubrole") != "AXSecureTextField" else { return nil }
+        var element: AXUIElement? = focused
+        for _ in 0..<4 {
+            guard let current = element else { break }
+            defer { element = parent(of: current) }
+            guard let range = selectedRange(of: current), range.location >= 0, (1...80).contains(range.length),
+                  let text = string(for: range, in: current),
+                  text.trimmingCharacters(in: .whitespacesAndNewlines) == word else { continue }
+            let start = max(0, range.location - 350)
+            let length = range.location - start + range.length + 350
+            guard let count = numberAttribute(current, "AXNumberOfCharacters"), count >= range.location + range.length,
+                  let nearby = string(for: CFRange(location: start, length: min(length, count - start)), in: current)
+            else { return nil }
+            return LookupContext.sentence(in: nearby, selection: NSRange(location: range.location - start, length: range.length),
+                                          beginsAtBoundary: start == 0, endsAtBoundary: start + length >= count)
+        }
+        return nil
+    }
+
+    private static func numberAttribute(_ element: AXUIElement, _ name: String) -> Int? {
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, name as CFString, &value) == .success else { return nil }
+        return (value as? NSNumber)?.intValue
+    }
+
     private static func selectionText(of element: AXUIElement) -> String? {
         if let text = stringAttribute(element, "AXSelectedText")?
             .trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty {
@@ -88,8 +116,11 @@ enum AXPicker {
 
     // MARK: - 指针
 
-    static func word(at point: CGPoint) -> String? {
-        guard Permissions.isAccessibilityTrusted, let element = element(at: point) else { return nil }
+    static func word(at point: CGPoint) -> String? { pick(at: point)?.word }
+
+    static func pick(at point: CGPoint, passive: Bool = false) -> (word: String, context: LookupContext?)? {
+        guard Permissions.isAccessibilityTrusted, let element = element(at: point, passive: passive),
+              stringAttribute(element, "AXSubrole") != "AXSecureTextField" else { return nil }
 
         if let role = stringAttribute(element, "AXRole"),
            role == "AXMenuBar" || role == "AXMenuBarItem" || role == "AXMenu" || role == "AXMenuItem" {
@@ -98,17 +129,20 @@ enum AXPicker {
 
         // 命中的常常是 AXGroup / AXScrollArea，真正带文字的视图在子节点里
         let textElement = textBearingElement(at: point, in: element) ?? element
-        guard let text = textContent(of: textElement), !text.isEmpty else { return nil }
+        guard stringAttribute(textElement, "AXSubrole") != "AXSecureTextField",
+              let text = textContent(of: textElement), !text.isEmpty else { return nil }
 
         if let index = characterIndex(at: point, in: textElement, text: text),
-           let word = wordAround(index, in: text) {
-            return word
+           let range = wordRange(around: index, in: text) {
+            let word = (text as NSString).substring(with: range)
+            let context = LookupContext.sentence(in: text, selection: range)
+            return (word, context)
         }
 
         // 元素本身就是一小段文本（按钮标题、链接文字等）时直接使用
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.count <= 48, !trimmed.contains("\n"), TextFilter.isSingleWord(trimmed) {
-            return trimmed
+            return (trimmed, nil)
         }
         return nil
     }
@@ -165,7 +199,7 @@ enum AXPicker {
         return CGRect(origin: origin, size: size)
     }
 
-    private static func element(at point: CGPoint) -> AXUIElement? {
+    private static func element(at point: CGPoint, passive: Bool = false) -> AXUIElement? {
         let systemWide = AXUIElementCreateSystemWide()
         var value: AXUIElement?
         guard AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &value) == .success,
@@ -175,7 +209,7 @@ enum AXPicker {
         if AXUIElementGetPid(element, &pid) == .success {
             if pid == getpid() { return nil }
             if let bundleID = NSRunningApplication(processIdentifier: pid)?.bundleIdentifier,
-               AppRules.isExcluded(bundleID) { return nil }
+               AppRules.isExcluded(bundleID) || (passive && AppRules.isPaused(bundleID)) { return nil }
         }
         return element
     }
@@ -247,7 +281,7 @@ enum AXPicker {
         return rect
     }
 
-    private static func wordAround(_ index: Int, in text: String) -> String? {
+    private static func wordRange(around index: Int, in text: String) -> NSRange? {
         let ns = text as NSString
         guard index >= 0, index < ns.length else { return nil }
 
@@ -264,7 +298,7 @@ enum AXPicker {
         while start > 0, isWordCharacter(start - 1) { start -= 1 }
         while end + 1 < ns.length, isWordCharacter(end + 1) { end += 1 }
 
-        let candidate = ns.substring(with: NSRange(location: start, length: end - start + 1))
-        return TextFilter.normalizeWord(candidate).isEmpty ? nil : candidate
+        let range = NSRange(location: start, length: end - start + 1)
+        return TextFilter.normalizeWord(ns.substring(with: range)).isEmpty ? nil : range
     }
 }

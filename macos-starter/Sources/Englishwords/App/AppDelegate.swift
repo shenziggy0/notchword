@@ -1,5 +1,4 @@
 import AppKit
-import CoreText
 import SwiftUI
 #if canImport(Sparkle)
 import Sparkle
@@ -30,7 +29,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var selection: SelectionMonitor?
     private var settings: SettingsWindowController?
     private var installationPermissionMessage: String?
-    private lazy var onboarding = OnboardingWindow(preferences: preferences)
+    private lazy var onboarding: OnboardingWindow = {
+        let window = OnboardingWindow(preferences: preferences)
+        window.lookupExample = { [weak self] in
+            self?.submitLookup(LookupRequest(text: "abduct", trigger: .example, screen: NSScreen.main))
+        }
+        return window
+    }()
     private let regionPicker = RegionPicker()
     private let subtitlePicker = RegionPicker()
     private lazy var subtitles = SubtitleTracker(preferences: preferences, translator: translator)
@@ -45,6 +50,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     #endif
 
     private var statusItem: NSStatusItem!
+    private var pauseMenuItem: NSMenuItem?
+    private var pauseTarget: NSRunningApplication?
     private var hoverMenuItem: NSMenuItem!
     private var selectionMenuItem: NSMenuItem!
     private var permissionItem: NSMenuItem!
@@ -123,10 +130,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - 装配
 
     private func setupLookup() {
+        notebookModel.dictionary = store
+        notebookModel.launchVideo = { [weak self] bookmark in self?.subtitles.open(bookmark) }
+        panels.relatedWords = { [weak self] id, word in
+            await self?.store.relatedWords(partID: id, excluding: word) ?? []
+        }
+        panels.lookupRelated = { [weak self] word, source in
+            self?.submitLookup(LookupRequest(text: word, trigger: .notebook, screen: source.screen,
+                                             previous: source.text))
+        }
+        panels.lookupPrevious = { [weak self] word, screen in
+            self?.submitLookup(LookupRequest(text: word, trigger: .notebook, screen: screen))
+        }
         coordinator.onState = { [weak self] state in
             guard let self else { return }
-            self.panels.show(state)
-            guard case .result(let request, let result) = state, let word = result.notebookWord else { return }
+            if state.request.trigger == .example { self.onboarding.showExampleResult(state) }
+            let open = state.request.trigger == .example || state.request.previous != nil
+            self.panels.show(state, mode: open ? .expanded : .compact)
+            guard case .result(let request, let result) = state, request.trigger != .example, let word = result.notebookWord else { return }
             Task { [weak self, store = self.notebookStore] in
                 do {
                     try await store.recordLookup(word: word, source: result.source, trigger: request.trigger)
@@ -226,44 +247,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 菜单栏
 
-    /// 生成 18×18pt 单色菜单栏模板图标：圆角方框 + 顶部刘海 + 衬线 E。
+    /// 菜单栏使用词页的单色剪影，放宽书脊留白以适应 18pt 显示。
     private static func makeStatusBarIcon() -> NSImage {
-        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: false) { rect in
-            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            let s = rect.width / 18.0
-            ctx.scaleBy(x: s, y: s)
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
+            let pages = NSBezierPath()
+            pages.move(to: NSPoint(x: 8.2, y: 15.6))
+            pages.curve(to: NSPoint(x: 2.3, y: 13.0),
+                        controlPoint1: NSPoint(x: 6.7, y: 14.0), controlPoint2: NSPoint(x: 4.4, y: 13.6))
+            pages.curve(to: NSPoint(x: 1.0, y: 11.5), controlPoint: NSPoint(x: 1.0, y: 12.8))
+            pages.line(to: NSPoint(x: 1.0, y: 5.1))
+            pages.curve(to: NSPoint(x: 2.8, y: 3.7), controlPoint: NSPoint(x: 1.0, y: 3.5))
+            pages.curve(to: NSPoint(x: 8.2, y: 6.4), controlPoint: NSPoint(x: 6.0, y: 3.8))
+            pages.close()
 
-            let inkColor = CGColor(gray: 0, alpha: 1)
-            let box = CGRect(x: 1.8, y: 1.8, width: 14.4, height: 14.4)
-            let boxPath = CGPath(roundedRect: box, cornerWidth: 3.2, cornerHeight: 3.2, transform: nil)
-            ctx.addPath(boxPath)
-            ctx.setStrokeColor(inkColor)
-            ctx.setLineWidth(1.3)
-            ctx.strokePath()
+            pages.move(to: NSPoint(x: 9.8, y: 15.6))
+            pages.line(to: NSPoint(x: 9.8, y: 6.1))
+            pages.curve(to: NSPoint(x: 16.0, y: 2.1),
+                        controlPoint1: NSPoint(x: 10.6, y: 4.5), controlPoint2: NSPoint(x: 13.9, y: 2.6))
+            pages.curve(to: NSPoint(x: 17.0, y: 3.0), controlPoint: NSPoint(x: 17.0, y: 1.8))
+            pages.line(to: NSPoint(x: 17.0, y: 11.0))
+            pages.curve(to: NSPoint(x: 15.6, y: 12.8), controlPoint: NSPoint(x: 17.0, y: 12.4))
+            pages.curve(to: NSPoint(x: 9.8, y: 15.6), controlPoint: NSPoint(x: 11.6, y: 13.8))
+            pages.close()
 
-            // 顶部刘海（裁剪到圆角框内）
-            ctx.saveGState()
-            ctx.addPath(boxPath)
-            ctx.clip()
-            let notch = CGRect(x: 6.2, y: box.maxY - 1.6, width: 5.6, height: 2.2)
-            let notchPath = CGPath(roundedRect: notch, cornerWidth: 1.0, cornerHeight: 1.0, transform: nil)
-            ctx.addPath(notchPath)
-            ctx.setFillColor(inkColor)
-            ctx.fillPath()
-            ctx.restoreGState()
-
-            // 居中衬线 E（按字形实际边界对齐）
-            let base = NSFont.systemFont(ofSize: 9.5, weight: .bold)
-            let desc = base.fontDescriptor.withDesign(.serif) ?? base.fontDescriptor
-            let font = (NSFont(descriptor: desc, size: 9.5) ?? base) as CTFont
-            let attrs: [NSAttributedString.Key: Any] = [
-                NSAttributedString.Key(kCTFontAttributeName as String): font,
-                NSAttributedString.Key(kCTForegroundColorAttributeName as String): inkColor,
-            ]
-            let line = CTLineCreateWithAttributedString(NSAttributedString(string: "E", attributes: attrs))
-            let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
-            ctx.textPosition = CGPoint(x: 9.0 - ink.midX, y: 8.1 - ink.midY)
-            CTLineDraw(line, ctx)
+            NSColor.black.setFill()
+            pages.fill()
             return true
         }
         image.isTemplate = true
@@ -321,6 +329,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         autoMenu.addItem(selectionMenuItem)
         autoItem.submenu = autoMenu
         menu.addItem(autoItem)
+        let pause = NSMenuItem(title: "暂停当前应用自动取词", action: #selector(toggleApplicationPause), keyEquivalent: "")
+        pause.target = self
+        menu.addItem(pause)
+        pauseMenuItem = pause
+        let welcome = NSMenuItem(title: "使用引导…", action: #selector(menuWelcome), keyEquivalent: "")
+        welcome.target = self
+        menu.addItem(welcome)
 
         menu.addItem(.separator())
 
@@ -408,9 +423,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let offset { subtitles.move(by: offset) }
         else if peek { subtitles.peek() }
         let screen = Screens.screen(containing: NSEvent.mouseLocation)
-        panels.showSubtitle(SubtitleView(tracker: subtitles, onDismiss: { [weak self] in self?.panels.hide() }) { [weak self] word in
-            self?.submitLookup(LookupRequest(text: word, trigger: .subtitle, screen: screen))
+        panels.showSubtitle(SubtitleView(tracker: subtitles, onDismiss: { [weak self] in self?.panels.hide() }) { [weak self] word, context in
+            self?.submitLookup(LookupRequest(text: word, trigger: .subtitle, screen: screen, context: context))
         }, on: screen)
+    }
+
+    @objc private func menuWelcome() { onboarding.show() }
+
+    @objc private func toggleApplicationPause() {
+        guard let bundle = pauseTarget?.bundleIdentifier else { return }
+        AppRules.togglePause(bundle)
+        if AppRules.isPaused(bundle), panels.isShowingPassiveResult { panels.hide() }
     }
 
     @objc private func menuNotebook() { notebookWindow.show() }
@@ -555,7 +578,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             trigger: trigger,
             screen: Screens.screen(containing: NSEvent.mouseLocation),
             mode: mode,
-            note: note
+            note: note,
+            context: mode == .lookup ? capture?.context : nil
         ))
     }
 
@@ -584,6 +608,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: NSMenuDelegate {
     /// 菜单每次打开都重新读一次授权状态：授权后无需重启就能看到变化
     func menuWillOpen(_ menu: NSMenu) {
+        let app = NSWorkspace.shared.frontmostApplication
+        if let app, let bundle = app.bundleIdentifier,
+           bundle != Bundle.main.bundleIdentifier, !AppRules.isExcluded(bundle) {
+            pauseTarget = app
+            let name = app.localizedName ?? bundle
+            pauseMenuItem?.title = AppRules.isPaused(bundle)
+                ? "在 \(name) 提前恢复自动取词" : "在 \(name) 暂停自动取词 30 分钟"
+            pauseMenuItem?.isEnabled = true
+        } else {
+            pauseTarget = nil
+            pauseMenuItem?.title = "暂停当前应用自动取词"
+            pauseMenuItem?.isEnabled = false
+        }
         permissionItem?.title = Permissions.isAccessibilityTrusted
             ? "辅助功能已授权"
             : "需要授权辅助功能…"

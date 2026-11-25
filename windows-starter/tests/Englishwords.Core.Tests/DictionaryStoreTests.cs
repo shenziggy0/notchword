@@ -1,4 +1,5 @@
 using Englishwords.Core.Dictionary;
+using Englishwords.Core.Lookup;
 using Xunit;
 
 namespace Englishwords.Core.Tests;
@@ -72,6 +73,23 @@ public sealed class DictionaryStoreTests
         Assert.NotNull(store.GetMorphology("UNBELIEVABLE"));
         using var missingParts = new DictionaryStore(dictPath, null);
         Assert.Null(missingParts.GetMorphology("unbelievable"));
+    }
+
+    [Fact]
+    public void Lookup_ProductionResourcesPreserveReadingsPhrasesAndRootIdentity()
+    {
+        var (dictionary, parts) = LocateRepoResources();
+        using var store = new DictionaryStore(dictionary, parts);
+        Assert.Contains("有叶形装饰", store.Lookup("foiled").Entry!.Translation);
+        Assert.Equal(["foil 的过去式／过去分词 · 挫败、阻止"], store.ReadingHints("foiled", "foiled"));
+        var sentence = "Let me walk you through what actually happened.";
+        Assert.Equal("walk you through · 带某人逐步了解", store.FindPhrase(new LookupContext(sentence, 16, 7)));
+        var punctuation = new LookupContext("I will walk you through.", 16, 8);
+        Assert.Equal("through", punctuation.Selected);
+        Assert.Equal("walk you through · 带某人逐步了解", store.FindPhrase(punctuation));
+        Assert.Null(store.FindPhrase(new LookupContext("I walk to school.", 2, 4)));
+        var root = store.GetMorphology("abduct")!.Segments.Last().PartId!.Value;
+        Assert.Equal(3, store.RelatedWords(root, "abduct").Count);
     }
 
     [Fact]

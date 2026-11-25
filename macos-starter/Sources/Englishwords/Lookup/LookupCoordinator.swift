@@ -97,6 +97,11 @@ final class LookupCoordinator {
                                    note: request.note, morphology: morphology)
         }
 
+        if request.trigger == .example {
+            guard let entry = try await store.lookupAsync(word).get() else { return .miss(request) }
+            return .result(request, .word(input: word, entry: entry, morphology: morphology, note: nil))
+        }
+
         var notes = [request.note].compactMap { $0 }
         for source in preferences.dictionarySources where source.enabled {
             try Task.checkCancellation()
@@ -109,7 +114,10 @@ final class LookupCoordinator {
                 }
                 if let entry {
                     let note = notes.isEmpty ? nil : notes.joined(separator: "\n")
-                    return .result(request, .word(input: word, entry: entry, morphology: morphology, note: note))
+                    var result = LookupResult.word(input: word, entry: entry, morphology: morphology, note: note)
+                    result.readings = store.readingHints(for: word, excluding: entry.word)
+                    if let context = request.context { result.phrase = store.phrase(in: context) }
+                    return .result(request, result)
                 }
             } catch {
                 notes.append(error.localizedDescription)

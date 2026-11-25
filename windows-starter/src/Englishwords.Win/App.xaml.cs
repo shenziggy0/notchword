@@ -47,6 +47,10 @@ public partial class App : System.Windows.Application
     private NotchPanelWindow? _panel;
     private SettingsWindow? _settingsWindow;
     private NotebookWindow? _notebookWindow;
+    private Window? _welcomeWindow;
+    private string? _lastExternalProcess;
+    private bool _newProfile;
+    private System.Windows.Threading.DispatcherTimer? _foregroundTimer;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -156,6 +160,7 @@ public partial class App : System.Windows.Application
 
     private void InitializeCoreServices()
     {
+        _newProfile = !File.Exists(_settingsPath);
         _preferences = Preferences.Load(_settingsPath);
         var (dictPath, partsPath) = ResolveBundledResources();
 
@@ -181,7 +186,13 @@ public partial class App : System.Windows.Application
             _coordinator?.Cancel();
         };
         if (_notebookStore is { } notebook)
+        {
             _panel.SaveFavoriteAsync = (word, on) => notebook.SetFavoriteAsync(word, on);
+            _panel.SaveExampleAsync = (word, context, meaning) => notebook.SaveExampleAsync(word, context, meaning);
+            _panel.HasExamplesAsync = async word => (await notebook.GetExamplesAsync(word)).Count > 0;
+        }
+        _panel.RelatedWords = (part, current) => _dictionaryStore?.RelatedWords(part, current) ?? [];
+        _panel.LookupRelated = word => SubmitLookup(new LookupRequest(word, LookupTrigger.Notebook));
 
         _coordinator!.StateChanged += state =>
         {
@@ -191,7 +202,7 @@ public partial class App : System.Windows.Application
             Dispatcher.BeginInvoke(async () =>
             {
                 var isFav = false;
-                if (state is LookupState.Result res && res.Value.NotebookWord is { } word && _notebookStore is not null)
+                if (state is LookupState.Result res && res.Request.Trigger != LookupTrigger.Example && res.Value.NotebookWord is { } word && _notebookStore is not null)
                 {
                     try
                     {
@@ -210,6 +221,7 @@ public partial class App : System.Windows.Application
                 if (Interlocked.Read(ref _dismissSeq) != dismissAtDispatch) return;
 
                 _panel?.UpdateState(state, isFav);
+                if (state.Request.Trigger == LookupTrigger.Example) _panel?.ExpandForExample();
             });
         };
 
@@ -235,6 +247,7 @@ public partial class App : System.Windows.Application
         }
 
         SetupTrayIcon();
+        if (_newProfile && !_preferences.SawWelcome) OpenWelcomeWindow();
     }
 
     private bool SubmitLookup(LookupRequest request)
@@ -262,8 +275,8 @@ public partial class App : System.Windows.Application
             if (_selectionCapture is null) return;
             var trigger = action == HotKeyAction.Translate ? LookupTrigger.Translate : LookupTrigger.Hotkey;
             var mode = action == HotKeyAction.Translate ? LookupMode.Translate : LookupMode.Lookup;
-            var (text, note) = await _selectionCapture.CaptureAsync(trigger);
-            SubmitLookup(new LookupRequest(text, trigger, mode, note));
+            var (text, note, context) = await _selectionCapture.CaptureAsync(trigger);
+            SubmitLookup(new LookupRequest(text, trigger, mode, note, Context: context));
         }
         catch (OperationCanceledException)
         {
@@ -394,13 +407,41 @@ public partial class App : System.Windows.Application
     {
         _trayIcon = new System.Windows.Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = new Icon(typeof(App), "Assets.AppIcon.ico"),
             Text = "Englishwords",
             Visible = true
         };
 
         var menu = new System.Windows.Forms.ContextMenuStrip();
         menu.Items.Add("区域取词 (Alt+R)", null, (_, _) => Dispatcher.BeginInvoke(async () => await StartRegionOcrAsync()));
+        var pause = menu.Items.Add("暂停当前应用自动取词");
+        string? pauseTarget = null;
+        _foregroundTimer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
+        _foregroundTimer.Tick += (_, _) =>
+        {
+            if (_selectionCapture is not null && !_selectionCapture.IsForegroundExcluded(out var process) &&
+                process.Length > 0 && !string.Equals(process, "explorer", StringComparison.OrdinalIgnoreCase))
+                _lastExternalProcess = process;
+        };
+        _foregroundTimer.Start();
+        menu.Opening += (_, _) =>
+        {
+            pauseTarget = _lastExternalProcess;
+            if (_selectionCapture is not null && !_selectionCapture.IsForegroundExcluded(out var current) &&
+                current.Length > 0 && !string.Equals(current, "explorer", StringComparison.OrdinalIgnoreCase))
+                pauseTarget = current;
+            pause.Enabled = pauseTarget is not null;
+            pause.Text = pauseTarget is null ? "暂停当前应用自动取词" :
+                _preferences.IsPaused(pauseTarget) ? $"在 {pauseTarget} 提前恢复自动取词" :
+                $"在 {pauseTarget} 暂停自动取词 30 分钟";
+        };
+        pause.Click += (_, _) =>
+        {
+            if (pauseTarget is null) return;
+            _preferences.TogglePause(pauseTarget);
+            _preferences.Save(_settingsPath);
+        };
+        menu.Items.Add("使用引导…", null, (_, _) => Dispatcher.BeginInvoke(OpenWelcomeWindow));
         menu.Items.Add("打开笔记本…", null, (_, _) => Dispatcher.BeginInvoke(OpenNotebookWindow));
         menu.Items.Add("设置…", null, (_, _) => Dispatcher.BeginInvoke(OpenSettingsWindow));
         menu.Items.Add(new System.Windows.Forms.ToolStripSeparator());
@@ -410,12 +451,45 @@ public partial class App : System.Windows.Application
         _trayIcon.DoubleClick += (_, _) => Dispatcher.BeginInvoke(OpenSettingsWindow);
     }
 
+    private void OpenWelcomeWindow()
+    {
+        if (_welcomeWindow is not null) { _welcomeWindow.Activate(); return; }
+        var content = new System.Windows.Controls.StackPanel { Margin = new Thickness(24) };
+        content.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "The villagers foiled an attempt to abduct the young prince.",
+            TextWrapping = TextWrapping.Wrap, FontSize = 20
+        });
+        var tryButton = new System.Windows.Controls.Button { Content = "查 abduct", Margin = new Thickness(0, 16, 0, 8) };
+        tryButton.Click += (_, _) => SubmitLookup(new LookupRequest("abduct", LookupTrigger.Example));
+        content.Children.Add(tryButton);
+        content.Children.Add(new System.Windows.Controls.TextBlock
+        {
+            Text = "在其他应用里选中英文，按 Alt+D 查词。", TextWrapping = TextWrapping.Wrap
+        });
+        var done = new System.Windows.Controls.Button { Content = "完成", Margin = new Thickness(0, 12, 0, 0) };
+        done.Click += (_, _) => _welcomeWindow?.Close();
+        content.Children.Add(done);
+        _welcomeWindow = new Window
+        {
+            Title = "开始使用 Englishwords", Width = 460, SizeToContent = SizeToContent.Height,
+            WindowStartupLocation = WindowStartupLocation.CenterScreen, Content = content
+        };
+        _welcomeWindow.Closed += (_, _) =>
+        {
+            _welcomeWindow = null;
+            _preferences.SawWelcome = true;
+            _preferences.Save(_settingsPath);
+        };
+        _welcomeWindow.Show();
+    }
+
     private void OpenNotebookWindow()
     {
         if (_notebookStore is null) return;
         if (_notebookWindow is null || !_notebookWindow.IsLoaded)
         {
-            _notebookWindow = new NotebookWindow(_notebookStore);
+            _notebookWindow = new NotebookWindow(_notebookStore, _dictionaryStore);
             _notebookWindow.WordSelected += word =>
                 SubmitLookup(new LookupRequest(word, LookupTrigger.Notebook));
             _notebookWindow.Show();
@@ -473,11 +547,13 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _foregroundTimer?.Stop();
         CancelAllRegionTasks();
         _coordinator?.Cancel();
         _selectionMonitor?.Dispose();
         _hotKeys?.Dispose();
         _trayIcon?.ContextMenuStrip?.Dispose();
+        using var trayImage = _trayIcon?.Icon;
         _trayIcon?.Dispose();
         _speech?.Dispose();
         _notebookStore?.Dispose();

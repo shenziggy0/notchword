@@ -15,6 +15,7 @@ enum SelectionCapture {
     struct Result {
         let text: String?
         let source: Source
+        var context: LookupContext? = nil
     }
 
     enum Source {
@@ -35,7 +36,7 @@ enum SelectionCapture {
         // 注意：这里不要求辅助功能授权。AX 读取会自己检查权限，
         // 而模拟复制的按键投递在当前环境下不需要该授权（实测可用）。
         if let text = AXPicker.selectedText() {
-            return Result(text: text, source: .accessibility)
+            return Result(text: text, source: .accessibility, context: AXPicker.selectedContext(matching: text))
         }
         // 密码管理器里不做模拟复制，避免密码经过剪贴板
         guard !AppRules.isFrontmostExcluded else { return Result(text: nil, source: .empty) }

@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using Englishwords.Core.Lookup;
 
 namespace Englishwords.Core.Dictionary;
 
@@ -142,6 +143,73 @@ public sealed class DictionaryStore : IDisposable
     /// 词库统一小写化入口，保证 <c>UNBELIEVABLE</c> / <c>Founded</c> 等大写输入可命中。
     /// </summary>
     private static string NormalizeKey(string? word) => (word ?? string.Empty).ToLowerInvariant();
+
+    public IReadOnlyList<string> ReadingHints(string form, string headword)
+    {
+        lock (_sync)
+        {
+            if (_db is null || !TableExists(_db, "form_readings")) return [];
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = """
+                SELECT r.lemma, group_concat(r.kind), coalesce(max(r.short_gloss), w.translation)
+                FROM form_readings r JOIN words w ON w.word = r.lemma
+                WHERE r.form = $form AND r.lemma <> $head
+                GROUP BY r.lemma ORDER BY max(r.short_gloss IS NOT NULL) DESC,
+                coalesce(nullif(w.frq, 0), 9999999), r.lemma LIMIT 3
+                """;
+            cmd.Parameters.AddWithValue("$form", NormalizeKey(form));
+            cmd.Parameters.AddWithValue("$head", headword);
+            using var reader = cmd.ExecuteReader();
+            var hints = new List<string>();
+            while (reader.Read())
+            {
+                var kinds = reader.GetString(1).Split(',');
+                var type = kinds.Contains("d") && kinds.Contains("p") ? "过去式／过去分词" :
+                    kinds.SequenceEqual(["d"]) ? "过去式" : kinds.SequenceEqual(["p"]) ? "过去分词" : "词形";
+                hints.Add($"{reader.GetString(0)} 的{type} · {reader.GetString(2)}");
+            }
+            return hints;
+        }
+    }
+
+    public IReadOnlyList<Entry> RelatedWords(int partId, string word)
+    {
+        lock (_sync)
+        {
+            if (_partsDb is null || _db is null || !TableExists(_partsDb, "part_words")) return [];
+            using var cmd = _partsDb.CreateCommand();
+            cmd.CommandText = "SELECT word FROM part_words WHERE part_id = $part AND word <> $word";
+            cmd.Parameters.AddWithValue("$part", partId);
+            cmd.Parameters.AddWithValue("$word", word);
+            using var reader = cmd.ExecuteReader();
+            var entries = new List<(int Rank, Entry Entry)>();
+            while (reader.Read())
+            {
+                var key = reader.GetString(0);
+                var entry = QueryWord(_db, key);
+                if (entry is null) continue;
+                var rank = QuerySingleString(_db, "SELECT cast(nullif(frq, 0) as text) FROM words WHERE word = $word", "$word", key);
+                entries.Add((int.TryParse(rank, out var score) ? score : int.MaxValue, entry));
+            }
+            return entries.OrderBy(item => item.Rank).ThenBy(item => item.Entry.Word, StringComparer.Ordinal)
+                .Take(3).Select(item => item.Entry).ToArray();
+        }
+    }
+
+    public string? FindPhrase(LookupContext context)
+    {
+        lock (_sync)
+        {
+            if (_db is null || !TableExists(_db, "phrases")) return null;
+            using var cmd = _db.CreateCommand();
+            cmd.CommandText = "SELECT pattern, gloss FROM phrases ORDER BY length(pattern) DESC, pattern";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                if (context.Match(reader.GetString(0)) is { } hit)
+                    return $"{hit} · {reader.GetString(1)}";
+            return null;
+        }
+    }
 
     private Entry? FindEntry(string word)
     {
@@ -311,7 +379,7 @@ public sealed class DictionaryStore : IDisposable
             result.Add(new Segment(
                 morpheme.Role,
                 string.IsNullOrEmpty(spelling) ? morpheme.Label : spelling,
-                morpheme.Zh));
+                morpheme.Zh, id));
         }
         return result;
     }

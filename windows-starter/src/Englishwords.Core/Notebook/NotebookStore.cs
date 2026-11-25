@@ -5,6 +5,12 @@ namespace Englishwords.Core.Notebook;
 
 public sealed record NotebookLookup(long Id, string Word, string Source, DateTimeOffset Date);
 
+public sealed record FavoriteExample(string Word, LookupContext Context, string Meaning)
+{
+    public string Prompt => Context.Selected is null ? Context.Sentence :
+        Context.Sentence[..Context.Start] + "_____" + Context.Sentence[(Context.Start + Context.Length)..];
+}
+
 public sealed record DailyCount(DateTimeOffset Date, int Count);
 
 public sealed record FrequentWord(string Word, int Count);
@@ -16,7 +22,7 @@ public sealed record NotebookStats(
 
 /// <summary>
 /// 笔记本本地持久化（<c>%LOCALAPPDATA%\Englishwords\user.sqlite</c>），
-/// 表结构与 macOS 版保持 100% 兼容（<c>PRAGMA user_version = 1</c>）。
+/// 表结构与 macOS 版保持 100% 兼容（<c>PRAGMA user_version = 2</c>）。
 /// </summary>
 public sealed class NotebookStore : IDisposable
 {
@@ -101,6 +107,78 @@ public sealed class NotebookStore : IDisposable
         }, cancellationToken).ConfigureAwait(false);
     }
 
+    public Task SaveExampleAsync(string word, LookupContext context, string meaning,
+        CancellationToken cancellationToken = default)
+    {
+        if (context.Selected is not { } selected || TextFilter.Classify(selected) is not TextClassification.Word ||
+            string.IsNullOrWhiteSpace(word) || string.IsNullOrWhiteSpace(meaning))
+            throw new ArgumentException("无法保存此原句");
+        return PerformAsync(conn =>
+        {
+            using var transaction = conn.BeginTransaction();
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = transaction;
+            cmd.CommandText = """
+                INSERT OR IGNORE INTO favorites VALUES ($word, unixepoch());
+                INSERT INTO favorite_examples (word, sentence, word_start, word_length, meaning, saved_at)
+                VALUES ($word, $sentence, $start, $length, $meaning, unixepoch())
+                ON CONFLICT(word, sentence, word_start) DO UPDATE SET
+                  word_length=excluded.word_length, meaning=excluded.meaning, saved_at=excluded.saved_at;
+                """;
+            cmd.Parameters.AddWithValue("$word", word);
+            cmd.Parameters.AddWithValue("$sentence", context.Sentence);
+            cmd.Parameters.AddWithValue("$start", context.Start);
+            cmd.Parameters.AddWithValue("$length", context.Length);
+            cmd.Parameters.AddWithValue("$meaning", meaning);
+            cmd.ExecuteNonQuery();
+            transaction.Commit();
+            return 0;
+        }, cancellationToken);
+    }
+
+    public Task<IReadOnlyList<FavoriteExample>> GetExamplesAsync(string word, CancellationToken cancellationToken = default)
+        => PerformAsync<IReadOnlyList<FavoriteExample>>(conn =>
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT sentence, word_start, word_length, meaning
+                FROM favorite_examples WHERE word = $word ORDER BY saved_at DESC, sentence, word_start
+                """;
+            cmd.Parameters.AddWithValue("$word", word);
+            using var reader = cmd.ExecuteReader();
+            var results = new List<FavoriteExample>();
+            while (reader.Read())
+                results.Add(new(word, new LookupContext(reader.GetString(0), reader.GetInt32(1), reader.GetInt32(2)),
+                                reader.GetString(3)));
+            return results;
+        }, cancellationToken);
+
+    public Task<IReadOnlyList<string>> GetReviewWordsAsync(DateTimeOffset? now = null,
+        CancellationToken cancellationToken = default)
+        => PerformAsync<IReadOnlyList<string>>(conn =>
+        {
+            var date = (now ?? DateTimeOffset.Now).LocalDateTime.Date;
+            var start = date.AddDays(-6);
+            var end = date.AddDays(1);
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = """
+                SELECT word, created_at FROM lookups WHERE created_at >= $start AND created_at < $end
+                AND trigger IN ('hotkey', 'translate', 'menu', 'clipboard', 'region', 'subtitle')
+                """;
+            cmd.Parameters.AddWithValue("$start", new DateTimeOffset(start).ToUnixTimeSeconds());
+            cmd.Parameters.AddWithValue("$end", new DateTimeOffset(end).ToUnixTimeSeconds());
+            using var reader = cmd.ExecuteReader();
+            var records = new List<(string Word, DateTimeOffset Date)>();
+            while (reader.Read())
+                records.Add((reader.GetString(0), DateTimeOffset.FromUnixTimeSeconds(reader.GetInt64(1))));
+            return records.GroupBy(row => row.Word)
+                .Select(group => (Word: group.Key, Days: group.Select(row => row.Date.LocalDateTime.Date).Distinct().Count(),
+                                  Count: group.Count(), Latest: group.Max(row => row.Date)))
+                .Where(row => row.Days > 1).OrderByDescending(row => row.Days).ThenByDescending(row => row.Count)
+                .ThenByDescending(row => row.Latest).ThenBy(row => row.Word, StringComparer.Ordinal)
+                .Take(3).Select(row => row.Word).ToArray();
+        }, cancellationToken);
+
     public async Task<NotebookStats> GetStatsAsync(DateTimeOffset? now = null, CancellationToken cancellationToken = default)
     {
         var anchor = (now ?? DateTimeOffset.Now).LocalDateTime.Date;
@@ -180,13 +258,15 @@ public sealed class NotebookStore : IDisposable
         {
             using (var busyCmd = conn.CreateCommand())
             {
-                busyCmd.CommandText = "PRAGMA busy_timeout = 1000;";
+                busyCmd.CommandText = "PRAGMA busy_timeout = 1000; PRAGMA foreign_keys = ON;";
                 busyCmd.ExecuteNonQuery();
             }
 
+            using var transaction = conn.BeginTransaction(deferred: false);
             int version;
             using (var verCmd = conn.CreateCommand())
             {
+                verCmd.Transaction = transaction;
                 verCmd.CommandText = "PRAGMA user_version;";
                 version = Convert.ToInt32(verCmd.ExecuteScalar() ?? 0);
             }
@@ -194,8 +274,8 @@ public sealed class NotebookStore : IDisposable
             if (version == 0)
             {
                 using var migCmd = conn.CreateCommand();
+                migCmd.Transaction = transaction;
                 migCmd.CommandText = """
-                    BEGIN;
                     CREATE TABLE lookups (
                         id INTEGER PRIMARY KEY,
                         word TEXT NOT NULL,
@@ -209,16 +289,37 @@ public sealed class NotebookStore : IDisposable
                         word TEXT PRIMARY KEY,
                         created_at INTEGER NOT NULL
                     ) WITHOUT ROWID;
-                    PRAGMA user_version = 1;
-                    COMMIT;
                     """;
                 migCmd.ExecuteNonQuery();
             }
-            else if (version != 1)
+            else if (version is not (1 or 2))
             {
                 throw new InvalidOperationException("此版本无法读取较新的笔记本格式");
             }
 
+            if (version < 2)
+            {
+                using var migrate = conn.CreateCommand();
+                migrate.Transaction = transaction;
+                migrate.CommandText = """
+                    CREATE TABLE favorite_examples (
+                        word          TEXT NOT NULL REFERENCES favorites(word) ON DELETE CASCADE,
+                        sentence      TEXT NOT NULL,
+                        word_start    INTEGER NOT NULL CHECK (word_start >= 0),
+                        word_length   INTEGER NOT NULL CHECK (word_length > 0),
+                        meaning       TEXT NOT NULL,
+                        saved_at      INTEGER NOT NULL,
+                        video_ref     TEXT,
+                        video_seconds REAL,
+                        PRIMARY KEY (word, sentence, word_start),
+                        CHECK ((video_ref IS NULL AND video_seconds IS NULL) OR
+                               (video_ref IS NOT NULL AND video_seconds IS NOT NULL AND video_seconds >= 0))
+                    ) WITHOUT ROWID;
+                    PRAGMA user_version = 2;
+                    """;
+                migrate.ExecuteNonQuery();
+            }
+            transaction.Commit();
             _connection = conn;
             return conn;
         }

@@ -229,6 +229,71 @@ final class DictionaryStore: @unchecked Sendable {
         return sqlite3_step(stmt) == SQLITE_ROW
     }
 
+    func readingHints(for form: String, excluding headword: String) -> [String] {
+        queue.sync {
+            guard let db, tableExists(db, "form_readings"),
+                  let stmt = try? SQLite.prepare(db, """
+                    SELECT r.lemma, group_concat(r.kind), coalesce(max(r.short_gloss), w.translation)
+                    FROM form_readings r JOIN words w ON w.word = r.lemma
+                    WHERE r.form = ? AND r.lemma <> ?
+                    GROUP BY r.lemma ORDER BY max(r.short_gloss IS NOT NULL) DESC,
+                    coalesce(nullif(w.frq, 0), 9999999), r.lemma LIMIT 3
+                    """) else { return [] }
+            defer { sqlite3_finalize(stmt) }
+            sqlite3_bind_text(stmt, 1, form, -1, SQLITE_TRANSIENT)
+            sqlite3_bind_text(stmt, 2, headword, -1, SQLITE_TRANSIENT)
+            var hints: [String] = []
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let lemma = String(cString: sqlite3_column_text(stmt, 0))
+                let kinds = Set(String(cString: sqlite3_column_text(stmt, 1)).split(separator: ","))
+                let type = kinds.contains("d") && kinds.contains("p") ? "过去式／过去分词" :
+                    kinds == ["d"] ? "过去式" : kinds == ["p"] ? "过去分词" : "词形"
+                let gloss = String(cString: sqlite3_column_text(stmt, 2))
+                hints.append("\(lemma) 的\(type) · \(gloss)")
+            }
+            return hints
+        }
+    }
+
+    func relatedWords(partID: Int32, excluding word: String) async -> [Entry] {
+        await withCheckedContinuation { continuation in
+            queue.async { continuation.resume(returning: self.relatedWordsSync(partID: partID, excluding: word)) }
+        }
+    }
+
+    private func relatedWordsSync(partID: Int32, excluding word: String) -> [Entry] {
+        guard let partsDB, let db, tableExists(partsDB, "part_words"),
+              let stmt = try? SQLite.prepare(partsDB, "SELECT word FROM part_words WHERE part_id = ? AND word <> ?")
+        else { return [] }
+        defer { sqlite3_finalize(stmt) }
+        sqlite3_bind_int(stmt, 1, partID)
+        sqlite3_bind_text(stmt, 2, word, -1, SQLITE_TRANSIENT)
+        var entries: [(Int, Entry)] = []
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            let key = String(cString: sqlite3_column_text(stmt, 0))
+            guard let entry = try? queryWord(db, key) else { continue }
+            let rank = (try? SQLite.querySingle(db, "SELECT cast(nullif(frq, 0) as text) FROM words WHERE word = ?", key))
+                .flatMap(Int.init) ?? Int.max
+            entries.append((rank, entry))
+        }
+        return entries.sorted { ($0.0, $0.1.word) < ($1.0, $1.1.word) }.prefix(3).map(\.1)
+    }
+
+    func phrase(in context: LookupContext) -> String? {
+        queue.sync {
+            guard let db, tableExists(db, "phrases"),
+                  let stmt = try? SQLite.prepare(db, "SELECT pattern, gloss FROM phrases ORDER BY length(pattern) DESC, pattern")
+            else { return nil }
+            defer { sqlite3_finalize(stmt) }
+            while sqlite3_step(stmt) == SQLITE_ROW {
+                let pattern = String(cString: sqlite3_column_text(stmt, 0))
+                let gloss = String(cString: sqlite3_column_text(stmt, 1))
+                if let phrase = context.match(pattern) { return "\(phrase) · \(gloss)" }
+            }
+            return nil
+        }
+    }
+
     // MARK: - 解析
 
     /// 解析 `"un:12 believ:34 able:56"`。
@@ -241,7 +306,7 @@ final class DictionaryStore: @unchecked Sendable {
             let spelling = String(parts[0]).trimmingCharacters(in: .whitespaces)
             return Segment(role: morpheme.role,
                            label: spelling.isEmpty ? morpheme.label : spelling,
-                           gloss: morpheme.zh)
+                           partID: id, gloss: morpheme.zh)
         }
     }
 

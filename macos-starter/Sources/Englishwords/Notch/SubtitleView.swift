@@ -25,7 +25,7 @@ struct SubtitleViewport: View {
 struct SubtitleView: View {
     @ObservedObject var tracker: SubtitleTracker
     var onDismiss: (() -> Void)? = nil
-    let lookup: (String) -> Void
+    let lookup: (String, LookupContext) -> Void
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .title2) private var cueSize: CGFloat = 20
     @ScaledMetric(relativeTo: .body) private var translationSize: CGFloat = 16
@@ -47,6 +47,12 @@ struct SubtitleView: View {
                 Button { tracker.move(by: 1) } label: { LexiconIcon(.next, size: 16) }
                     .accessibilityLabel("下一句").help("下一句")
                     .disabled(tracker.position + 1 >= tracker.cues.count)
+                if tracker.canReplay {
+                    Button { tracker.replayCurrent() } label: {
+                        Image(systemName: "gobackward").font(.system(size: 15))
+                    }.accessibilityLabel("重听这句").help("重听这句")
+                        .disabled(tracker.replayActive)
+                }
                 if let onDismiss {
                     Button(action: onDismiss) {
                         Image(systemName: "xmark").font(.system(size: 13, weight: .semibold))
@@ -63,11 +69,17 @@ struct SubtitleView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .environment(\.openURL, OpenURLAction { url in
                             guard url.scheme == "notchword-subtitle",
-                                  let word = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                                      .queryItems?.first(where: { $0.name == "word" })?.value else {
+                                  let offset = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                                      .queryItems?.first(where: { $0.name == "offset" })?.value.flatMap(Int.init),
+                                  let length = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                                      .queryItems?.first(where: { $0.name == "length" })?.value.flatMap(Int.init)
+                            else {
                                 return .discarded
                             }
-                            lookup(word)
+                            let context = LookupContext(sentence: cue.text, range: NSRange(location: offset, length: length),
+                                                        video: tracker.videoBookmark)
+                            guard let word = context.selected else { return .discarded }
+                            lookup(word, context)
                             return .handled
                         })
                     if !tracker.translation.isEmpty {
@@ -90,24 +102,30 @@ struct SubtitleView: View {
 
     private func linkedWords(_ text: String) -> AttributedString {
         var output = AttributedString()
-        for (index, token) in text.split(whereSeparator: \.isWhitespace).enumerated() {
-            if index > 0 { output.append(AttributedString(" ")) }
+        var cursor = text.startIndex
+        for token in text.split(whereSeparator: \.isWhitespace) {
+            output.append(AttributedString(String(text[cursor..<token.startIndex])))
+            cursor = token.endIndex
             var value = AttributedString(String(token))
             if TextFilter.isSingleWord(String(token)) {
                 let word = TextFilter.normalizeWord(String(token))
-                if !word.isEmpty { value.link = Self.link(for: word) }
+                if !word.isEmpty {
+                    value.link = Self.link(for: NSRange(token.startIndex..<token.endIndex, in: text))
+                }
             }
             output.append(value)
         }
+        output.append(AttributedString(String(text[cursor...])))
         return output
     }
 
     /// 用 URLComponents 构造查询串，避免 `don’t`、`café` 被转成 Punycode 主机名。
-    private static func link(for word: String) -> URL? {
+    private static func link(for range: NSRange) -> URL? {
         var components = URLComponents()
         components.scheme = "notchword-subtitle"
         components.host = "lookup"
-        components.queryItems = [URLQueryItem(name: "word", value: word)]
+        components.queryItems = [URLQueryItem(name: "offset", value: String(range.location)),
+                                 URLQueryItem(name: "length", value: String(range.length))]
         return components.url
     }
 }

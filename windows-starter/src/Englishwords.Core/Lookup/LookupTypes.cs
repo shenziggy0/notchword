@@ -1,4 +1,5 @@
 using Englishwords.Core.Dictionary;
+using System.Text.RegularExpressions;
 
 namespace Englishwords.Core.Lookup;
 
@@ -10,7 +11,8 @@ public enum LookupTrigger
     Clipboard,
     Selection,
     Region,
-    Notebook
+    Notebook,
+    Example
 }
 
 public static class LookupTriggerExtensions
@@ -24,6 +26,7 @@ public static class LookupTriggerExtensions
         LookupTrigger.Selection => "selection",
         LookupTrigger.Region => "region",
         LookupTrigger.Notebook => "notebook",
+        LookupTrigger.Example => "example",
         _ => "hotkey"
     };
 
@@ -42,6 +45,50 @@ public enum LookupMode
     Translate
 }
 
+public sealed record LookupContext
+{
+    public string Sentence { get; }
+    public int Start { get; }
+    public int Length { get; }
+
+    public LookupContext(string sentence, int start, int length)
+    {
+        Sentence = sentence;
+        if (start < 0 || length <= 0 || start > sentence.Length || length > sentence.Length - start) return;
+        var end = start + length;
+        while (start < end && (char.IsPunctuation(sentence[start]) || char.IsWhiteSpace(sentence[start]))) start++;
+        while (end > start && (char.IsPunctuation(sentence[end - 1]) || char.IsWhiteSpace(sentence[end - 1]))) end--;
+        Start = start;
+        Length = end - start;
+    }
+
+    public string? Selected => Sentence.Length <= 800 && Start >= 0 && Length > 0 &&
+        Start <= Sentence.Length && Length <= Sentence.Length - Start
+        ? Sentence.Substring(Start, Length) : null;
+
+    public static LookupContext? FromParagraph(string text, int start, int length)
+    {
+        if (start < 0 || length <= 0 || start > text.Length || length > text.Length - start) return null;
+        char[] stops = ['.', '!', '?', '。', '！', '？', '\n'];
+        var first = start == 0 ? 0 : text.LastIndexOfAny(stops, start - 1) + 1;
+        while (first < start && char.IsWhiteSpace(text[first])) first++;
+        var last = text.IndexOfAny(stops, start + length);
+        var end = last == -1 ? text.Length : last + 1;
+        return new LookupContext(text[first..end], start - first, length);
+    }
+
+    public string? Match(string pattern)
+    {
+        if (Selected is null) return null;
+        var parts = pattern.Split(' ').Select(part => part == "{person}"
+            ? "(?:me|you|him|her|us|them)" : Regex.Escape(part));
+        var expression = "(?<![A-Za-z])" + string.Join(@"\s+", parts) + "(?![A-Za-z])";
+        foreach (Match hit in Regex.Matches(Sentence, expression, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            if (hit.Index <= Start && hit.Index + hit.Length >= Start + Length) return hit.Value;
+        return null;
+    }
+}
+
 public sealed record LookupRequest(
     string Text,
     LookupTrigger Trigger,
@@ -49,7 +96,8 @@ public sealed record LookupRequest(
     string? Note = null,
     int AnchorX = 0,
     int AnchorY = 0,
-    bool HasAnchor = false);
+    bool HasAnchor = false,
+    LookupContext? Context = null);
 
 /// <summary>
 /// 面板展示用的标准化查询结果。
@@ -68,6 +116,9 @@ public sealed class LookupResult
     public string Origin { get; init; } = string.Empty;
     public required string Source { get; init; }
     public string? Note { get; set; }
+
+    public IReadOnlyList<string> Readings { get; set; } = [];
+    public string? Phrase { get; set; }
 
     public string? NotebookWord
     {

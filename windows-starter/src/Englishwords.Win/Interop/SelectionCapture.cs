@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Automation;
+using System.Windows.Automation.Text;
 using Englishwords.Core.Config;
 using Englishwords.Core.Lookup;
 
@@ -55,29 +56,30 @@ public sealed class SelectionCapture
         }
     }
 
-    public async Task<(string Text, string? Note)> CaptureAsync(LookupTrigger trigger)
+    public async Task<(string Text, string? Note, LookupContext? Context)> CaptureAsync(LookupTrigger trigger)
     {
         if (IsForegroundExcluded(out var procName))
         {
-            if (trigger.IsPassive()) return (string.Empty, null);
-            return (string.Empty, $"前台应用 {procName} 已加入排除名单，已跳过取词。");
+            if (trigger.IsPassive()) return (string.Empty, null, null);
+            return (string.Empty, $"前台应用 {procName} 已加入排除名单，已跳过取词。", null);
         }
 
         // 1. 优先尝试 UIAutomation 只读读取选区
-        var uiaText = await TryReadViaUIAutomationAsync().ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(uiaText))
-        {
-            return (uiaText, null);
-        }
+        var foreground = NativeMethods.GetForegroundWindow();
+        if (trigger.IsPassive() && _preferences.IsPaused(procName)) return (string.Empty, null, null);
+        var uia = await TryReadViaUIAutomationAsync(trigger != LookupTrigger.Translate).ConfigureAwait(false);
+        if (NativeMethods.GetForegroundWindow() != foreground || (trigger.IsPassive() && _preferences.IsPaused(procName)))
+            return (string.Empty, null, null);
+        if (uia is { } selection) return (selection.Text, null, selection.Context);
 
         // 2. 降级：模拟 Ctrl+C 并立即备份还原剪贴板
         var clipText = await TryReadViaClipboardFallbackAsync().ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(clipText))
         {
-            return (clipText, "当前控件未暴露选区，已改用剪贴板读取");
+            return (clipText, "当前控件未暴露选区，已改用剪贴板读取", null);
         }
 
-        return (string.Empty, null);
+        return (string.Empty, null, null);
     }
 
     /// <summary>
@@ -87,15 +89,17 @@ public sealed class SelectionCapture
     /// 严重时可被系统摘掉低级钩子。
     /// </para>
     /// </summary>
-    private static async Task<string?> TryReadViaUIAutomationAsync()
+    private sealed record PickedText(string Text, LookupContext? Context = null);
+
+    private static async Task<PickedText?> TryReadViaUIAutomationAsync(bool includeContext)
     {
-        var completion = new TaskCompletionSource<string?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = new TaskCompletionSource<PickedText?>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         var thread = new Thread(() =>
         {
             try
             {
-                completion.TrySetResult(ReadSelectionOnStaThread());
+                completion.TrySetResult(ReadSelectionOnStaThread(includeContext));
             }
             catch
             {
@@ -113,12 +117,13 @@ public sealed class SelectionCapture
         return finished == completion.Task ? await completion.Task.ConfigureAwait(false) : null;
     }
 
-    private static string? ReadSelectionOnStaThread()
+    private static PickedText? ReadSelectionOnStaThread(bool includeContext)
     {
         try
         {
             var focused = AutomationElement.FocusedElement;
             if (focused is null) return null;
+            if (focused.Current.IsPassword) return new PickedText(string.Empty);
 
             if (focused.TryGetCurrentPattern(TextPattern.Pattern, out var patternObj) &&
                 patternObj is TextPattern textPattern)
@@ -127,7 +132,29 @@ public sealed class SelectionCapture
                 if (ranges is { Length: > 0 })
                 {
                     var selected = ranges[0].GetText(500);
-                    if (!string.IsNullOrWhiteSpace(selected)) return selected;
+                    if (string.IsNullOrWhiteSpace(selected)) return null;
+                    if (!includeContext || TextFilter.Classify(selected) is not TextClassification.Word)
+                        return new PickedText(selected);
+                    try
+                    {
+                        var paragraph = ranges[0].Clone();
+                        paragraph.ExpandToEnclosingUnit(TextUnit.Paragraph);
+                        if (paragraph.CompareEndpoints(TextPatternRangeEndpoint.Start, ranges[0], TextPatternRangeEndpoint.Start) > 0 ||
+                            paragraph.CompareEndpoints(TextPatternRangeEndpoint.End, ranges[0], TextPatternRangeEndpoint.End) < 0)
+                            return new PickedText(selected);
+                        var prefix = paragraph.Clone();
+                        prefix.MoveEndpointByRange(TextPatternRangeEndpoint.End, ranges[0], TextPatternRangeEndpoint.Start);
+                        var all = paragraph.GetText(801);
+                        var before = prefix.GetText(801).Length;
+                        if (all.Length <= 800 && before <= all.Length && selected.Length <= all.Length - before &&
+                            all.AsSpan(before, selected.Length).SequenceEqual(selected.AsSpan()))
+                            return new PickedText(selected, LookupContext.FromParagraph(all, before, selected.Length));
+                    }
+                    catch (Exception ex) when (ex is InvalidOperationException or COMException or NotSupportedException)
+                    {
+                        // UIA 可以暴露选区，却不能扩展到段落。
+                    }
+                    return new PickedText(selected);
                 }
             }
         }

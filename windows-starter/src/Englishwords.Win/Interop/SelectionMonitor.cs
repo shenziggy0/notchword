@@ -121,6 +121,11 @@ public sealed class SelectionMonitor : IDisposable
     private void ScheduleCapture(NativeMethods.POINT anchor)
     {
         if (!_preferences.SelectionLookupEnabled) return;
+        var target = NativeMethods.WindowFromPoint(anchor);
+        var foreground = NativeMethods.GetForegroundWindow();
+        NativeMethods.GetWindowThreadProcessId(target, out var targetProcess);
+        NativeMethods.GetWindowThreadProcessId(foreground, out var foregroundProcess);
+        if (targetProcess == 0 || targetProcess != foregroundProcess) return;
 
         _pendingCts?.Cancel();
         _pendingCts?.Dispose();
@@ -132,10 +137,13 @@ public sealed class SelectionMonitor : IDisposable
             try
             {
                 await Task.Delay(80, token).ConfigureAwait(false);
-                if (token.IsCancellationRequested || !_preferences.SelectionLookupEnabled) return;
+                if (token.IsCancellationRequested || !_preferences.SelectionLookupEnabled ||
+                    NativeMethods.GetForegroundWindow() != foreground) return;
 
-                var (text, note) = await _capture.CaptureAsync(LookupTrigger.Selection).ConfigureAwait(false);
-                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(text)) return;
+                var (text, note, context) = await _capture.CaptureAsync(LookupTrigger.Selection).ConfigureAwait(false);
+                if (token.IsCancellationRequested || string.IsNullOrWhiteSpace(text) ||
+                    NativeMethods.GetForegroundWindow() != foreground ||
+                    _capture.IsForegroundExcluded(out var process) || _preferences.IsPaused(process)) return;
 
                 var normalized = text.Trim();
                 var now = DateTimeOffset.UtcNow;
@@ -155,7 +163,7 @@ public sealed class SelectionMonitor : IDisposable
                     note,
                     anchor.X,
                     anchor.Y,
-                    HasAnchor: true);
+                    HasAnchor: true, Context: context);
 
                 var accepted = OnSubmit?.Invoke(req) ?? false;
                 if (accepted)

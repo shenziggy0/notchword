@@ -367,6 +367,7 @@ public partial class SettingsWindow : Window
 
     private void RefreshOnlineStatus()
     {
+        OnlineDetails.Visibility = _preferences.OnlineEnabled ? Visibility.Visible : Visibility.Collapsed;
         OnlineStatusText.Text = _translator.GetOnlineAvailability() switch
         {
             OnlineAvailability.Disabled => "联网翻译已关闭",

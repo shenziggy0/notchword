@@ -136,11 +136,24 @@ enum AppRules {
             || UserDefaults.standard.stringArray(forKey: "apprules.userExcluded")?.contains(bundleID) == true
     }
 
+    static func isPaused(_ bundleID: String) -> Bool {
+        let pauses = UserDefaults.standard.dictionary(forKey: "apprules.pausedUntil")
+        return (pauses?[bundleID] as? Double ?? 0) > Date().timeIntervalSince1970
+    }
+
+    static func togglePause(_ bundleID: String) {
+        let now = Date().timeIntervalSince1970
+        let stored = UserDefaults.standard.dictionary(forKey: "apprules.pausedUntil") ?? [:]
+        var pauses = stored.compactMapValues { $0 as? Double }.filter { $0.value > now }
+        if pauses.removeValue(forKey: bundleID) == nil { pauses[bundleID] = now + 1800 }
+        UserDefaults.standard.set(pauses, forKey: "apprules.pausedUntil")
+    }
+
     /// 被动入口是否应当放行。自己的应用、密码管理器都不取词。
-    static func allowsPassiveLookup() -> Bool {
+    static func allowsPassiveLookup(checkPause: Bool = true) -> Bool {
         guard let bundleID = frontmostBundleID else { return true }
         if bundleID == Bundle.main.bundleIdentifier { return false }
-        return !isExcluded(bundleID)
+        return !isExcluded(bundleID) && (!checkPause || !isPaused(bundleID))
     }
 }
 

@@ -4,8 +4,10 @@ import SwiftUI
 @MainActor
 final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
     @Published private(set) var step = 0
+    @Published private(set) var exampleFeedback = ""
     private let preferences: Preferences
     private var window: NSWindow?
+    var lookupExample: (() -> Void)?
 
     init(preferences: Preferences) {
         self.preferences = preferences
@@ -25,9 +27,23 @@ final class OnboardingWindow: NSObject, NSWindowDelegate, ObservableObject {
             self.window = window
         }
         step = 0
+        exampleFeedback = ""
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    func showExampleResult(_ state: LookupState) {
+        switch state {
+        case .loading:
+            exampleFeedback = "正在查词…"
+        case .result(_, let result):
+            exampleFeedback = result.body.components(separatedBy: "\n").first ?? result.body
+        case .miss:
+            exampleFeedback = "随包词库缺少示例词。"
+        case .failure(_, let detail):
+            exampleFeedback = detail
+        }
     }
 
     func next() {
@@ -86,12 +102,21 @@ private struct OnboardingView: View {
                     .frame(width: 50, height: 50)
                     .background(Lexicon.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 15))
                     .accessibilityHidden(true)
-                Text(["从选中文字开始", "允许辅助功能", "识别图片与字幕"][controller.step])
+                Text(["查第一个单词", "允许辅助功能", "识别图片与字幕"][controller.step])
                     .font(.largeTitle.bold())
                     .accessibilityAddTraits(.isHeader)
                 switch controller.step {
                 case 0:
-                    Text("选中英文，再按快捷键。也可以从菜单栏查询剪贴板内容。")
+                    (Text("The villagers foiled an attempt to ") +
+                     Text("abduct").foregroundColor(Lexicon.accent).bold() +
+                     Text(" the young prince."))
+                    Button("查 abduct") { controller.lookupExample?() }
+                        .buttonStyle(.borderedProminent)
+                    if !controller.exampleFeedback.isEmpty {
+                        Text(controller.exampleFeedback).font(.callout)
+                            .accessibilityLabel("查词结果，\(controller.exampleFeedback)")
+                    }
+                    Text("在其他应用里选中英文，再按快捷键。")
                         .foregroundStyle(Lexicon.secondary)
                     HStack(spacing: 10) {
                         shortcut("查词", keys: preferences.lookupHotKey.display)

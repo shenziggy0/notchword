@@ -110,6 +110,21 @@ cd windows-starter
 默认产出框架依赖包，目标机器需安装 **.NET 8 Desktop Runtime**（Windows Desktop x64）。
 两种形态都会把 `LICENSE` 与 `THIRD-PARTY-NOTICES.md` 一起打进输出目录。
 
+### 发版
+
+1. 在 `CHANGELOG.md` 写好对应版本章节，例如 `## [0.5.4]`，和本次改动一起提交。
+2. 在仓库根目录运行下面的命令。检查通过后，给该提交打 tag 并推送。
+
+   ```bash
+   bash .github/scripts/release-notes.sh 0.5.4 HEAD &&
+     git tag v0.5.4 HEAD &&
+     git push origin refs/tags/v0.5.4
+   ```
+
+3. GitHub Actions 的 Package 会先校验该 tag 上的发布说明，再构建 macOS 和 Windows 安装包。构建成功后在对应 Release 草稿中核对安装包，再手动发布。
+
+补跑时在 **Actions → Package → Run workflow → Use workflow from** 选择对应版本 tag。已有草稿会更新同名附件并保留正文。同一版本公开后，后续打包请使用新版本 tag。
+
 ### 自检命令
 
 在 `macos-starter/` 下先定义产物路径，再逐条跑：
