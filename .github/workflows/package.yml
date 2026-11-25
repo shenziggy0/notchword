@@ -1,7 +1,7 @@
 name: Package
 # 推送版本 tag 后自动打包，也可手动选择同一版本 tag 补跑。
-# 先校验 tag 提交中的 CHANGELOG.md，再构建两端安装包并上传到对应 Release 草稿。
-# 已有草稿保留说明并更新同名附件，公开发布由维护者在 GitHub 确认。
+# 构建两端安装包并上传到对应 Release 草稿。新建草稿时正文留空。
+# 已有草稿保留说明并更新同名附件，维护者核对安装包、补写说明后公开发布。
 # macOS 为临时签名（ad-hoc），没有 Developer ID，也不公证。Windows 安装包不签名。
 #
 # 版本号由 resolve-version 解析一次，macOS 与 Windows 共用：
@@ -77,25 +77,6 @@ jobs:
             echo "version=${VERSION}"
             echo "commit=${TAG_COMMIT}"
           } >> "$GITHUB_OUTPUT"
-
-      - name: Validate tag changelog
-        shell: bash
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-          TAG_COMMIT: ${{ steps.version.outputs.commit }}
-        run: |
-          if ! bash .github/scripts/release-notes.sh "$VERSION" "$TAG_COMMIT" > "$RUNNER_TEMP/release-notes.md"; then
-            echo "::error::请检查该 tag 提交的 CHANGELOG.md 中是否有唯一且非空的 ## [$VERSION] 章节。"
-            exit 1
-          fi
-
-      - name: Upload validated release notes
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-notes
-          path: ${{ runner.temp }}/release-notes.md
-          if-no-files-found: error
-          overwrite: true
 
   build-macos-universal:
     name: macOS Universal DMG & PKG
@@ -327,11 +308,6 @@ jobs:
             "release-assets/Englishwords-${VERSION}-win-x64.zip"
             "release-assets/Englishwords-${VERSION}-win-x64.zip.sha256"
           )
-          NOTES_FILE="artifacts/release-notes/release-notes.md"
-          if [[ ! -s "$NOTES_FILE" ]]; then
-            echo "::error::缺少前置任务校验过的发布说明。"
-            exit 1
-          fi
           if is_draft="$(gh release view "$TAG" --json isDraft --jq '.isDraft')"; then
             if [[ "$is_draft" != true ]]; then
               echo "::error::Release $TAG 已公开，请使用新版本 tag 构建新的 Release 草稿。"
@@ -347,5 +323,5 @@ jobs:
               --draft \
               --verify-tag \
               --title "Englishwords v${VERSION}" \
-              --notes-file "$NOTES_FILE"
+              --notes ""
           fi

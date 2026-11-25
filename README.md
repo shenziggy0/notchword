@@ -112,20 +112,21 @@ cd windows-starter
 
 ### 发版
 
-1. 在 `CHANGELOG.md` 写好对应版本章节，例如 `## [0.5.4]`，和本次改动一起提交。
-2. 在仓库根目录运行下面的命令。检查通过后，给该提交打 tag 并推送。
+1. 为要发布的提交打版本 tag 并推送。将下面的 `v1.2.3` 换成本次版本。
 
    ```bash
-   bash .github/scripts/release-notes.sh 0.5.4 HEAD &&
-     git tag v0.5.4 HEAD &&
-     git push origin refs/tags/v0.5.4
+   git tag v1.2.3 HEAD &&
+     git push origin refs/tags/v1.2.3
    ```
 
-3. GitHub Actions 的 Package 会先校验该 tag 上的发布说明，再构建 macOS 和 Windows 安装包。构建成功后在对应 Release 草稿中核对安装包，再手动发布。
+2. GitHub Actions 的 Package 会构建 macOS 和 Windows 安装包，并上传到对应的 Release 草稿。
+3. 核对草稿中的安装包和 SHA-256，补写发布说明，再手动发布。若 tag 上已经有对应的更新日志章节，可用 `bash .github/scripts/release-notes.sh 1.2.3 v1.2.3` 提取正文。
 
 补跑采用所选 tag 保存的工作流。对于包含新版工作流的 tag，在 **Actions → Package → Run workflow → Use workflow from** 选择对应版本。已有草稿会更新同名附件并保留正文。
 
 历史版本 `v0.5.2` 和 `v0.5.3` 的旧工作流会覆盖已公开 Release 的同名附件。同一版本公开后，请使用新版本 tag 打包。
+
+`v0.5.4` 保存的工作流仍要求对应的更新日志章节。先打包、后补写说明的流程适用于包含这项改动的新 tag。
 
 ### 自检命令
 
