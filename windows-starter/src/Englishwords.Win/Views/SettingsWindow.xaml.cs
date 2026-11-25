@@ -52,6 +52,7 @@ public partial class SettingsWindow : Window
 
     private void LoadInitialState()
     {
+        ThemeCombo.SelectedValue = _preferences.Theme.ToString();
         PanelStyleCombo.SelectedIndex = _preferences.PanelStyle == PanelStyle.Notch ? 0 : 1;
         SelectionToggle.IsChecked = _preferences.SelectionLookupEnabled;
         AutoHideToggle.Content = $"展示 {Math.Clamp(_preferences.AutoHideSeconds, 2, 30):0.#} 秒后自动收起";
@@ -102,6 +103,14 @@ public partial class SettingsWindow : Window
             "热键冲突",
             MessageBoxButton.OK,
             MessageBoxImage.Warning);
+    }
+
+    private void ThemeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing || !Enum.TryParse<AppTheme>(ThemeCombo.SelectedValue as string, out var theme)) return;
+        _preferences.Theme = theme;
+        _preferences.Save(_settingsPath);
+        (System.Windows.Application.Current as App)?.Appearance?.Refresh();
     }
 
     private void PanelStyleCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)

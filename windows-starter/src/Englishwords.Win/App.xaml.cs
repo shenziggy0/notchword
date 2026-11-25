@@ -95,8 +95,8 @@ public partial class App : System.Windows.Application
             return;
         }
 
-        Appearance = new DesktopAppearance(this);
         InitializeCoreServices();
+        Appearance = new DesktopAppearance(this, _preferences);
         InitializeUiAndHooks();
         FileLog.Write("Englishwords Windows 客户端启动完成");
     }
@@ -472,7 +472,7 @@ public partial class App : System.Windows.Application
         content.Children.Add(done);
         _welcomeWindow = new Window
         {
-            Title = "开始使用 Englishwords", Width = 460, SizeToContent = SizeToContent.Height,
+            Style = (Style)FindResource("PageWindow"), Title = "开始使用 Englishwords", Width = 460, SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterScreen, Content = content
         };
         _welcomeWindow.Closed += (_, _) =>

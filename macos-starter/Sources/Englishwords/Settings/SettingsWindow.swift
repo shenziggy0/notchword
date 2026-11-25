@@ -340,6 +340,8 @@ struct SettingsView: View {
         model.refreshOnlineStatus(translator: translator)
     }
 
+    @AppStorage(LexiconTheme.defaultsKey) private var theme = LexiconTheme.system
+
     private enum TranslationField: Hashable { case address, model }
     @FocusState private var translationField: TranslationField?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -354,7 +356,7 @@ struct SettingsView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Text(model.selectedTab.rawValue)
-                            .font(.largeTitle.bold()).accessibilityAddTraits(.isHeader)
+                            .font(.system(size: 17, weight: .semibold)).accessibilityAddTraits(.isHeader)
                         Spacer()
                         if compact {
                             Menu {
@@ -400,6 +402,7 @@ struct SettingsView: View {
             }
             .padding(12)
         }
+        .onChange(of: theme) { _, selection in selection.apply() }
         .onChange(of: model.selectedTab) { _, _ in
             recorder.cancel()
         }
@@ -422,11 +425,19 @@ struct SettingsView: View {
         .scrollContentBackground(.hidden)
         .padding(5)
         .frame(width: 154)
-        .lexiconGlass(in: RoundedRectangle(cornerRadius: 21, style: .continuous))
+        .lexiconGlass(in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .accessibilityLabel("设置分类")
     }
 
     @ViewBuilder private var generalSection: some View {
+        Section("外观") {
+            Picker("主题", selection: $theme) {
+                ForEach(LexiconTheme.allCases, id: \.self) { choice in
+                    Text(choice.label).tag(choice)
+                }
+            }
+            .pickerStyle(.segmented)
+        }
         Section("启动") {
             Toggle("登录后启动", isOn: Binding(get: { model.loginEnabled }, set: model.changeLoginItem))
             if !model.loginMessage.isEmpty {
@@ -837,7 +848,7 @@ struct LanguagePackView: View {
             Image(systemName: "character.bubble")
                 .font(.system(size: 24, weight: .medium)).foregroundStyle(Lexicon.accent)
                 .accessibilityHidden(true)
-            Text("英译中语言包").font(.largeTitle.bold())
+            Text("英译中语言包").font(.system(size: 17, weight: .semibold))
             ScrollView {
                 Text(model.status)
                     .font(.body).foregroundStyle(Lexicon.secondary)

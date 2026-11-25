@@ -238,7 +238,7 @@ final class PanelController {
 
     // MARK: - 渲染
 
-    private func render(on screen: NSScreen, subtitleHeight: CGFloat? = nil) {
+    private func render(on screen: NSScreen, measuredHeight: CGFloat? = nil) {
         guard state != nil || subtitle != nil else { return }
 
         let geometry = NotchGeometry.measure(screen)
@@ -246,8 +246,8 @@ final class PanelController {
         let maxHeight = max(geometry.contentTopInset + 46, screen.visibleFrame.height - 40)
         let cap = subtitle == nil ? maxHeight : min(maxHeight, geometry.contentTopInset + 280)
         let naturalHeight: CGFloat
-        if let subtitleHeight {
-            naturalHeight = subtitleHeight
+        if let measuredHeight {
+            naturalHeight = measuredHeight
         } else {
             let natural = content(geometry: geometry, width: width, maxHeight: nil)
             let measure = NSHostingView(rootView: natural.frame(width: width).fixedSize(horizontal: false, vertical: true))
@@ -258,14 +258,14 @@ final class PanelController {
         let revision = layoutRevision
         let view = content(geometry: geometry, width: width,
                            maxHeight: naturalHeight > cap ? height : nil, observeFocus: true) {
-            [weak self] subtitleContentHeight in
-            // 翻句和译文抵达都会改变实际高度。延后一轮，避开 SwiftUI 正在进行的布局。
+            [weak self] contentHeight in
+            // 展开同族词、选择原句或收到新字幕后，让面板贴合实际内容。
             DispatchQueue.main.async {
-                guard let self, self.isVisible, self.subtitle != nil, self.layoutRevision == revision else { return }
-                let measured = ceil(subtitleContentHeight) + geometry.contentTopInset
+                guard let self, self.isVisible, self.layoutRevision == revision else { return }
+                let measured = ceil(contentHeight) + geometry.contentTopInset
                 let proposed = min(cap, max(geometry.contentTopInset + 46, measured))
-                if abs(proposed - self.targetFrame.height) >= 1 {
-                    self.render(on: screen, subtitleHeight: measured)
+                if abs(proposed - self.targetFrame.height) >= 1 || (measured > cap) != (naturalHeight > cap) {
+                    self.render(on: screen, measuredHeight: measured)
                 }
             }
         }
@@ -286,7 +286,7 @@ final class PanelController {
         if isVisible, !reduceMotion, previous != frame, screen.frame.contains(NSPoint(x: previous.midX, y: previous.midY)) {
             let opening = frame.height > previous.height || frame.width > previous.width
             NSAnimationContext.runAnimationGroup { context in
-                context.duration = opening ? 0.30 : 0.19
+                context.duration = opening ? 0.18 : 0.12
                 context.timingFunction = CAMediaTimingFunction(controlPoints: 0.22, 0.82, 0.22, 1)
                 panel.animator().setFrame(frame, display: true)
             }
@@ -305,11 +305,11 @@ final class PanelController {
 
     private func content(geometry: NotchGeometry, width: CGFloat, maxHeight: CGFloat?,
                          observeFocus: Bool = false,
-                         onSubtitleHeight: ((CGFloat) -> Void)? = nil) -> AnyView {
+                         onHeightChanged: ((CGFloat) -> Void)? = nil) -> AnyView {
         if let subtitle {
             return AnyView(SubtitleViewport(tracker: subtitle.tracker, subtitle: subtitle, width: width,
                                            topInset: geometry.contentTopInset, maxHeight: maxHeight,
-                                           onHeightChanged: { onSubtitleHeight?($0) }))
+                                           onHeightChanged: { onHeightChanged?($0) }))
         }
         guard let state else { return AnyView(EmptyView()) }
         let revision = resultRevision
@@ -326,6 +326,7 @@ final class PanelController {
             lookupRelated: lookupRelated,
             lookupPrevious: lookupPrevious,
             onBackToSubtitle: state.request.trigger == .subtitle ? onBackToSubtitle : nil,
+            onHeightChanged: onHeightChanged,
             onExpand: { [weak self] in self?.expand() },
             onDismiss: { [weak self] in self?.hide() },
             onAccessibilityFocusChanged: observeFocus ? { [weak self] inside in
@@ -348,7 +349,7 @@ final class PanelController {
             isVisible = true
             if !reduceMotion {
                 NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.20
+                    context.duration = 0.18
                     context.timingFunction = CAMediaTimingFunction(name: .easeOut)
                     panel.animator().alphaValue = 1
                 }

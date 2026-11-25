@@ -10,12 +10,12 @@
             <Setter Property="FontFamily" Value="{StaticResource InterfaceFont}"/>
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
             <Setter Property="Background" Value="{DynamicResource CanvasBrush}"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="UseLayoutRounding" Value="True"/>
         </Style>
         <Style x:Key="PageTitle" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="34"/>
-            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Margin" Value="0,0,0,14"/>
             <Setter Property="AutomationProperties.HeadingLevel" Value="Level1"/>
         </Style>
@@ -30,7 +30,7 @@
             <Setter Property="Background" Value="{DynamicResource SurfaceBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource RuleBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="20"/>
+            <Setter Property="CornerRadius" Value="12"/>
             <Setter Property="Padding" Value="16,12"/>
         </Style>
         <Style x:Key="RowRule" TargetType="Border">
@@ -39,17 +39,17 @@
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Foreground" Value="{DynamicResource TintTextBrush}"/>
-            <Setter Property="Background" Value="{DynamicResource TintBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource RuleBrush}"/>
             <Setter Property="Padding" Value="13,5"/>
-            <Setter Property="MinHeight" Value="36"/>
+            <Setter Property="MinHeight" Value="32"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Tile" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="1" CornerRadius="30" Padding="{TemplateBinding Padding}">
+                                BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
                             <ContentPresenter x:Name="Caption" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True"/>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -57,12 +57,21 @@
                                 <Setter TargetName="Tile" Property="Background" Value="{DynamicResource HoverBrush}"/>
                                 <Setter TargetName="Caption" Property="TextElement.Foreground" Value="{DynamicResource HoverTextBrush}"/>
                             </Trigger>
+                            <MultiTrigger>
+                                <MultiTrigger.Conditions>
+                                    <Condition Property="Tag" Value="primary"/>
+                                    <Condition Property="IsMouseOver" Value="True"/>
+                                </MultiTrigger.Conditions>
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource AccentHoverBrush}"/>
+                                <Setter TargetName="Caption" Property="TextElement.Foreground" Value="{DynamicResource OnAccentBrush}"/>
+                            </MultiTrigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource SelectedBrush}"/>
-                                <Setter TargetName="Caption" Property="TextElement.Foreground" Value="{DynamicResource SelectedTextBrush}"/>
+                                <Setter TargetName="Tile" Property="Background" Value="{DynamicResource TintBrush}"/>
+                                <Setter TargetName="Caption" Property="TextElement.Foreground" Value="{DynamicResource TintTextBrush}"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/>
+                                <Setter TargetName="Tile" Property="BorderThickness" Value="2"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Tile" Property="Opacity" Value=".55"/></Trigger>
                         </ControlTemplate.Triggers>
@@ -78,11 +87,11 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Grid>
-                            <Border x:Name="SelectionPill" Background="{DynamicResource SelectedBrush}" BorderBrush="{DynamicResource RuleBrush}"
+                            <Border x:Name="SelectionPill" Background="{DynamicResource GlassSelectionBrush}" BorderBrush="{DynamicResource RuleBrush}"
                                     BorderThickness="1" CornerRadius="20" Visibility="Collapsed" IsHitTestVisible="False"/>
                             <Border x:Name="Pill" Background="Transparent" BorderBrush="Transparent" BorderThickness="1" CornerRadius="20" Padding="14,6">
                                 <ContentPresenter x:Name="TabCaption" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                  TextElement.Foreground="{DynamicResource SecondaryBrush}" RecognizesAccessKey="True"/>
+                                                  TextElement.Foreground="{DynamicResource GlassInkBrush}" RecognizesAccessKey="True"/>
                             </Border>
                         </Grid>
                         <ControlTemplate.Triggers>
@@ -93,11 +102,12 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="SelectionPill" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="Pill" Property="Background" Value="Transparent"/>
-                                <Setter TargetName="TabCaption" Property="TextElement.Foreground" Value="{DynamicResource SelectedTextBrush}"/>
+                                <Setter TargetName="TabCaption" Property="TextElement.Foreground" Value="{DynamicResource GlassSelectedTextBrush}"/>
                                 <Setter TargetName="TabCaption" Property="TextElement.FontWeight" Value="SemiBold"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/>
+                                <Setter TargetName="Pill" Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -111,7 +121,7 @@
                     <ControlTemplate TargetType="TabControl">
                         <Grid KeyboardNavigation.TabNavigation="Local">
                             <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition/></Grid.RowDefinitions>
-                            <Border HorizontalAlignment="Left" CornerRadius="24" Padding="4" Margin="0,0,0,18"
+                            <Border HorizontalAlignment="Left" CornerRadius="18" Padding="3" Margin="0,0,0,12"
                                     Background="{DynamicResource NavigationGlass}" BorderThickness="1" BorderBrush="{DynamicResource RuleBrush}">
                                 <TabPanel IsItemsHost="True" KeyboardNavigation.TabIndex="1"/>
                             </Border>
@@ -149,7 +159,8 @@
                                 <Setter Property="Foreground" Value="{DynamicResource TintTextBrush}"/>
                             </Trigger>
                             <Trigger Property="IsKeyboardFocused" Value="True">
-                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                                <Setter TargetName="Row" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/>
+                                <Setter TargetName="Row" Property="BorderThickness" Value="2"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -199,7 +210,8 @@
                             <ScrollViewer x:Name="PART_ContentHost"/>
                         </Border>
                         <ControlTemplate.Triggers>
-                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/></Trigger>
+                            <Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter TargetName="Field" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/>
+                                <Setter TargetName="Field" Property="BorderThickness" Value="2"/></Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -227,7 +239,7 @@
         </Style>
         <Style TargetType="ComboBox">
             <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
-            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="MinHeight" Value="32"/>
             <Setter Property="Template"><Setter.Value>
                 <ControlTemplate TargetType="ComboBox">
                     <Grid>
@@ -254,7 +266,8 @@
                         </Popup>
                     </Grid>
                     <ControlTemplate.Triggers><Trigger Property="IsKeyboardFocusWithin" Value="True">
-                        <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource AccentBrush}"/>
+                        <Setter TargetName="Outline" Property="BorderBrush" Value="{DynamicResource FocusBrush}"/>
+                                <Setter TargetName="Outline" Property="BorderThickness" Value="2"/>
                     </Trigger></ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value></Setter>

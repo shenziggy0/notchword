@@ -18,26 +18,26 @@ enum PreviewRenderer {
     @MainActor
     @discardableResult
     static func render(to path: String, demo: Demo = .word) -> Bool {
+        LexiconTheme.current.apply()
+        let dictionary = DictionaryStore()
         let view = ResultView(
-            state: makeState(demo),
+            state: makeState(demo, dictionary: dictionary),
             mode: .expanded,
             topInset: 12,
             width: 474,
             maxHeight: nil,
             showWordParts: true,
             lookupShortcut: HotKeySpec.lookup.display,
+            notebook: NotebookModel(store: NotebookStore()),
+            relatedWords: { id, word in await dictionary.relatedWords(partID: id, excluding: word) },
             isStaticPreview: true
         )
         .environment(\.lexiconSnapshot, true)
         .padding(.top, 18)
         .padding(.bottom, 26)
         .padding(.horizontal, 26)
-        .background(
-            LinearGradient(
-                colors: [Lexicon.indigo, Lexicon.ink],
-                startPoint: .top, endPoint: .bottom
-            )
-        )
+        .background(Lexicon.subtle)
+        .environment(\.colorScheme, NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? .dark : .light)
 
         let renderer = ImageRenderer(content: view)
         renderer.scale = 2
@@ -62,33 +62,20 @@ enum PreviewRenderer {
 
     // MARK: - 演示数据
 
-    private static func makeState(_ demo: Demo) -> LookupState {
+    private static func makeState(_ demo: Demo, dictionary: DictionaryStore) -> LookupState {
         let wordRequest = LookupRequest(text: "unbelievable", trigger: .hover, screen: NSScreen.main)
         let sentenceText = "The quick brown fox jumps over the lazy dog."
         let sentenceRequest = LookupRequest(text: sentenceText, trigger: .selection, screen: NSScreen.main)
 
         switch demo {
         case .word:
-            return .result(wordRequest, .word(
-                input: "unbelievable",
-                entry: Entry(
-                    word: "unbelievable",
-                    phonetic: "/ˌʌnbɪˈliːvəbl/",
-                    pos: "adj.",
-                    translation: "难以置信的；惊人的\n[网络] 不可思议；难以相信的",
-                    tags: ["四级", "GRE"],
-                    dictionary: "内置词库"
-                ),
-                morphology: Morphology(
-                    segments: [
-                        Segment(role: "prefix", label: "un", gloss: "不"),
-                        Segment(role: "root", label: "believ", gloss: "相信"),
-                        Segment(role: "suffix", label: "able", gloss: "可……的")
-                    ],
-                    origin: "un-（不）+ believe（相信）+ -able（可……的）"
-                ),
-                note: nil
-            ))
+            switch dictionary.lookup(wordRequest.text) {
+            case .success(let entry?):
+                return .result(wordRequest, .word(input: wordRequest.text, entry: entry,
+                                                  morphology: dictionary.morphology(entry.word), note: nil))
+            case .success(nil): return .miss(wordRequest)
+            case .failure(let error): return .failure(wordRequest, error.localizedDescription)
+            }
 
         case .sentence:
             return .result(sentenceRequest, .translated(

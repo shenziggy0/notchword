@@ -350,7 +350,7 @@ public partial class NotchPanelWindow : Window
         content.Children.Add(saveButton);
         var dialog = new Window
         {
-            Owner = this, Title = "连同原句收藏", Width = 440, SizeToContent = SizeToContent.Height,
+            Style = (Style)FindResource("PageWindow"), Owner = this, Title = "连同原句收藏", Width = 440, SizeToContent = SizeToContent.Height,
             WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = content, ShowInTaskbar = false
         };
         saveButton.Click += (_, _) => dialog.DialogResult = true;
@@ -454,7 +454,7 @@ public partial class NotchPanelWindow : Window
         RootBorder.MaxWidth = Math.Clamp(workRight - workLeft - 16, 1, 500);
         RootBorder.MinWidth = Math.Min(258, RootBorder.MaxWidth);
         RootBorder.CornerRadius = _preferences.PanelStyle == PanelStyle.Notch
-            ? new CornerRadius(0, 0, 23, 23) : new CornerRadius(22);
+            ? new CornerRadius(0, 0, 16, 16) : new CornerRadius(12);
         PanelScroll.MaxHeight = Math.Max(1, workBottom - workTop - 44);
         UpdateLayout();
 

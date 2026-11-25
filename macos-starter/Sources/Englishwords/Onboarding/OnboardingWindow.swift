@@ -99,11 +99,11 @@ private struct OnboardingView: View {
                 Image(systemName: ["text.cursor", "hand.raised", "viewfinder"][controller.step])
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(Lexicon.accent)
-                    .frame(width: 50, height: 50)
-                    .background(Lexicon.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 15))
+                    .frame(width: 40, height: 40)
+                    .background(Lexicon.selected, in: RoundedRectangle(cornerRadius: 10))
                     .accessibilityHidden(true)
                 Text(["查第一个单词", "允许辅助功能", "识别图片与字幕"][controller.step])
-                    .font(.largeTitle.bold())
+                    .font(.system(size: 17, weight: .semibold))
                     .accessibilityAddTraits(.isHeader)
                 switch controller.step {
                 case 0:
@@ -159,7 +159,7 @@ private struct OnboardingView: View {
     }
 
     private func advance(_ action: () -> Void) {
-        withAnimation(reduceMotion ? nil : .smooth(duration: 0.24)) { action() }
+        withAnimation(reduceMotion ? nil : .smooth(duration: 0.18)) { action() }
     }
 
     private func shortcut(_ label: String, keys: String) -> some View {

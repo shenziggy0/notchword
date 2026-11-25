@@ -26,8 +26,11 @@
         </Style>
     </Window.Resources>
     <DockPanel Margin="24,16,24,22">
-        <TextBlock DockPanel.Dock="Top" Style="{StaticResource PageTitle}" Text="笔记本"/>
-        <Button DockPanel.Dock="Top" Content="复习 3 个词" HorizontalAlignment="Left" Margin="0,0,0,8" Click="Review_Click"/>
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
+            <Button DockPanel.Dock="Right" Content="复习 3 个词" Tag="primary" Margin="10,0,0,0" Click="Review_Click"
+                    Background="{DynamicResource AccentBrush}" Foreground="{DynamicResource OnAccentBrush}"/>
+            <TextBlock Style="{StaticResource PageTitle}" Text="笔记本" VerticalAlignment="Center" Margin="0"/>
+        </DockPanel>
         <TabControl x:Name="Pages" AutomationProperties.Name="笔记本栏目">
             <TabItem Header="收藏">
                 <DockPanel>
@@ -35,7 +38,7 @@
                                Text="{Binding Items.Count, ElementName=FavoritesList, StringFormat='已收藏 {0} 个单词'}"/>
                     <Border Style="{StaticResource ContentCard}" Padding="6">
                         <Grid>
-                            <ListBox x:Name="FavoritesList" AutomationProperties.Name="收藏单词" FontSize="19"
+                            <ListBox x:Name="FavoritesList" AutomationProperties.Name="收藏单词" FontSize="15"
                                      PreviewKeyDown="LookupList_KeyDown" MouseDoubleClick="WordList_MouseDoubleClick">
                                 <ListBox.ItemTemplate><DataTemplate>
                                     <DockPanel>
@@ -49,7 +52,7 @@
                             </ListBox>
                             <StackPanel Style="{StaticResource EmptyMessage}" DataContext="{Binding ElementName=FavoritesList}">
                                 <Path Style="{StaticResource EmptyIcon}" Data="M 5,21 L 5,4 Q 5,2 7,2 L 17,2 Q 19,2 19,4 L 19,21 12,16 Z"/>
-                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="18" Text="还没有收藏"/>
+                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="15" Text="还没有收藏"/>
                                 <TextBlock Margin="0,6,0,0" TextAlignment="Center" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" Text="点查词面板的书签，就能在这里找到那个词。"/>
                             </StackPanel>
                         </Grid>
@@ -75,7 +78,7 @@
                             </ListBox>
                             <StackPanel Style="{StaticResource EmptyMessage}" DataContext="{Binding ElementName=HistoryList}">
                                 <Path Style="{StaticResource EmptyIcon}" Data="M 2,4 L 2,9 7,9 M 2,9 A 9,9 0 1 1 3,17 M 12,6 L 12,12 16,14"/>
-                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="18" Text="还没有查词记录"/>
+                                <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" FontSize="15" Text="还没有查词记录"/>
                                 <TextBlock Margin="0,6,0,0" TextAlignment="Center" Foreground="{DynamicResource SecondaryBrush}" TextWrapping="Wrap" Text="查过的单词会按时间出现在这里。"/>
                             </StackPanel>
                         </Grid>

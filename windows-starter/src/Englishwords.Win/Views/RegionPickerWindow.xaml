@@ -7,14 +7,14 @@
     <Canvas x:Name="OverlayCanvas">
         <Rectangle x:Name="SelectionRect" Stroke="{DynamicResource SelectionLineBrush}" StrokeThickness="2"
                    RadiusX="4" RadiusY="4" Fill="{DynamicResource SelectionWashBrush}" Visibility="Collapsed"/>
-        <Border Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource PanelRuleBrush}" BorderThickness="1"
+        <Border Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource RuleBrush}" BorderThickness="1"
                 CornerRadius="24" Padding="14,9" Canvas.Left="20" Canvas.Top="18" IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <Path Data="M 1,7 L 1,2 Q 1,1 2,1 L 7,1 M 13,1 L 18,1 Q 19,1 19,2 L 19,7 M 19,13 L 19,18 Q 19,19 18,19 L 13,19 M 7,19 L 2,19 Q 1,19 1,18 L 1,13"
-                      Stroke="{DynamicResource PanelAccentBrush}" StrokeThickness="1.8" Margin="0,0,10,0"/>
-                <TextBlock Text="拖动框选英文区域" Foreground="{DynamicResource PanelTextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
-                <Border Background="{DynamicResource NotchGlass}" BorderBrush="{DynamicResource PanelRuleBrush}" BorderThickness="1" CornerRadius="11" Margin="12,0,0,0" Padding="8,2">
-                    <TextBlock Text="Esc 取消" Foreground="{DynamicResource PanelMutedBrush}" FontSize="12"/>
+                      Stroke="{DynamicResource LinkBrush}" StrokeThickness="1.8" Margin="0,0,10,0"/>
+                <TextBlock Text="拖动框选英文区域" Foreground="{DynamicResource TextBrush}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/>
+                <Border Background="{DynamicResource ControlBrush}" BorderBrush="{DynamicResource RuleBrush}" BorderThickness="1" CornerRadius="11" Margin="12,0,0,0" Padding="8,2">
+                    <TextBlock Text="Esc 取消" Foreground="{DynamicResource SecondaryBrush}" FontSize="12"/>
                 </Border>
             </StackPanel>
         </Border>

@@ -8,77 +8,89 @@
         <Style x:Key="PanelAction" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="FontFamily" Value="{StaticResource Lucide}"/>
             <Setter Property="FontSize" Value="16"/>
-            <Setter Property="Width" Value="36"/>
-            <Setter Property="Height" Value="36"/>
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
             <Setter Property="Margin" Value="2,0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{DynamicResource PanelTextBrush}"/>
+            <Setter Property="Foreground" Value="{DynamicResource GlassInkBrush}"/>
             <Style.Triggers>
                 <Trigger Property="Tag" Value="saved">
-                    <Setter Property="Background" Value="{DynamicResource PanelTintBrush}"/>
-                    <Setter Property="Foreground" Value="{DynamicResource PanelTintTextBrush}"/>
+                    <Setter Property="Background" Value="{DynamicResource TintBrush}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TintTextBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
     </Window.Resources>
-    <Border x:Name="RootBorder" Background="{DynamicResource PanelBrush}" BorderBrush="{DynamicResource PanelRuleBrush}" BorderThickness="1" CornerRadius="20"
-            Padding="16,10,16,12" MaxWidth="500" MinWidth="258">
+    <Border x:Name="RootBorder" Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource RuleBrush}" BorderThickness="1" CornerRadius="20"
+            Padding="14,8,14,12" MaxWidth="500" MinWidth="258">
         <ScrollViewer x:Name="PanelScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-            <StackPanel x:Name="PanelBody" TextBlock.Foreground="{DynamicResource PanelTextBrush}">
-                <DockPanel x:Name="SourceLine" Margin="2,0,0,7">
-                    <Path DockPanel.Dock="Left" Data="M 1,2 Q 5,1 8,3 Q 11,1 15,2 L 15,13 Q 11,12 8,14 Q 5,12 1,13 Z M 8,3 L 8,14"
-                          Stroke="{DynamicResource PanelAccentBrush}" StrokeThickness="1.3" StrokeLineJoin="Round" VerticalAlignment="Center" Margin="0,0,7,0"/>
-                    <TextBlock x:Name="SourceText" Foreground="{DynamicResource PanelAccentBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap"/>
-                </DockPanel>
+            <StackPanel x:Name="PanelBody" TextBlock.Foreground="{DynamicResource TextBrush}">
                 <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
                     <Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-                    <StackPanel VerticalAlignment="Center" Margin="1,0,12,0">
-                        <TextBlock x:Name="TitleText" Text="Englishwords" FontWeight="SemiBold" FontSize="29" TextWrapping="Wrap" MaxWidth="328" HorizontalAlignment="Left" AutomationProperties.HeadingLevel="Level1"/>
-                        <TextBlock x:Name="PhoneticText" Foreground="{DynamicResource PanelMutedBrush}" FontSize="14" TextWrapping="Wrap"/>
-                    </StackPanel>
-                    <Border Grid.Column="1" VerticalAlignment="Center" Padding="2" CornerRadius="24" Background="{DynamicResource NotchGlass}" BorderBrush="{DynamicResource PanelRuleBrush}" BorderThickness="1">
+                    <Border Grid.ColumnSpan="2" CornerRadius="10" Background="{DynamicResource NavigationGlass}"
+                            BorderThickness="1" BorderBrush="{DynamicResource FieldEdgeBrush}"
+                            Visibility="{Binding Visibility, ElementName=SourceLine}"/>
+                    <DockPanel x:Name="SourceLine" VerticalAlignment="Center" Margin="9,4,6,4">
+                        <TextBlock DockPanel.Dock="Left" FontFamily="{StaticResource Lucide}" Text="&#xe063;"
+                                   Foreground="{DynamicResource GlassInkBrush}" Margin="0,0,6,0"/>
+                        <TextBlock x:Name="SourceText" Foreground="{DynamicResource GlassInkBrush}" FontSize="12" TextWrapping="Wrap"/>
+                    </DockPanel>
+                    <Border Grid.Column="1" VerticalAlignment="Center" Padding="2" CornerRadius="10" Background="{DynamicResource NavigationGlass}">
                         <StackPanel Orientation="Horizontal">
                             <Button x:Name="SpeakButton" Style="{StaticResource PanelAction}" Content="&#xe1aa;" ToolTip="朗读单词" AutomationProperties.Name="朗读单词" Click="SpeakButton_Click"/>
                             <Button x:Name="FavoriteButton" Style="{StaticResource PanelAction}" Content="&#xe064;" ToolTip="收藏单词" AutomationProperties.Name="收藏单词" Click="FavoriteButton_Click"/>
                             <Button x:Name="CloseButton" Style="{StaticResource PanelAction}" Content="&#xe1b1;" ToolTip="关闭 (Esc)" AutomationProperties.Name="关闭" Click="CloseButton_Click"/>
                         </StackPanel>
                     </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <StackPanel.Style><Style TargetType="StackPanel">
+                            <Setter Property="Grid.Row" Value="1"/>
+                            <Setter Property="Grid.ColumnSpan" Value="2"/>
+                            <Setter Property="Margin" Value="1,10,0,0"/>
+                            <Style.Triggers><DataTrigger Binding="{Binding Visibility, ElementName=SourceLine}" Value="Collapsed">
+                                <Setter Property="Grid.Row" Value="0"/>
+                                <Setter Property="Grid.ColumnSpan" Value="1"/>
+                                <Setter Property="Margin" Value="1,0,8,0"/>
+                            </DataTrigger></Style.Triggers>
+                        </Style></StackPanel.Style>
+                        <TextBlock x:Name="TitleText" Text="Englishwords" FontWeight="SemiBold" FontSize="30" TextWrapping="Wrap" HorizontalAlignment="Left" AutomationProperties.HeadingLevel="Level1"/>
+                        <TextBlock x:Name="PhoneticText" Foreground="{DynamicResource SecondaryBrush}" FontSize="13" TextWrapping="Wrap"/>
+                    </StackPanel>
                 </Grid>
 
                 <TextBlock x:Name="CompactSummaryText" TextTrimming="CharacterEllipsis" MaxWidth="400"
-                           Foreground="{DynamicResource PanelMutedBrush}" FontSize="13" Margin="2,3,0,0" Visibility="Collapsed"/>
+                           Foreground="{DynamicResource SecondaryBrush}" FontSize="13" Margin="2,3,0,0" Visibility="Collapsed"/>
                 <StackPanel x:Name="ExpandedContent">
                     <ItemsControl x:Name="TagsList" Margin="0,7,0,2">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate><DataTemplate>
-                            <Border Background="{DynamicResource PanelTintBrush}" CornerRadius="12" Padding="9,2" Margin="0,0,5,4">
-                                <TextBlock Text="{Binding}" Foreground="{DynamicResource PanelTintTextBrush}" FontSize="12"/>
+                            <Border Background="{DynamicResource ControlBrush}" CornerRadius="12" Padding="9,2" Margin="0,0,5,4">
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource SecondaryBrush}" FontSize="11"/>
                             </Border>
                         </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock x:Name="OriginalSentenceText" Foreground="{DynamicResource PanelMutedBrush}" FontSize="14" TextWrapping="Wrap" Margin="1,9,0,0" Visibility="Collapsed"/>
+                    <TextBlock x:Name="OriginalSentenceText" Foreground="{DynamicResource SecondaryBrush}" FontSize="14" TextWrapping="Wrap" Margin="1,9,0,0" Visibility="Collapsed"/>
                     <Button x:Name="SaveExampleButton" Content="连同原句收藏" Visibility="Collapsed" HorizontalAlignment="Left"
                             Margin="0,8,0,0" Click="SaveExampleButton_Click"/>
-                    <WrapPanel x:Name="RootActions" Margin="0,6,0,0"/>
-                    <StackPanel x:Name="FamilyList"/>
-                    <TextBlock x:Name="BodyText" FontSize="16" LineHeight="24" Margin="1,8,0,0" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="BodyText" FontSize="15" LineHeight="22" Margin="1,8,0,0" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
 
-                    <Border Style="{StaticResource RowRule}" Background="{DynamicResource PanelRuleBrush}" Visibility="{Binding Visibility, ElementName=SegmentsList}" Margin="0,12,0,9"/>
-                    <TextBlock Text="词根词缀" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource PanelMutedBrush}" Margin="1,0,0,6" Visibility="{Binding Visibility, ElementName=SegmentsList}"/>
+                    <Border Style="{StaticResource RowRule}" Background="{DynamicResource RuleBrush}" Visibility="{Binding Visibility, ElementName=SegmentsList}" Margin="0,12,0,9"/>
+                    <TextBlock Text="词根词缀" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource SecondaryBrush}" Margin="1,0,0,6" Visibility="{Binding Visibility, ElementName=SegmentsList}"/>
                     <ItemsControl x:Name="SegmentsList">
                         <ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
                         <ItemsControl.ItemTemplate><DataTemplate>
-                            <Border BorderThickness="1" CornerRadius="13" Padding="9,6" Margin="0,0,5,5">
+                            <Border BorderThickness="1" CornerRadius="8" Padding="9,6" Margin="0,0,5,5">
                                 <Border.Style><Style TargetType="Border">
-                                    <Setter Property="Background" Value="{DynamicResource PanelControlBrush}"/>
-                                    <Setter Property="BorderBrush" Value="{DynamicResource PanelRuleBrush}"/>
-                                    <Setter Property="TextBlock.Foreground" Value="{DynamicResource PanelTextBrush}"/>
+                                    <Setter Property="Background" Value="{DynamicResource ControlBrush}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource RuleBrush}"/>
+                                    <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextBrush}"/>
                                     <Style.Triggers><DataTrigger Binding="{Binding IsRoot}" Value="True">
-                                        <Setter Property="Background" Value="{DynamicResource PanelTintBrush}"/>
-                                        <Setter Property="BorderBrush" Value="{DynamicResource PanelAccentBrush}"/>
-                                        <Setter Property="TextBlock.Foreground" Value="{DynamicResource PanelTintTextBrush}"/>
+                                        <Setter Property="Background" Value="{DynamicResource TintBrush}"/>
+                                        <Setter Property="BorderBrush" Value="{DynamicResource LinkBrush}"/>
+                                        <Setter Property="TextBlock.Foreground" Value="{DynamicResource TintTextBrush}"/>
                                     </DataTrigger></Style.Triggers>
                                 </Style></Border.Style>
                                 <StackPanel MaxWidth="256">
@@ -89,8 +101,10 @@
                             </Border>
                         </DataTemplate></ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock x:Name="OriginText" Foreground="{DynamicResource PanelMutedBrush}" FontSize="12" TextWrapping="Wrap" Margin="1,4,0,0" Visibility="Collapsed"/>
-                    <TextBlock x:Name="NoteText" Foreground="{DynamicResource PanelAccentBrush}" FontSize="12" TextWrapping="Wrap" Margin="1,8,0,0" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="OriginText" Foreground="{DynamicResource SecondaryBrush}" FontSize="12" TextWrapping="Wrap" Margin="1,4,0,0" Visibility="Collapsed"/>
+                    <WrapPanel x:Name="RootActions" Margin="0,6,0,0"/>
+                    <StackPanel x:Name="FamilyList"/>
+                    <TextBlock x:Name="NoteText" Foreground="{DynamicResource LinkBrush}" FontSize="12" TextWrapping="Wrap" Margin="1,8,0,0" Visibility="Collapsed" AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

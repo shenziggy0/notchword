@@ -166,7 +166,7 @@ public partial class NotebookWindow : Window
             }
             new Window
             {
-                Owner = this, Title = "复习", Width = 475, SizeToContent = SizeToContent.Height,
+                Style = (Style)FindResource("PageWindow"), Owner = this, Title = "复习", Width = 475, SizeToContent = SizeToContent.Height,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner, ShowInTaskbar = false,
                 Content = content
             }.ShowDialog();

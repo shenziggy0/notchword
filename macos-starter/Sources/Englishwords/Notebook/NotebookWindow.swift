@@ -195,9 +195,10 @@ struct NotebookView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             ViewThatFits(in: .horizontal) {
-                HStack(spacing: 24) { heading; Spacer(minLength: 0); navigation }
-                VStack(alignment: .leading, spacing: 12) { heading; navigation }
+                HStack(spacing: 12) { navigation; Spacer(minLength: 0); reviewActions }
+                VStack(alignment: .leading, spacing: 8) { navigation; reviewActions }
             }
+            heading
             if let error = model.error {
                 HStack(spacing: 10) {
                     Image(systemName: "exclamationmark.circle").accessibilityHidden(true)
@@ -206,18 +207,6 @@ struct NotebookView: View {
                 }
                 .padding(12)
                 .background(Lexicon.surface, in: RoundedRectangle(cornerRadius: 12))
-            }
-            HStack {
-                Button("复习 3 个词") {
-                    loadingReview = true
-                    Task {
-                        defer { loadingReview = false }
-                        await model.startReview()
-                        revealed = []
-                        reviewing = model.reviewStarted
-                    }
-                }.disabled(loadingReview)
-                if reviewing { Button("返回笔记本") { reviewing = false } }
             }
             Group {
                 if reviewing { reviewList }
@@ -231,13 +220,33 @@ struct NotebookView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .padding(24)
+        .padding(18)
         .lexiconPage()
         .confirmationDialog("移除收藏及该词的例句？", isPresented: $confirmsRemoval) {
             Button("移除收藏", role: .destructive) {
                 if let word = pendingRemoval { Task { await model.setFavorite(word, on: false) } }
             }
         }
+    }
+
+    private var reviewActions: some View {
+        Button {
+            if reviewing {
+                reviewing = false
+            } else {
+                loadingReview = true
+                Task {
+                    defer { loadingReview = false }
+                    await model.startReview()
+                    revealed = []
+                    reviewing = model.reviewStarted
+                }
+            }
+        } label: {
+            Label(reviewing ? "返回笔记本" : "复习 3 个词", systemImage: reviewing ? "chevron.backward" : "rectangle.stack")
+        }
+        .buttonStyle(.borderedProminent)
+        .disabled(loadingReview)
     }
 
     private var reviewList: some View {
@@ -263,7 +272,7 @@ struct NotebookView: View {
         let context = example.context
         guard let range = Range(context.range, in: context.sentence) else { return Text(context.sentence) }
         return Text(String(context.sentence[..<range.lowerBound])) +
-            Text(String(context.sentence[range])).bold().foregroundColor(Lexicon.accent) +
+            Text(String(context.sentence[range])).bold().foregroundColor(Lexicon.link) +
             Text(String(context.sentence[range.upperBound...]))
     }
 
@@ -281,10 +290,10 @@ struct NotebookView: View {
 
     private var heading: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(page.title)
-                .font(.largeTitle.bold())
+            Text(reviewing ? "单词复习" : page.title)
+                .font(.system(size: 17, weight: .semibold))
                 .accessibilityAddTraits(.isHeader)
-            if model.didLoad {
+            if model.didLoad && !reviewing {
                 Group {
                     switch page {
                     case .favorites: Text("已收藏 \(model.favorites.count) 个单词")
@@ -302,10 +311,11 @@ struct NotebookView: View {
     private var navigation: some View {
         HStack(spacing: 2) {
             ForEach(NotebookPage.allCases, id: \.self) { item in
-                let selected = page == item
+                let selected = page == item && !reviewing
                 Button {
-                    guard !selected else { return }
-                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.28)) {
+                    guard !selected || reviewing else { return }
+                    withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14)) {
+                        reviewing = false
                         model.page = item
                     }
                 } label: {
@@ -314,12 +324,12 @@ struct NotebookView: View {
                         Text(item.rawValue)
                     }
                     .font(.system(.callout, weight: .semibold))
-                    .foregroundStyle(selected ? Lexicon.accent : .primary)
+                    .foregroundStyle(selected ? Lexicon.ink : Lexicon.secondary)
                     .padding(.horizontal, 12)
                     .frame(minHeight: 33)
                     .background {
                         if selected {
-                            Capsule().fill(Lexicon.accent.opacity(0.14))
+                            Capsule().fill(Lexicon.subtle)
                                 .matchedGeometryEffect(id: "selected", in: tabSelection)
                         }
                     }
@@ -361,9 +371,9 @@ struct NotebookView: View {
                 }
             }
             .padding(.horizontal, 13)
-            .frame(height: 38)
-            .background(Lexicon.surface, in: Capsule())
-            .overlay(Capsule().strokeBorder(searching ? Lexicon.accent : Lexicon.hairline,
+            .frame(height: 32)
+            .background(Lexicon.surface, in: RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(searching ? Lexicon.focus : Lexicon.edge,
                                             lineWidth: searching ? 2 : 1).allowsHitTesting(false))
 
             if words.isEmpty {
@@ -480,7 +490,7 @@ struct NotebookView: View {
                                     .frame(width: 15, height: 66)
                                     Text(today ? "今天" : day.date.formatted(.dateTime.day()))
                                         .font(.callout.weight(today ? .semibold : .regular))
-                                        .foregroundStyle(today ? Lexicon.accent : Lexicon.secondary)
+                                        .foregroundStyle(today ? Lexicon.link : Lexicon.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .accessibilityElement(children: .ignore)
@@ -535,7 +545,7 @@ struct NotebookView: View {
 
 private extension View {
     func notebookSurface() -> some View {
-        let shape = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         return background(Lexicon.surface, in: shape)
             .clipShape(shape).overlay(shape.strokeBorder(Lexicon.hairline).allowsHitTesting(false))
     }

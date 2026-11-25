@@ -19,6 +19,16 @@
                         <Border Style="{StaticResource ContentCard}">
                             <StackPanel>
                                 <DockPanel Margin="0,0,0,8">
+                                    <TextBlock Text="主题" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="ThemeCombo" SelectedValuePath="Tag" HorizontalAlignment="Right"
+                                              AutomationProperties.Name="主题" SelectionChanged="ThemeCombo_SelectionChanged">
+                                        <ComboBoxItem Content="跟随系统" Tag="System"/>
+                                        <ComboBoxItem Content="浅色" Tag="Light"/>
+                                        <ComboBoxItem Content="深色" Tag="Dark"/>
+                                    </ComboBox>
+                                </DockPanel>
+                                <Border Style="{StaticResource RowRule}" Margin="0,0,0,8"/>
+                                <DockPanel Margin="0,0,0,8">
                                     <TextBlock Text="面板位置" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <ComboBox x:Name="PanelStyleCombo" HorizontalAlignment="Right" AutomationProperties.Name="面板位置" SelectionChanged="PanelStyleCombo_SelectionChanged">
                                         <ComboBoxItem Content="屏幕顶部刘海" Tag="Notch"/>

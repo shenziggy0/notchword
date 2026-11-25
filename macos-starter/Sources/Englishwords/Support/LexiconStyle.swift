@@ -3,23 +3,20 @@ import CoreText
 import SwiftUI
 
 enum Lexicon {
-    static let page = adaptive(0xF2F3F8, 0x14161E)
-    static let surface = adaptive(0xFFFFFF, 0x21242F)
-    static let accent = adaptive(0x265BC8, 0xA0C2FF)
-    static let secondary = adaptive(0x525E70, 0xB1BBCD)
-    static let hairline = adaptive(0xCBD2DE, 0x444A59)
-
-    static let ink = color(0x0A0D14)
-    static let indigo = color(0x294D91)
-    static let onDarkAccent = color(0xA8C7FF)
-    static let notchText = color(0xF4F6FC)
-    static let notchSecondary = color(0xB9C3D3)
-    static let notchMuted = color(0xA5AFC1)
-    static let notchBase = color(0x1A202C)
-
-    private static func color(_ rgb: Int) -> Color {
-        Color(nsColor: nsColor(rgb))
-    }
+    static let page = adaptive(0xFBFBFB, 0x101011)
+    static let surface = adaptive(0xFFFFFF, 0x141416)
+    static let subtle = adaptive(0xF3F3F4, 0x222224)
+    static let ink = adaptive(0x1D1D1F, 0xF0EFED)
+    static let secondary = adaptive(0x3C3C43, 0xCFCECC)
+    static let hairline = adaptive(0xEAEAEA, 0x2C2C2F)
+    static let edge = adaptive(0xD6D6DA, 0x414145)
+    static let accent = adaptive(0x2F6FEB, 0x3672D6)
+    // 小字号蓝字在浅色实底和深色选中底上都须保持可读。
+    static let link = adaptive(0x255BC1, 0xA4C6FF)
+    static let selected = adaptive(0xE8F0FE, 0x203451)
+    static let focus = adaptive(0x3B82F6, 0x88B3FF)
+    static let glassWash = Color.white.opacity(0.82)
+    static let glassHighlight = Color.white.opacity(0.88)
 
     private static func adaptive(_ light: Int, _ dark: Int) -> Color {
         Color(nsColor: NSColor(name: nil) { appearance in
@@ -46,34 +43,64 @@ extension EnvironmentValues {
     }
 }
 
+enum LexiconTheme: String, CaseIterable {
+    case system, light, dark
+    static let defaultsKey = "appearance.theme"
+
+    static var current: Self {
+        Self(rawValue: UserDefaults.standard.string(forKey: defaultsKey) ?? "") ?? .system
+    }
+
+    var label: String {
+        switch self {
+        case .system: "跟随系统"
+        case .light: "浅色"
+        case .dark: "深色"
+        }
+    }
+
+    @MainActor func apply() {
+        switch self {
+        case .system: NSApp.appearance = nil
+        case .light: NSApp.appearance = NSAppearance(named: .aqua)
+        case .dark: NSApp.appearance = NSAppearance(named: .darkAqua)
+        }
+    }
+}
+
 private struct ControlGlass<S: InsettableShape>: ViewModifier {
     let shape: S
-    let interactive: Bool
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.lexiconSnapshot) private var snapshot
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if snapshot || reduceTransparency || contrast == .increased {
-            content.background(Lexicon.surface, in: shape)
-                .overlay { shape.strokeBorder(Lexicon.secondary, lineWidth: contrast == .increased ? 1.5 : 1).allowsHitTesting(false) }
-        } else {
-            #if compiler(>=6.2)
-            if #available(macOS 26, *) {
-                content.glassEffect(.regular.interactive(interactive), in: shape)
+        content.background {
+            if snapshot || reduceTransparency || contrast == .increased {
+                shape.fill(Lexicon.surface)
             } else {
-                material(content)
+                glassBackground
+                    .overlay { shape.inset(by: 1).strokeBorder(Lexicon.glassHighlight, lineWidth: 1) }
             }
-            #else
-            material(content)
-            #endif
         }
+        .overlay { shape.strokeBorder(Lexicon.edge, lineWidth: 1).allowsHitTesting(false) }
+        .environment(\.colorScheme, .light)
     }
 
-    private func material(_ content: Content) -> some View {
-        content.background(.regularMaterial, in: shape)
-            .overlay { shape.strokeBorder(Lexicon.hairline.opacity(0.75), lineWidth: 1).allowsHitTesting(false) }
+    @ViewBuilder private var glassBackground: some View {
+        #if compiler(>=6.2)
+        if #available(macOS 26, *) {
+            Color.clear.glassEffect(.regular.tint(Lexicon.glassWash), in: shape)
+        } else {
+            frostedMaterial
+        }
+        #else
+        frostedMaterial
+        #endif
+    }
+
+    private var frostedMaterial: some View {
+        shape.fill(.regularMaterial).overlay { shape.fill(Lexicon.glassWash) }
     }
 }
 
@@ -84,28 +111,19 @@ extension View {
             .background(Lexicon.page)
     }
 
-    func lexiconGlass(in shape: some InsettableShape, interactive: Bool = false) -> some View {
-        modifier(ControlGlass(shape: shape, interactive: interactive))
+    func lexiconGlass(in shape: some InsettableShape) -> some View {
+        modifier(ControlGlass(shape: shape))
     }
 
     func notchSurface(compact: Bool = false) -> some View {
-        let radius: CGFloat = compact ? 18 : 28
+        let radius: CGFloat = compact ? 12 : 16
         let shape = UnevenRoundedRectangle(topLeadingRadius: 0, bottomLeadingRadius: radius,
                                            bottomTrailingRadius: radius, topTrailingRadius: 0)
-        return background(
-            LinearGradient(stops: [.init(color: .black, location: 0),
-                                   .init(color: Lexicon.ink, location: 0.35),
-                                   .init(color: Lexicon.notchBase, location: 1)],
-                           startPoint: .top, endPoint: .bottom)
-        )
-        .clipShape(shape)
-        .overlay {
-            shape.strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.08), .white.opacity(0.23)],
-                                              startPoint: .top, endPoint: .bottom), lineWidth: 1)
-                .allowsHitTesting(false)
-        }
-        .tint(Lexicon.onDarkAccent)
-        .environment(\.colorScheme, .dark)
+        return background(Lexicon.surface)
+            .clipShape(shape)
+            .overlay { shape.strokeBorder(Lexicon.edge, lineWidth: 1).allowsHitTesting(false) }
+            .tint(Lexicon.link)
+            .foregroundStyle(Lexicon.ink)
     }
 }
 
@@ -144,14 +162,12 @@ struct LexiconIconButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(active ? Lexicon.onDarkAccent : Lexicon.notchText)
-            .frame(width: 44, height: 44)
-            .background(active ? Lexicon.indigo : .clear, in: Circle())
-            .lexiconGlass(in: Circle(), interactive: true)
-            .contentShape(Circle())
-            .brightness(configuration.isPressed ? 0.12 : 0)
-            .opacity(enabled ? 1 : 0.48)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.93 : 1)
-            .animation(reduceMotion ? nil : .spring(duration: 0.22, bounce: 0.18), value: configuration.isPressed)
+            .foregroundStyle(active ? Lexicon.link : Lexicon.secondary)
+            .frame(width: 32, height: 32)
+            .background(active ? Lexicon.selected : Lexicon.subtle, in: RoundedRectangle(cornerRadius: 8))
+            .contentShape(Rectangle())
+            .opacity(enabled ? (configuration.isPressed ? 0.75 : 1) : 0.48)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.98 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

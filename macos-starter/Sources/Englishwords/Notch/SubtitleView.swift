@@ -10,10 +10,8 @@ struct SubtitleViewport: View {
 
     var body: some View {
         ScrollViewReader { scroll in
-            NotchViewport(width: width, topInset: topInset, maxHeight: maxHeight) {
-                subtitle.fixedSize(horizontal: false, vertical: true)
-                    .onGeometryChange(for: CGFloat.self, of: { $0.size.height }, action: onHeightChanged)
-                    .id("subtitle-top")
+            NotchViewport(width: width, topInset: topInset, maxHeight: maxHeight, onHeightChanged: onHeightChanged) {
+                subtitle.id("subtitle-top")
             }
             .onChange(of: tracker.currentCueID) {
                 scroll.scrollTo("subtitle-top", anchor: .top)
@@ -34,11 +32,11 @@ struct SubtitleView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
                 Image(systemName: "captions.bubble.fill")
-                    .foregroundStyle(Lexicon.onDarkAccent).accessibilityHidden(true)
+                    .foregroundStyle(Lexicon.link).accessibilityHidden(true)
                 Text("视频字幕").font(.headline).accessibilityAddTraits(.isHeader)
                 if tracker.current != nil {
                     Text("\(tracker.position + 1) / \(tracker.cues.count)")
-                        .monospacedDigit().font(.callout).foregroundStyle(Lexicon.notchSecondary)
+                        .monospacedDigit().font(.callout).foregroundStyle(Lexicon.secondary)
                 }
                 Spacer()
                 Button { tracker.move(by: -1) } label: { LexiconIcon(.previous, size: 16) }
@@ -61,6 +59,9 @@ struct SubtitleView: View {
                 }
             }
             .buttonStyle(LexiconIconButtonStyle())
+            .foregroundStyle(Lexicon.ink)
+            .padding(5)
+            .lexiconGlass(in: RoundedRectangle(cornerRadius: 10))
             if let cue = tracker.current {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(linkedWords(cue.text))
@@ -84,7 +85,7 @@ struct SubtitleView: View {
                         })
                     if !tracker.translation.isEmpty {
                         Text(tracker.translation).font(.system(size: translationSize))
-                            .lineSpacing(3).foregroundStyle(Lexicon.notchSecondary)
+                            .lineSpacing(3).foregroundStyle(Lexicon.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -92,11 +93,11 @@ struct SubtitleView: View {
                 .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: tracker.position)
             }
             Text(tracker.status)
-                .font(.system(size: 12, weight: .medium)).foregroundStyle(Lexicon.notchMuted)
+                .font(.system(size: 12, weight: .medium)).foregroundStyle(Lexicon.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, 24).padding(.top, 8).padding(.bottom, 18)
-        .foregroundStyle(Lexicon.notchText)
+        .padding(.horizontal, 18).padding(.top, 4).padding(.bottom, 12)
+        .foregroundStyle(Lexicon.ink)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 

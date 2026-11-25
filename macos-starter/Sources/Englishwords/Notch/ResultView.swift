@@ -60,16 +60,24 @@ struct NotchViewport<Content: View>: View {
     let topInset: CGFloat
     var maxHeight: CGFloat?
     var compact = false
+    var onHeightChanged: ((CGFloat) -> Void)? = nil
     @ViewBuilder let content: () -> Content
+
+    private var measuredContent: some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { onHeightChanged?($0) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             Color.clear.frame(height: topInset).accessibilityHidden(true)
             if let maxHeight {
-                ScrollView { content().frame(maxWidth: .infinity, alignment: .leading) }
+                ScrollView { measuredContent }
                     .frame(height: max(0, maxHeight - topInset))
             } else {
-                content()
+                measuredContent
             }
         }
         .frame(width: width, alignment: .topLeading)
@@ -98,6 +106,7 @@ struct ResultView: View {
     @ResultViewState private var exampleStatus = ""
     @ResultViewState private var savingInProgress = false
     var onBackToSubtitle: (() -> Void)? = nil
+    var onHeightChanged: ((CGFloat) -> Void)? = nil
     var onExpand: (() -> Void)? = nil
     var onDismiss: (() -> Void)? = nil
     var onAccessibilityFocusChanged: ((Bool) -> Void)? = nil
@@ -108,9 +117,9 @@ struct ResultView: View {
     @ObservedObject private var speaker = Speaker.shared
     @AccessibilityFocusState(for: .voiceOver) private var accessibilityFocus: Focus?
     @ResultViewState private var focusHeadingOnExpand = false
-    @ScaledMetric(relativeTo: .largeTitle) private var headwordSize: CGFloat = 35
-    @ScaledMetric(relativeTo: .body) private var definitionSize: CGFloat = 16
-    @ScaledMetric(relativeTo: .title2) private var translationSize: CGFloat = 21
+    @ScaledMetric(relativeTo: .largeTitle) private var headwordSize: CGFloat = 32
+    @ScaledMetric(relativeTo: .body) private var definitionSize: CGFloat = 15
+    @ScaledMetric(relativeTo: .title2) private var translationSize: CGFloat = 19
 
     private enum Focus: Hashable {
         case expand, back, heading, source, trigger, original, definition, note, speech, favorite, phonetic, input
@@ -118,7 +127,8 @@ struct ResultView: View {
     }
 
     var body: some View {
-        NotchViewport(width: width, topInset: topInset, maxHeight: maxHeight, compact: mode == .compact) {
+        NotchViewport(width: width, topInset: topInset, maxHeight: maxHeight,
+                      compact: mode == .compact, onHeightChanged: onHeightChanged) {
             if mode == .compact {
                 compactContent
             } else {
@@ -129,7 +139,7 @@ struct ResultView: View {
                                 .padding(.horizontal, 12).frame(minHeight: 32)
                         }
                         .buttonStyle(.plain)
-                        .lexiconGlass(in: Capsule(), interactive: true)
+                        .lexiconGlass(in: Capsule())
                         .accessibilityFocused($accessibilityFocus, equals: .back)
                         .padding(.bottom, 10)
                     }
@@ -139,9 +149,9 @@ struct ResultView: View {
                     }
                     expandedContent
                 }
-                .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 16)
+                .padding(.horizontal, 18)
+                .padding(.top, 4)
+                .padding(.bottom, 12)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -190,19 +200,19 @@ struct ResultView: View {
         HStack(spacing: 9) {
             Image(systemName: stateSymbol)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Lexicon.onDarkAccent)
+                .foregroundStyle(Lexicon.link)
                 .frame(width: 29, height: 29)
-                .background(Lexicon.onDarkAccent.opacity(0.13), in: Circle())
+                .background(Lexicon.selected, in: Circle())
             Text(compactTitle)
-                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Lexicon.notchText)
+                .font(.system(size: 15, weight: .semibold)).foregroundStyle(Lexicon.ink)
                 .lineLimit(1).truncationMode(.tail).layoutPriority(1)
             if !compactSubtitle.isEmpty {
                 Text(compactSubtitle)
-                    .font(.system(size: 12)).foregroundStyle(Lexicon.notchSecondary).lineLimit(1)
+                    .font(.system(size: 12)).foregroundStyle(Lexicon.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.down")
-                .font(.system(size: 10, weight: .bold)).foregroundStyle(Lexicon.notchMuted)
+                .font(.system(size: 10, weight: .bold)).foregroundStyle(Lexicon.secondary)
         }
         .padding(.horizontal, 15)
         .frame(minHeight: 46)
@@ -212,7 +222,7 @@ struct ResultView: View {
     private var stateSymbol: String {
         switch state {
         case .loading: "magnifyingglass"
-        case .result(_, let result): result.kind == .sentence ? "translate" : "book.closed.fill"
+        case .result(_, let result): result.kind == .sentence ? "translate" : "book.closed"
         case .miss: "text.magnifyingglass"
         case .failure: "exclamationmark.circle"
         }
@@ -242,28 +252,29 @@ struct ResultView: View {
         case .loading(let request):
             status(title: "正在查询", message: request.text)
         case .result(_, let result):
-            sourceLine(result.source, isSentence: result.kind == .sentence)
+            sourceLine(result)
             if result.kind == .sentence {
                 Text(result.originalText ?? result.input)
-                    .font(.system(size: definitionSize)).foregroundStyle(Lexicon.notchSecondary)
+                    .font(.system(size: definitionSize)).foregroundStyle(Lexicon.secondary)
                     .lineSpacing(3).fixedSize(horizontal: false, vertical: true)
                     .accessibilityFocused($accessibilityFocus, equals: .original)
                 Text(result.body)
-                    .font(.system(size: translationSize, weight: .medium)).foregroundStyle(Lexicon.notchText)
+                    .font(.system(size: translationSize, weight: .medium)).foregroundStyle(Lexicon.ink)
                     .lineSpacing(4).fixedSize(horizontal: false, vertical: true).padding(.top, 12)
                     .accessibilityFocused($accessibilityFocus, equals: .definition)
             } else {
                 header(result)
                 if let phrase = result.phrase {
-                    Text(phrase).foregroundStyle(Lexicon.onDarkAccent).padding(.top, 8)
+                    Text(phrase).foregroundStyle(Lexicon.link).padding(.top, 8)
                 }
                 ForEach(result.readings, id: \.self) { reading in
-                    Text(reading).foregroundStyle(Lexicon.notchText).padding(.top, 8)
+                    Text(reading).foregroundStyle(Lexicon.ink).padding(.top, 8)
                 }
                 Text(result.body)
-                    .font(.system(size: definitionSize)).foregroundStyle(Lexicon.notchText)
+                    .font(.system(size: definitionSize)).foregroundStyle(Lexicon.ink)
                     .lineSpacing(4).fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 14)
+                    .textSelection(.enabled)
+                    .padding(.top, 12)
                     .accessibilityFocused($accessibilityFocus, equals: .definition)
                 if let notebook, let word = result.notebookWord, let context = state.request.context,
                    context.selected.map({ TextFilter.normalizeWord($0) == result.input }) == true {
@@ -272,7 +283,7 @@ struct ResultView: View {
                 if showWordParts, !result.segments.isEmpty { morphology(result) }
             }
             if let note = result.note {
-                Text(note).font(.callout).foregroundStyle(Lexicon.onDarkAccent)
+                Text(note).font(.callout).foregroundStyle(Lexicon.link)
                     .fixedSize(horizontal: false, vertical: true).padding(.top, 10)
                     .accessibilityFocused($accessibilityFocus, equals: .note)
             }
@@ -309,32 +320,18 @@ struct ResultView: View {
         }.padding(.top, 10)
     }
 
-    private func sourceLine(_ name: String, isSentence: Bool) -> some View {
+    private func sourceLine(_ result: LookupResult) -> some View {
         HStack(spacing: 7) {
-            Image(systemName: stateSymbol).accessibilityHidden(true)
-            Text(name)
-                .accessibilityFocused($accessibilityFocus, equals: isSentence ? .heading : .source)
-            Spacer(minLength: 8)
-            Text(state.request.trigger.label).foregroundStyle(Lexicon.notchMuted)
+            Image(systemName: stateSymbol).foregroundStyle(Lexicon.link).accessibilityHidden(true)
+            Text(result.source)
+                .accessibilityFocused($accessibilityFocus, equals: result.kind == .sentence ? .heading : .source)
+            Spacer(minLength: 6)
+            Text(state.request.trigger.label)
+                .foregroundStyle(Lexicon.secondary)
                 .accessibilityFocused($accessibilityFocus, equals: .trigger)
-        }
-        .font(.system(size: 12, weight: .medium)).foregroundStyle(Lexicon.onDarkAccent)
-        .padding(.bottom, 13)
-    }
-
-    private func header(_ result: LookupResult) -> some View {
-        let title = result.title.isEmpty ? result.input : result.title
-        return VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .center, spacing: 8) {
-                Text(title)
-                    .font(.system(size: headwordSize, weight: .bold)).tracking(-1.1)
-                    .foregroundStyle(Lexicon.notchText)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityFocused($accessibilityFocus, equals: .heading)
+            if result.kind != .sentence {
                 Button {
-                    speaker.speak(title, voiceID: speechVoice, rate: speechRate)
+                    speaker.speak(result.title.isEmpty ? result.input : result.title, voiceID: speechVoice, rate: speechRate)
                 } label: {
                     LexiconIcon(speaker.speaking ? .stop : .volume, size: 17)
                 }
@@ -347,22 +344,42 @@ struct ResultView: View {
                         .accessibilityFocused($accessibilityFocus, equals: .favorite)
                 }
             }
+        }
+        .font(.system(size: 12, weight: .medium))
+        .foregroundStyle(Lexicon.ink)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .frame(minHeight: 32)
+        .lexiconGlass(in: RoundedRectangle(cornerRadius: 10))
+        .padding(.bottom, 14)
+    }
+
+    private func header(_ result: LookupResult) -> some View {
+        let title = result.title.isEmpty ? result.input : result.title
+        return VStack(alignment: .leading, spacing: 5) {
+            Text(title)
+                .font(.system(size: headwordSize, weight: .semibold)).tracking(-0.8)
+                .foregroundStyle(Lexicon.ink)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityFocused($accessibilityFocus, equals: .heading)
             if !result.phonetic.isEmpty || !result.pos.isEmpty {
                 Text([Self.displayPhonetic(result.phonetic), result.pos].filter { !$0.isEmpty }.joined(separator: "  ·  "))
-                    .font(.system(size: 14)).foregroundStyle(Lexicon.notchSecondary)
+                    .font(.system(size: 14)).foregroundStyle(Lexicon.secondary)
                     .accessibilityFocused($accessibilityFocus, equals: .phonetic)
             }
             if !result.input.isEmpty, result.input != title.lowercased() {
-                Text("查询 \(result.input)").font(.callout).foregroundStyle(Lexicon.notchSecondary)
+                Text("查询 \(result.input)").font(.callout).foregroundStyle(Lexicon.secondary)
                     .accessibilityFocused($accessibilityFocus, equals: .input)
             }
             if !result.tags.isEmpty {
                 FlowLayout(spacing: 6, lineSpacing: 5) {
                     ForEach(result.tags, id: \.self) { tag in
-                        Text(tag).font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(Lexicon.onDarkAccent)
+                        Text(tag).font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Lexicon.secondary)
                             .padding(.horizontal, 8).padding(.vertical, 3)
-                            .background(Lexicon.onDarkAccent.opacity(0.13), in: Capsule())
+                            .background(Lexicon.subtle, in: Capsule())
                             .accessibilityFocused($accessibilityFocus, equals: .tag(tag))
                     }
                 }
@@ -374,9 +391,9 @@ struct ResultView: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 7) {
                 Text("词根词缀").fontWeight(.semibold).accessibilityAddTraits(.isHeader)
-                Text("\(result.segments.count) 段").foregroundStyle(Lexicon.notchMuted)
+                Text("\(result.segments.count) 段").foregroundStyle(Lexicon.secondary)
             }
-            .font(.system(size: 12)).foregroundStyle(Lexicon.notchText)
+            .font(.system(size: 12)).foregroundStyle(Lexicon.ink)
             .accessibilityElement(children: .combine)
             .accessibilityFocused($accessibilityFocus, equals: .morphology)
             FlowLayout(spacing: 7, lineSpacing: 7) {
@@ -395,7 +412,7 @@ struct ResultView: View {
                                     loadingFamily = false
                                 }
                             }
-                        } label: { SegmentChip(seg: segment) }
+                        } label: { SegmentChip(seg: segment, opensFamily: true) }
                         .buttonStyle(.plain)
                         .accessibilityHint("查看同族词")
                         .accessibilityFocused($accessibilityFocus, equals: .segment(index))
@@ -411,17 +428,20 @@ struct ResultView: View {
                 Text(heading).font(.callout.weight(.semibold))
                 ForEach(family, id: \.word) { item in
                     Button("\(item.word) · \(firstLine(item.translation))") { lookupRelated?(item.word, state.request) }
-                        .buttonStyle(.plain).foregroundStyle(Lexicon.onDarkAccent)
+                        .buttonStyle(.plain).foregroundStyle(Lexicon.link)
                 }
             }
             if !result.origin.isEmpty {
-                Text(result.origin).font(.callout).foregroundStyle(Lexicon.notchSecondary)
+                Text(result.origin).font(.callout).foregroundStyle(Lexicon.secondary)
                     .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel("词源，\(result.origin)")
                     .accessibilityFocused($accessibilityFocus, equals: .origin)
             }
         }
-        .padding(.top, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 12)
+        .overlay(alignment: .top) { Rectangle().fill(Lexicon.hairline).frame(height: 1) }
+        .padding(.top, 14)
     }
 
     private var footer: some View {
@@ -429,7 +449,7 @@ struct ResultView: View {
             HStack(spacing: 7) {
                 Text(lookupShortcut).font(.system(size: 11, weight: .semibold, design: .rounded))
                     .padding(.horizontal, 7).padding(.vertical, 3)
-                    .background(.white.opacity(0.09), in: RoundedRectangle(cornerRadius: 5))
+                    .background(Lexicon.subtle, in: RoundedRectangle(cornerRadius: 5))
                 Text("查词")
             }
             .accessibilityElement(children: .combine)
@@ -443,16 +463,16 @@ struct ResultView: View {
                     }.padding(.horizontal, 12).frame(minHeight: 30)
                 }
                 .buttonStyle(.plain)
-                .lexiconGlass(in: Capsule(), interactive: true)
+                .lexiconGlass(in: Capsule())
                 .accessibilityLabel("收起面板")
                 .accessibilityFocused($accessibilityFocus, equals: .dismiss)
             } else {
                 Text("Esc  收起")
             }
         }
-        .font(.system(size: 12)).foregroundStyle(Lexicon.notchSecondary)
+        .font(.system(size: 12)).foregroundStyle(Lexicon.secondary)
         .padding(.top, 10)
-        .overlay(alignment: .top) { Rectangle().fill(.white.opacity(0.12)).frame(height: 1) }
+        .overlay(alignment: .top) { Rectangle().fill(Lexicon.hairline).frame(height: 1) }
         .padding(.top, 15)
     }
 
@@ -462,17 +482,17 @@ struct ResultView: View {
                 if case .loading = state, !isStaticPreview {
                     ProgressView().controlSize(.small).accessibilityHidden(true)
                 } else {
-                    Image(systemName: stateSymbol).foregroundStyle(Lexicon.onDarkAccent).accessibilityHidden(true)
+                    Image(systemName: stateSymbol).foregroundStyle(Lexicon.link).accessibilityHidden(true)
                 }
                 Text(title).font(.title3.weight(.semibold)).accessibilityAddTraits(.isHeader)
                     .accessibilityFocused($accessibilityFocus, equals: .heading)
             }
-            Text(message).font(.body).foregroundStyle(Lexicon.notchSecondary)
+            Text(message).font(.body).foregroundStyle(Lexicon.secondary)
                 .lineSpacing(3).fixedSize(horizontal: false, vertical: true).padding(.top, 9)
                 .accessibilityFocused($accessibilityFocus, equals: .definition)
             footer
         }
-        .foregroundStyle(Lexicon.notchText)
+        .foregroundStyle(Lexicon.ink)
     }
 
     /// ECDICT 的音标不带斜杠，展示时补上，保持词典排版习惯。
@@ -544,12 +564,13 @@ struct FlowLayout: Layout {
 
 struct SegmentChip: View {
     let seg: Segment
+    var opensFamily = false
 
-    private var role: (name: String, tint: Color) {
+    private var roleName: String {
         switch seg.role {
-        case "prefix": ("前缀", Lexicon.onDarkAccent)
-        case "suffix": ("后缀", Color(red: 0.80, green: 0.74, blue: 1))
-        default:       ("词根", Color(red: 0.59, green: 0.86, blue: 0.82))
+        case "prefix": "前缀"
+        case "suffix": "后缀"
+        default: "词根"
         }
     }
 
@@ -557,13 +578,17 @@ struct SegmentChip: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 6) {
                 Text(seg.label).font(.system(size: 16, weight: .semibold, design: .rounded))
-                Text(role.name).font(.system(size: 11, weight: .medium)).foregroundStyle(role.tint)
+                if opensFamily {
+                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(Lexicon.link).accessibilityHidden(true)
+                }
+                Text(roleName).font(.system(size: 11)).foregroundStyle(Lexicon.secondary)
             }
-            Text(seg.gloss).font(.system(size: 12)).foregroundStyle(Lexicon.notchSecondary)
+            Text(seg.gloss).font(.system(size: 12)).foregroundStyle(Lexicon.secondary)
         }
-        .foregroundStyle(Lexicon.notchText)
+        .foregroundStyle(Lexicon.ink)
         .padding(.horizontal, 11).padding(.vertical, 8)
-        .background(role.tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 11))
+        .background(seg.role == "root" ? Lexicon.selected : Lexicon.subtle, in: RoundedRectangle(cornerRadius: 8))
         .accessibilityElement(children: .combine)
     }
 }

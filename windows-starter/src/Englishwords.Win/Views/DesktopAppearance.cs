@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using Englishwords.Core.Config;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -17,11 +18,13 @@ internal sealed class DesktopAppearance : IDisposable
 {
     private readonly System.Windows.Application _app;
     private readonly UISettings _settings = new();
+    private readonly Preferences _preferences;
     private bool _dark;
 
-    public DesktopAppearance(System.Windows.Application app)
+    public DesktopAppearance(System.Windows.Application app, Preferences preferences)
     {
         _app = app;
+        _preferences = preferences;
         Refresh();
         _settings.ColorValuesChanged += OnAppearanceChanged;
         _settings.AdvancedEffectsEnabledChanged += OnAppearanceChanged;
@@ -36,10 +39,15 @@ internal sealed class DesktopAppearance : IDisposable
             _app.Dispatcher.InvokeAsync(Refresh);
     }
 
-    private void Refresh()
+    public void Refresh()
     {
         var background = _settings.GetColorValue(UIColorType.Background);
-        _dark = (background.R + background.G + background.B) < 3 * 128;
+        _dark = _preferences.Theme switch
+        {
+            AppTheme.Dark => true,
+            AppTheme.Light => false,
+            _ => background.R + background.G + background.B < 3 * 128
+        };
         var contrast = SystemParameters.HighContrast;
         var window = WpfSystemColors.WindowColor;
         var text = WpfSystemColors.WindowTextColor;
@@ -54,52 +62,42 @@ internal sealed class DesktopAppearance : IDisposable
             _app.Resources[key] = brush;
         }
 
-        Set("CanvasBrush", "#F2F4F9", "#14161F", window);
-        Set("SurfaceBrush", "#FFFFFF", "#212532", window);
-        Set("TextBrush", "#151B2B", "#F4F6FF", text);
-        Set("SecondaryBrush", "#505C73", "#BCC5DD", text);
-        Set("RuleBrush", "#D9DEEA", "#3B4255", text);
-        Set("AccentBrush", "#2458AD", "#A9C6FF", selected);
-        Set("TintBrush", "#E5EDFF", "#2F405F", selected);
-        Set("TintTextBrush", "#174C97", "#D2E1FF", selectedText);
-        Set("ControlBrush", "#EBEFF7", "#323848", window);
-        Set("HoverBrush", "#DFE7F6", "#3B4560", selected);
-        Set("HoverTextBrush", "#151B2B", "#F4F6FF", selectedText);
-        Set("SelectedBrush", "#FFFFFF", "#4C5875", selected);
-        Set("SelectedTextBrush", "#183F85", "#FFFFFF", selectedText);
-        Set("SwitchOffBrush", "#707D91", "#708098", text);
-        Set("SwitchOnBrush", "#2860BD", "#4775D2", selected);
+        Set("CanvasBrush", "#FBFBFB", "#101011", window);
+        Set("SurfaceBrush", "#FFFFFF", "#141416", window);
+        Set("TextBrush", "#1D1D1F", "#F0EFED", text);
+        Set("SecondaryBrush", "#3C3C43", "#CFCECC", text);
+        Set("RuleBrush", "#EAEAEA", "#2C2C2F", text);
+        Set("FieldEdgeBrush", "#D6D6DA", "#414145", text);
+        Set("AccentBrush", "#2F6FEB", "#3672D6", selected);
+        Set("AccentHoverBrush", "#2560D6", "#326AC6", selected);
+        Set("OnAccentBrush", "#FFFFFF", "#FFFFFF", selectedText);
+        Set("FocusBrush", "#3B82F6", "#88B3FF", selected);
+        Set("TintBrush", "#E8F0FE", "#203451", selected);
+        Set("TintTextBrush", "#255BC1", "#A4C6FF", selectedText);
+        Set("LinkBrush", "#255BC1", "#A4C6FF", text);
+        Set("ControlBrush", "#F3F3F4", "#222224", window);
+        Set("HoverBrush", "#EBEBED", "#29292D", selected);
+        Set("HoverTextBrush", "#1D1D1F", "#F0EFED", selectedText);
+        Set("SwitchOffBrush", "#737378", "#74747C", text);
+        Set("SwitchOnBrush", "#2F6FEB", "#3672D6", selected);
         Set("SwitchKnobBrush", "#FFFFFF", "#FFFFFF", window);
         Set("SwitchOnKnobBrush", "#FFFFFF", "#FFFFFF", selectedText);
-        Set("FieldEdgeBrush", "#8590A6", "#758199", text);
-        Set("PanelBrush", "#131722", "#131722", window);
-        Set("PanelTextBrush", "#F4F6FF", "#F4F6FF", text);
-        Set("PanelMutedBrush", "#C0C9DE", "#C0C9DE", text);
-        Set("PanelAccentBrush", "#ACC9FF", "#ACC9FF", text);
-        Set("PanelRuleBrush", "#465167", "#465167", text);
-        Set("PanelControlBrush", "#2C3445", "#2C3445", window);
-        Set("PanelTintBrush", "#2C426B", "#2C426B", selected);
-        Set("PanelTintTextBrush", "#D7E5FF", "#D7E5FF", selectedText);
+        Set("GlassInkBrush", "#3C3C43", "#3C3C43", text);
+        Set("GlassSurfaceBrush", "#FFFFFF", "#FFFFFF", window);
+        Set("GlassSelectionBrush", "#EBEBED", "#EBEBED", selected);
+        Set("GlassSelectedTextBrush", "#1D1D1F", "#1D1D1F", selectedText);
         Set("SelectionLineBrush", "#BCD5FF", "#BCD5FF", selected);
         Set("SelectionWashBrush", "#283775CC", "#283775CC", WpfColor.FromArgb(0, 0, 0, 0));
 
-        void Material(string key, string solidKey, string lightTop, string lightBottom, string darkTop, string darkBottom)
+        // WPF 的这两个区域没有系统背景模糊，用中性磨砂底模拟表面高光。
+        if (contrast || !_settings.AdvancedEffectsEnabled)
+            _app.Resources["NavigationGlass"] = _app.Resources["GlassSurfaceBrush"];
+        else
         {
-            if (contrast || !_settings.AdvancedEffectsEnabled)
-            {
-                _app.Resources[key] = _app.Resources[solidKey];
-                return;
-            }
-
-            var top = (WpfColor)System.Windows.Media.ColorConverter.ConvertFromString(_dark ? darkTop : lightTop);
-            var bottom = (WpfColor)System.Windows.Media.ColorConverter.ConvertFromString(_dark ? darkBottom : lightBottom);
-            var material = new LinearGradientBrush(top, bottom, 78);
+            var material = new LinearGradientBrush(WpfColor.FromRgb(255, 255, 255), WpfColor.FromRgb(243, 243, 244), 90);
             material.Freeze();
-            _app.Resources[key] = material;
+            _app.Resources["NavigationGlass"] = material;
         }
-
-        Material("NavigationGlass", "ControlBrush", "#F5FFFFFF", "#C9D9E3F7", "#EB373E52", "#D2232634");
-        Material("NotchGlass", "PanelControlBrush", "#F4394358", "#E4272E3C", "#F4394358", "#E4272E3C");
         foreach (Window openWindow in _app.Windows)
             ApplyTitleBar(openWindow);
     }
@@ -153,7 +151,7 @@ internal sealed class DesktopAppearance : IDisposable
     {
         var translate = new TranslateTransform();
         element.RenderTransform = translate;
-        translate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(fromX, 0, TimeSpan.FromMilliseconds(180))
+        translate.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(fromX, 0, TimeSpan.FromMilliseconds(140))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop
         });
@@ -168,11 +166,11 @@ internal sealed class DesktopAppearance : IDisposable
             return;
         }
 
-        var duration = TimeSpan.FromMilliseconds(190);
+        var duration = TimeSpan.FromMilliseconds(180);
         var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
         var translate = new TranslateTransform();
         content.RenderTransform = translate;
-        translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(5, 0, duration) { EasingFunction = ease, FillBehavior = FillBehavior.Stop });
+        translate.BeginAnimation(TranslateTransform.YProperty, new DoubleAnimation(4, 0, duration) { EasingFunction = ease, FillBehavior = FillBehavior.Stop });
         content.BeginAnimation(UIElement.OpacityProperty, new DoubleAnimation(0.45, 1, duration) { EasingFunction = ease, FillBehavior = FillBehavior.Stop });
     }
 }

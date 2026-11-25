@@ -76,6 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - 生命周期
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        LexiconTheme.current.apply()
         Task {
             installationPermissionMessage = await Permissions.resetAfterManualInstallation()
             finishLaunching()
@@ -247,31 +248,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - 菜单栏
 
-    /// 菜单栏使用词页的单色剪影，放宽书脊留白以适应 18pt 显示。
+    /// 18pt 的单色书封保留 E 字的三个横笔，与应用图标共享轮廓。
     private static func makeStatusBarIcon() -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
-            let pages = NSBezierPath()
-            pages.move(to: NSPoint(x: 8.2, y: 15.6))
-            pages.curve(to: NSPoint(x: 2.3, y: 13.0),
-                        controlPoint1: NSPoint(x: 6.7, y: 14.0), controlPoint2: NSPoint(x: 4.4, y: 13.6))
-            pages.curve(to: NSPoint(x: 1.0, y: 11.5), controlPoint: NSPoint(x: 1.0, y: 12.8))
-            pages.line(to: NSPoint(x: 1.0, y: 5.1))
-            pages.curve(to: NSPoint(x: 2.8, y: 3.7), controlPoint: NSPoint(x: 1.0, y: 3.5))
-            pages.curve(to: NSPoint(x: 8.2, y: 6.4), controlPoint: NSPoint(x: 6.0, y: 3.8))
-            pages.close()
-
-            pages.move(to: NSPoint(x: 9.8, y: 15.6))
-            pages.line(to: NSPoint(x: 9.8, y: 6.1))
-            pages.curve(to: NSPoint(x: 16.0, y: 2.1),
-                        controlPoint1: NSPoint(x: 10.6, y: 4.5), controlPoint2: NSPoint(x: 13.9, y: 2.6))
-            pages.curve(to: NSPoint(x: 17.0, y: 3.0), controlPoint: NSPoint(x: 17.0, y: 1.8))
-            pages.line(to: NSPoint(x: 17.0, y: 11.0))
-            pages.curve(to: NSPoint(x: 15.6, y: 12.8), controlPoint: NSPoint(x: 17.0, y: 12.4))
-            pages.curve(to: NSPoint(x: 9.8, y: 15.6), controlPoint: NSPoint(x: 11.6, y: 13.8))
-            pages.close()
-
+            let cover = NSBezierPath(roundedRect: NSRect(x: 2, y: 1, width: 14, height: 16),
+                                     xRadius: 3, yRadius: 3)
+            cover.windingRule = .evenOdd
+            let letter = NSBezierPath()
+            let points = [(6, 4), (13, 4), (13, 6), (8, 6), (8, 8), (12, 8),
+                          (12, 10), (8, 10), (8, 12), (13, 12), (13, 14), (6, 14)]
+            for (index, point) in points.enumerated() {
+                let vertex = NSPoint(x: point.0, y: point.1)
+                if index == 0 { letter.move(to: vertex) } else { letter.line(to: vertex) }
+            }
+            letter.close()
+            cover.append(letter)
             NSColor.black.setFill()
-            pages.fill()
+            cover.fill()
             return true
         }
         image.isTemplate = true

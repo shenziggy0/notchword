@@ -5,6 +5,8 @@ using Englishwords.Core.Translate;
 
 namespace Englishwords.Core.Config;
 
+public enum AppTheme { System, Light, Dark }
+
 public enum PanelStyle
 {
     Notch,
@@ -44,6 +46,7 @@ public sealed class Preferences
         Converters = { new JsonStringEnumConverter() }
     };
 
+    public AppTheme Theme { get; set; } = AppTheme.System;
     public PanelStyle PanelStyle { get; set; } = PanelStyle.Notch;
     public bool SelectionLookupEnabled { get; set; } = true;
     public bool AutoHideEnabled { get; set; } = true;
