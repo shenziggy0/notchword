@@ -290,8 +290,35 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.resolve-version.outputs.tag }}
           VERSION: ${{ needs.resolve-version.outputs.version }}
+          BUILD_COMMIT: ${{ needs.resolve-version.outputs.commit }}
         run: |
           set -euo pipefail
+
+          verify_remote_tag() {
+            local object type sha
+            local endpoint="repos/$GH_REPO/git/ref/tags/$TAG"
+            while true; do
+              if ! object="$(gh api "$endpoint" --jq '[.object.type, .object.sha] | @tsv')"; then
+                echo "::error::无法读取远端 tag ${TAG}（构建提交 ${BUILD_COMMIT}）。"
+                return 1
+              fi
+              IFS=$'\t' read -r type sha <<< "$object"
+              case "$type" in
+                commit) break ;;
+                tag) endpoint="repos/$GH_REPO/git/tags/$sha" ;;
+                *)
+                  echo "::error::远端 tag $TAG 的对象类型无效：${type:-未知}（构建提交 ${BUILD_COMMIT}）。"
+                  return 1
+                  ;;
+              esac
+            done
+
+            if [[ "$sha" != "$BUILD_COMMIT" ]]; then
+              echo "::error::远端 tag $TAG 指向 ${sha:-未知}，与构建提交 $BUILD_COMMIT 不一致。"
+              return 1
+            fi
+          }
+
           assets=(
             "release-assets/Englishwords-${VERSION}-universal.dmg"
             "release-assets/Englishwords-${VERSION}-universal.dmg.sha256"
@@ -311,9 +338,11 @@ jobs:
               exit 1
             fi
             echo "更新 Release $TAG 草稿的同名附件。"
+            verify_remote_tag
             gh release upload "$TAG" "${assets[@]}" --clobber
           else
             echo "创建 Release $TAG 草稿。"
+            verify_remote_tag
             gh release create "$TAG" "${assets[@]}" \
               --draft \
               --verify-tag \

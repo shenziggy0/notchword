@@ -123,7 +123,9 @@ cd windows-starter
 
 3. GitHub Actions 的 Package 会先校验该 tag 上的发布说明，再构建 macOS 和 Windows 安装包。构建成功后在对应 Release 草稿中核对安装包，再手动发布。
 
-补跑时在 **Actions → Package → Run workflow → Use workflow from** 选择对应版本 tag。已有草稿会更新同名附件并保留正文。同一版本公开后，后续打包请使用新版本 tag。
+补跑采用所选 tag 保存的工作流。对于包含新版工作流的 tag，在 **Actions → Package → Run workflow → Use workflow from** 选择对应版本。已有草稿会更新同名附件并保留正文。
+
+历史版本 `v0.5.2` 和 `v0.5.3` 的旧工作流会覆盖已公开 Release 的同名附件。同一版本公开后，请使用新版本 tag 打包。
 
 ### 自检命令
 
